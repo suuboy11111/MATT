@@ -1,2 +1,2 @@
-web: dotnet MaiAmTinhThuong.dll
+web: dotnet ./publish/MaiAmTinhThuong.dll
 
