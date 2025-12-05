@@ -1,0 +1,175 @@
+﻿@model MaiAmTinhThuong.Models.ViewModels.ProfileViewModel
+
+@{
+    ViewData["Title"] = "Cập nhật thông tin tài khoản";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem; font-weight: 600;">CẬP NHẬT THÔNG TIN TÀI KHOẢN</h2>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Message"]
+        </div>
+    }
+
+    <form method="post" enctype="multipart/form-data" class="profile-form">
+        <!-- Họ và Tên -->
+        <div class="mb-4">
+            <label for="FullName" class="form-label">Họ và Tên</label>
+            <input type="text" class="form-control" id="FullName" name="FullName" value="@Model.FullName" required />
+        </div>
+
+        <!-- Ảnh đại diện -->
+        <div class="mb-4 text-center">
+            <label for="profilePicture" class="form-label">Ảnh đại diện</label>
+            <div class="d-flex flex-column align-items-center mb-3">
+                @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                {
+                    <img src="@Model.ProfilePicture" class="img-thumbnail rounded-circle profile-img" width="180" height="180" />
+                }
+                else
+                {
+                    <img src="/images/default1-avatar.png" class="img-thumbnail rounded-circle profile-img" width="180" height="180" />
+                }
+                <input type="file" class="form-control mt-3" id="profilePicture" name="profilePicture" />
+            </div>
+            <button type="button" class="btn btn-outline-danger mt-2" onclick="deleteProfilePicture()">Xóa ảnh đại diện</button>
+        </div>
+        <style>
+            .profile-img {
+                object-fit: cover; /* Đảm bảo ảnh luôn đầy trong khung mà không bị méo */
+                border-radius: 50%; /* Bo tròn ảnh */
+                width: 180px; /* Đặt chiều rộng ảnh */
+                height: 180px; /* Đặt chiều cao ảnh */
+            }
+        </style>
+
+        <!-- Nút thay đổi mật khẩu -->
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-secondary w-100 mt-3" onclick="togglePasswordFields()">Thay đổi mật khẩu</button>
+        </div>
+
+        <!-- Thay đổi mật khẩu (ẩn/hiện) -->
+        <div id="passwordFields" style="display:none;">
+            <div class="mb-3">
+                <label for="CurrentPassword" class="form-label">Mật khẩu hiện tại</label>
+                <input type="password" class="form-control" id="CurrentPassword" name="CurrentPassword" />
+            </div>
+
+            <div class="mb-3">
+                <label for="NewPassword" class="form-label">Mật khẩu mới</label>
+                <input type="password" class="form-control" id="NewPassword" name="NewPassword" />
+            </div>
+
+            <div class="mb-3">
+                <label for="ConfirmPassword" class="form-label">Xác nhận mật khẩu mới</label>
+                <input type="password" class="form-control" id="ConfirmPassword" name="ConfirmPassword" />
+            </div>
+        </div>
+
+        <!-- Nút Cập nhật thông tin -->
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">Cập nhật thông tin</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Hàm ẩn/hiện phần thay đổi mật khẩu
+    function togglePasswordFields() {
+        var passwordFields = document.getElementById('passwordFields');
+        if (passwordFields.style.display === "none") {
+            passwordFields.style.display = "block";
+        } else {
+            passwordFields.style.display = "none";
+        }
+    }
+
+    // Hàm xóa ảnh đại diện
+    function deleteProfilePicture() {
+        if (confirm("Bạn có chắc chắn muốn xóa ảnh đại diện của mình?")) {
+            fetch('/Account/DeleteProfilePicture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload(); // Tải lại trang để cập nhật ảnh đại diện
+                } else {
+                    alert("Xóa ảnh đại diện thất bại!");
+                }
+            });
+        }
+    }
+</script>
+
+<style>
+    /* Cải thiện giao diện của form */
+    .profile-form {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333333;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 1rem;
+        border: 1px solid #ddd;
+    }
+
+        .form-control:focus {
+            border-color: #87cefa;
+            box-shadow: 0 0 5px rgba(135, 206, 250, 0.6);
+            outline: none;
+        }
+
+    .profile-img {
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    /* Các nút */
+    .btn-outline-secondary, .btn-outline-danger {
+        border-radius: 30px;
+        padding: 12px 25px;
+        font-weight: 500;
+        text-transform: uppercase;
+        width: 100%;
+    }
+
+    .btn-primary {
+        background-color: #87cefa;
+        border-color: #87cefa;
+    }
+
+        .btn-primary:hover {
+            background-color: #f1b6b3;
+            border-color: #f1b6b3;
+        }
+
+    /* Hover effects */
+    .btn-outline-secondary:hover, .btn-outline-danger:hover {
+        background-color: #f1b6b3;
+        border-color: #f1b6b3;
+    }
+</style>

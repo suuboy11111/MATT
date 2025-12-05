@@ -1,0 +1,40 @@
+﻿@model IEnumerable<MaiAmTinhThuong.Models.BlogPost>
+
+@foreach (var item in Model)
+{
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            @if (!string.IsNullOrEmpty(item.ImageUrl))
+            {
+                <img src="@item.ImageUrl" class="card-img-top" alt="Blog Image" />
+            }
+            <div class="card-body">
+                <h5 class="card-title">@item.Title</h5>
+                <p class="card-text">
+                    @if (item.Content.Length > 100)
+                    {
+                        @($"{item.Content.Substring(0, 100)}... ({item.CreatedAt.ToString("MM/dd/yyyy")})")
+                    }
+                    else
+                    {
+                        @($"{item.Content} ({item.CreatedAt.ToString("MM/dd/yyyy")})")
+                    }
+                </p>
+            </div>
+            <div class="card-footer">
+                <form method="post" action="@Url.Action("Like", "Blog")">
+                    <input type="hidden" name="blogPostId" value="@item.Id" />
+                    @if (item.LikedByUser)
+                    {
+                        <button class="btn btn-outline-danger" type="submit">Unlike</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-primary" type="submit">Like</button>
+                    }
+                </form>
+                <span>@item.LikeCount Likes</span>
+            </div>
+        </div>
+    </div>
+}

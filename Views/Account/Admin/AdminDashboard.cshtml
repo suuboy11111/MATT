@@ -1,0 +1,113 @@
+﻿@{
+    ViewData["Title"] = "TRANG QUẢN LÝ ADMIN";
+}
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem;">TRANG QUẢN LÝ ADMIN</h2>
+
+    <div class="row justify-content-center">
+        <!-- Sidebar -->
+        <div class="col-md-6">
+            <div class="list-group shadow-sm rounded">
+                <a href="@Url.Action("ManageAccounts", "Admin")" class="list-group-item list-group-item-action sidebar-link">
+                    <i class="fas fa-users"></i> Quản lý tài khoản
+                </a>
+                <a href="@Url.Action("Manage", "MaiAmAdmin")" class="list-group-item list-group-item-action sidebar-link">
+                    <i class="fas fa-home"></i> Quản lý Mái ấm
+                </a>
+                <a href="@Url.Action("ManageBlogPosts", "Admin")" class="list-group-item list-group-item-action sidebar-link">
+                    <i class="fas fa-blog"></i> Quản lý bài viết
+                </a>
+                <a href="@Url.Action("ContactResponses", "Admin")" class="list-group-item list-group-item-action sidebar-link">
+                    <i class="fas fa-comments"></i> Nhận phản hồi từ liên hệ
+                </a>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="col-md-8">
+            <!-- Nội dung quản lý sẽ hiển thị tại đây -->
+        </div>
+    </div>
+
+    <!-- Quay lại trang chủ -->
+    <div class="mt-4 text-center">
+        <a class="btn btn-primary btn-lg" href="@Url.Action("Index", "Home")">Quay lại trang chủ</a>
+    </div>
+</div>
+
+<style>
+    /* Cải thiện giao diện của Sidebar */
+    .list-group {
+        background-color: #ffffff;
+        border-radius: 8px;
+    }
+
+    .list-group-item {
+        font-size: 1.1rem;
+        padding: 15px;
+        color: #333333;
+        border: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+
+        .list-group-item i {
+            margin-right: 10px;
+            color: #f1b6b3; /* Màu icon */
+        }
+
+        .list-group-item:hover {
+            background-color: #f1b6b3; /* Màu hồng nhạt khi hover */
+            color: #ffffff;
+            transform: scale(1.05); /* Hiệu ứng phóng to khi hover */
+        }
+
+    .sidebar-link {
+        font-weight: 500;
+    }
+
+    /* Cải thiện kiểu dáng cho nút quay lại */
+    .btn {
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: 30px;
+        text-transform: uppercase;
+    }
+
+    .btn-primary {
+        background-color: #87cefa; /* Xanh nhạt */
+        border-color: #87cefa;
+    }
+
+        .btn-primary:hover {
+            background-color: #f1b6b3; /* Màu hồng nhạt khi hover */
+            border-color: #f1b6b3;
+        }
+
+    /* Tạo độ bóng cho các phần tử */
+    .shadow-sm {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Tối ưu độ rộng của container */
+    .container {
+        max-width: 1200px;
+    }
+
+    /* Tạo khoảng cách và căn chỉnh cho các phần tử */
+    .mt-5 {
+        margin-top: 50px;
+    }
+
+    /* Căn giữa các phần tử trong sidebar */
+    .row.justify-content-center {
+        justify-content: center;
+    }
+</style>
+
+<!-- Thêm link đến Font Awesome nếu bạn chưa sử dụng -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">

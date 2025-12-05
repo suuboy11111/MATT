@@ -1,0 +1,13 @@
+﻿@model MaiAmTinhThuong.Models.MaiAm
+
+<h2>Xóa Mái ấm</h2>
+
+<div class="alert alert-warning">
+    Bạn có chắc chắn muốn xóa mái ấm <strong>@Model.Name</strong> không?
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="Manage" class="btn btn-secondary">Hủy</a>
+</form>

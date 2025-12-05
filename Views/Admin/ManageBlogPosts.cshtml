@@ -1,0 +1,162 @@
+﻿@model IEnumerable<MaiAmTinhThuong.Models.BlogPost>
+
+@{
+    ViewData["Title"] = "Quản lý bài viết";
+}
+
+<div class="container-fluid py-4" style="min-height: 100vh; background-color: #f8f9fa;">
+    <h2 class="text-center mb-5" style="color: #343a40; font-weight: 700; font-size: 2.8rem; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        Quản lý bài viết
+    </h2>
+
+    <!-- Bài viết chờ duyệt -->
+    <section class="mb-5">
+        <h3 class="fw-bold text-primary mb-4" style="border-left: 5px solid #0d6efd; padding-left: 12px;">Bài viết chờ duyệt</h3>
+        <div class="card shadow-sm rounded-4 border-0">
+            <div class="card-body p-0 overflow-auto">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 50px;">#</th>
+                            <th scope="col" style="width: 250px;">Tiêu đề</th>
+                            <th scope="col">Nội dung</th>
+                            <th scope="col" style="width: 180px;">Tác giả</th>
+                            <th scope="col" style="width: 160px;">Ngày gửi</th>
+                            <th scope="col" style="width: 180px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var post in ViewBag.PendingPosts)
+                        {
+                            <tr>
+                                <td>@post.Id</td>
+                                <td title="@post.Title">@post.Title</td>
+                                <td title="@post.Content">
+                                    @{
+                                        var contentPreview = post.Content.Length > 80 ? post.Content.Substring(0, 80) + "..." : post.Content;
+                                    }
+                                    @contentPreview
+                                </td>
+                                <td>@post.Author.FullName</td>
+                                <td>@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <form method="post" action="@Url.Action("ApproveBlogPost", "Admin")">
+                                            <input type="hidden" name="id" value="@post.Id" />
+                                            <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-1">
+                                                <i class="bi bi-check-circle"></i> Duyệt
+                                            </button>
+                                        </form>
+                                        <form method="post" action="@Url.Action("DeleteBlogPost", "Admin")">
+                                            <input type="hidden" name="id" value="@post.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+                                                <i class="bi bi-trash"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bài viết đã duyệt -->
+    <section>
+        <h3 class="fw-bold text-success mb-4" style="border-left: 5px solid #198754; padding-left: 12px;">Bài viết đã duyệt</h3>
+        <div class="card shadow-sm rounded-4 border-0">
+            <div class="card-body p-0 overflow-auto">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 50px;">#</th>
+                            <th scope="col" style="width: 250px;">Tiêu đề</th>
+                            <th scope="col">Nội dung</th>
+                            <th scope="col" style="width: 180px;">Tác giả</th>
+                            <th scope="col" style="width: 160px;">Ngày gửi</th>
+                            <th scope="col" style="width: 120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var post in ViewBag.ApprovedPosts)
+                        {
+                            <tr>
+                                <td>@post.Id</td>
+                                <td title="@post.Title">@post.Title</td>
+                                <td title="@post.Content">
+                                    @{
+                                        var contentPreview = post.Content.Length > 80 ? post.Content.Substring(0, 80) + "..." : post.Content;
+                                    }
+                                    @contentPreview
+                                </td>
+                                <td>@post.Author.FullName</td>
+                                <td>@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <form method="post" action="@Url.Action("DeleteBlogPost", "Admin")" class="d-flex justify-content-center">
+                                        <input type="hidden" name="id" value="@post.Id" />
+                                        <button type="submit" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+                                            <i class="bi bi-trash"></i> Xóa
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- CSS (kết hợp bootstrap + tùy chỉnh) -->
+<style>
+    .table-hover tbody tr:hover {
+        background-color: aliceblue;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-sm {
+        font-weight: 600;
+        border-radius: 30px;
+        padding: 0.35rem 1.2rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+        .btn-sm i {
+            font-size: 1rem;
+        }
+
+    /* Scroll ngang trên bảng khi màn hình nhỏ */
+    .card-body {
+        max-height: 60vh;
+    }
+
+    /* Tooltip mặc định */
+    td[title] {
+        position: relative;
+    }
+
+        td[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            white-space: normal;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: max-content;
+            max-width: 320px;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
+        }
+</style>
+
+<!-- Link Bootstrap Icons CDN nếu chưa có -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />

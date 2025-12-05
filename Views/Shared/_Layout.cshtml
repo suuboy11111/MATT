@@ -1,0 +1,186 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using MaiAmTinhThuong.Models
+@inject UserManager<ApplicationUser> UserManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MaiAmTinhThuong</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MaiAmTinhThuong.styles.css" asp-append-version="true" />
+
+</head>
+<body>
+
+
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-1" style="font-size: 0.9rem;">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                    <span style="font-size: 1.5rem; color: red;">❤️</span>
+                    <span class="ms-2" style="font-size: 1.2rem; color: #2c3e50;">Mái Ấm Tình Thương</span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                    <div class="navbar-nav mx-auto fw-semibold">
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "text-danger" : "")" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                        <a class="nav-link" href="#about">Về chúng tôi</a>
+                        <a class="nav-link" href="#services">Dịch vụ</a>
+                        <a class="nav-link" href="#contact">Liên hệ</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="maiAmDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Mái ấm
+                            </a>
+                            @await Component.InvokeAsync("MaiAmMenu")
+                        </li>
+
+ 
+                        <a class="nav-link" href="@Url.Action("Index", "Blog")"> Câu chuyện</a>
+
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "VinhDanhs" ? "text-danger" : "")"
+                               asp-controller="VinhDanhs" asp-action="Index">
+                                Vinh danh
+                            </a>
+                        </li>
+
+                    </div>
+                    <div class="d-flex align-items-center">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle"></i> @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    @* Hiển thị mục "Quản lý" nếu là Admin *@
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="AdminDashboard"><i class="fas fa-cogs"></i> Quản lý</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                    }
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fas fa-user"></i> Thông tin tài khoản</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a></li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-outline-dark btn-sm me-2 px-3" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-outline-primary btn-sm me-2 px-3" asp-controller="Account" asp-action="Register">Đăng ký</a>
+                            </li>
+                        }
+
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer text-muted">
+        <div class="container text-center">
+            &copy; 2025 - MaiAmTinhThuong - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <!-- Rule-based Chatbot -->
+    <div id="geminiChat"
+         style="position: fixed; bottom: 20px; right: 20px; width: 340px;
+            z-index: 9999; font-family: 'Segoe UI', sans-serif;">
+
+        <!-- Header -->
+        <div id="chatHeader"
+             style="background: #ff4d6d; color: white; padding: 12px; cursor: pointer;
+                border-radius: 10px 10px 0 0; font-weight: bold; text-align: center;">
+            💬 Chat với Mái Ấm
+        </div>
+
+        <!-- Body -->
+        <div id="chatBody"
+             style="display: none; background: #fff; border: 1px solid #ff6b81;
+                border-radius: 0 0 10px 10px; max-height: 350px; overflow-y: auto;">
+
+            <div id="chatMessages"
+                 style="padding: 10px; height: 280px; overflow-y: auto;"></div>
+
+            <input id="chatInput" type="text"
+                   placeholder="Nhập câu hỏi..."
+                   style="width: 100%; padding: 10px; border-top: 1px solid #ff6b81;" />
+        </div>
+    </div>
+
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById("chatInput");
+            const messages = document.getElementById("chatMessages");
+            if (!input || !messages) return;
+
+            const text = input.value.trim();
+            if (!text) return;
+
+            // hiển thị tin nhắn user
+            messages.innerHTML += `<div class="text-end"><small><b>Bạn:</b> ${escapeHtml(text)}</small></div>`;
+
+            // gọi API rulebot
+            const resp = await fetch("/api/rulebot/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            });
+
+            let json = await resp.json();
+            const reply = json?.reply ?? "Xin lỗi, có lỗi xảy ra.";
+
+            messages.innerHTML += `<div class="text-start text-success"><small><b>Bot:</b> ${escapeHtml(reply)}</small></div>`;
+            input.value = "";
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, function (m) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const header = document.getElementById("chatHeader");
+            if (header) header.addEventListener("click", () => {
+                const body = document.getElementById("chatBody");
+                if (!body) return;
+                body.style.display = (body.style.display === "block") ? "none" : "block";
+            });
+
+            const input = document.getElementById("chatInput");
+            if (input) {
+                input.addEventListener("keypress", function (e) {
+                    if (e.key === "Enter") sendMessage();
+                });
+            }
+        });
+    </script>
+
+
+</body>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+</html>

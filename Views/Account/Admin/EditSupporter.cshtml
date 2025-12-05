@@ -1,0 +1,90 @@
+﻿@model MaiAmTinhThuong.Models.Supporter
+
+@{
+    ViewData["Title"] = "Sửa Hồ sơ Người Hỗ Trợ";
+}
+
+<h2>Sửa Hồ sơ Người Hỗ Trợ</h2>
+
+<form asp-action="EditSupporter" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="CreatedDate" />
+    <input type="hidden" asp-for="UpdatedDate" />
+
+    <div class="form-group mb-3">
+        <label asp-for="Name" class="form-label">Họ và Tên</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Age" class="form-label">Tuổi</label>
+        <input asp-for="Age" type="number" class="form-control" />
+        <span asp-validation-for="Age" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Gender" class="form-label">Giới tính</label>
+        <input asp-for="Gender" class="form-control" />
+        <span asp-validation-for="Gender" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label asp-for="Address" class="form-label">Địa chỉ</label>
+        <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="form-group mb-3">
+        <label>Ảnh đại diện hiện tại</label><br />
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" alt="Ảnh đại diện" style="max-width: 150px; max-height: 150px; margin-bottom: 10px;" />
+        }
+        else
+        {
+            <p>Chưa có ảnh đại diện</p>
+        }
+    </div>
+
+    <div class="form-group mb-3">
+        <label>Thay đổi ảnh đại diện (tùy chọn)</label>
+        <input type="file" name="ImageFile" accept="image/*" class="form-control" />
+    </div>
+
+    <!-- Dropdown Mái ấm -->
+    <div class="form-group mb-3">
+        <label>Mái ấm</label>
+        <select asp-for="MaiAmId" asp-items="ViewBag.MaiAms" class="form-control">
+            <option value="">-- Chọn Mái ấm --</option>
+        </select>
+    </div>
+
+    @foreach (var supportType in ViewBag.SupportTypes as SelectList)
+    {
+        var isChecked = Model.SupporterSupportTypes != null && Model.SupporterSupportTypes.Any(sst => sst.SupportTypeId == int.Parse(supportType.Value));
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox"
+                   name="selectedSupportTypes"
+                   value="@supportType.Value"
+                   id="supportType_@supportType.Value"
+            @(isChecked ? "checked" : "") />
+            <label class="form-check-label" for="supportType_@supportType.Value">@supportType.Text</label>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">Lưu</button>
+    <a asp-action="ManageSupporters" asp-route-id="@Model.MaiAmId" class="btn btn-secondary ms-2">Hủy</a>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

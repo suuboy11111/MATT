@@ -1,0 +1,166 @@
+﻿@model IEnumerable<MaiAmTinhThuong.Models.BlogPost>
+
+@{
+    ViewData["Title"] = "Social Feed";
+}
+
+<div class="container-fluid bg-light py-4" style="min-height: 100vh;">
+    @if (TempData["PostPending"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show text-center rounded-pill mx-auto mb-4" style="max-width: 600px;">
+            <i class="fas fa-clock me-2"></i> @TempData["PostPending"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <!-- Form đăng bài mới -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body">
+                    <h5 class="text-center fw-bold text-pink mb-3" style="font-size: 1.25rem;">
+                        ✨ Bạn đang nghĩ gì thế?
+                    </h5>
+                    <form method="post" enctype="multipart/form-data" action="@Url.Action("CreatePost", "Blog")">
+                        <input type="text" class="form-control mb-2 rounded-3" name="Title" placeholder="Tiêu đề bài viết" required />
+                        <textarea class="form-control mb-2 rounded-3" name="Content" rows="3" placeholder="Chia sẻ cảm nghĩ của bạn..." required></textarea>
+                        <input type="file" class="form-control mb-2" name="image" />
+                        <button type="submit" class="btn btn-pink w-100 rounded-pill">Đăng bài</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách bài viết -->
+    <div class="row justify-content-center" id="postList">
+        @foreach (var item in Model)
+        {
+            @if (item.IsApproved)
+            {
+                <div class="col-md-8 mb-4">
+                    <div class="card shadow-sm rounded-4">
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" class="card-img-top rounded-top-4" alt="Post Image">
+                        }
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="@item.Author.ProfilePicture" class="rounded-circle me-2" width="40" height="40" />
+                                <div>
+                                    <strong>@item.Author.FullName</strong><br />
+                                    <small class="text-muted">@item.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                </div>
+                            </div>
+                            <h5>@item.Title</h5>
+                            <p>@item.Content</p>
+                        </div>
+                        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center px-3 py-2">
+                            <form method="post" action="@Url.Action("Like", "Blog")" class="m-0">
+                                <input type="hidden" name="blogPostId" value="@item.Id" />
+                                <button type="submit" class="btn btn-icon">
+                                    <i class="@((item.LikedByUser ? "fas fa-heart liked" : "far fa-heart"))"></i>
+                                </button>
+                                <span class="ms-1 text-muted">@item.LikeCount</span>
+                            </form>
+
+                            <i class="far fa-comment-dots text-muted"></i>
+
+                            @if (item.AuthorId == ViewData["UserId"].ToString())
+                            {
+                                <div>
+                                    <a href="@Url.Action("Edit", "Blog", new { id = item.Id })" class="text-muted me-2"><i class="fas fa-edit"></i></a>
+                                    <a href="@Url.Action("Delete", "Blog", new { id = item.Id })" class="text-danger"><i class="fas fa-trash-alt"></i></a>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-body pt-2">
+                            @foreach (var comment in item.Comments)
+                            {
+                                <div class="d-flex align-items-start mb-2">
+                                    <img src="@comment.Author.ProfilePicture" class="rounded-circle me-2" width="30" height="30" />
+                                    <div>
+                                        <strong>@comment.Author.FullName</strong>
+                                        <p class="mb-0">@comment.Content</p>
+                                    </div>
+                                </div>
+                            }
+                            <form method="post" action="@Url.Action("Comment", "Blog")" class="mt-2">
+                                <input type="hidden" name="blogPostId" value="@item.Id" />
+                                <textarea name="content" class="form-control rounded-pill" placeholder="Add a comment..." required></textarea>
+                                <button type="submit" class="btn btn-pink btn-sm rounded-pill mt-2">Post</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="text-center">
+        <button id="loadMoreBtn" class="btn btn-outline-secondary rounded-pill">Load More</button>
+    </div>
+</div>
+
+<!-- FontAwesome CDN -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+<!-- Custom CSS -->
+<style>
+    .btn-pink {
+        background-color: #ffb6c1;
+        color: white;
+    }
+
+        .btn-pink:hover {
+            background-color: #ff9bb0;
+            color: white;
+        }
+
+    .btn-icon {
+        border: none;
+        background: none;
+        color: #ff69b4;
+        font-size: 1.2rem;
+    }
+
+        .btn-icon:hover {
+            color: #ff4081;
+        }
+
+    .liked {
+        color: #ff4081 !important;
+    }
+
+    textarea::placeholder {
+        font-style: italic;
+    }
+</style>
+
+<!-- JavaScript để xử lý AJAX Load More Posts -->
+<script>
+    var isLoading = false;
+    var pageNumber = 1;
+
+    $(window).scroll(function () {
+        if ($(window).scrollTop() + $(window).height() >= $(document).height() - 100) {
+            if (!isLoading) {
+                isLoading = true;
+                pageNumber++;
+
+                $.ajax({
+                    url: '/Blog/LoadMorePosts',
+                    type: 'GET',
+                    data: { page: pageNumber },
+                    success: function (data) {
+                        $('#postList').append(data);
+                        isLoading = false;
+                    },
+                    error: function () {
+                        isLoading = false;
+                    }
+                });
+            }
+        }
+    });
+</script>

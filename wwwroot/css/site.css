@@ -1,0 +1,398 @@
+﻿html {
+  font-size: 14px;
+
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+
+/* Custom Styles for Navbar */
+body {
+    background-color: aliceblue; /* Màu xanh da trời cho toàn bộ trang */
+    margin: 0; /* Loại bỏ margin mặc định */
+    padding: 0; /* Loại bỏ padding mặc định */
+    height: 100%; /* Đảm bảo chiều cao của body là 100% */
+    width: 100%; /* Đảm bảo chiều rộng của body là 100% */
+}
+
+/* Cải thiện giao diện navbar */
+.nav-link {
+    color: #000;
+    padding: 8px 16px;
+    border-radius: 0; /* Bỏ bo góc nếu không cần nền */
+    transition: color 0.3s, text-decoration 0.3s;
+    background-color: transparent;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    background-color: transparent; /* Không nền */
+    color: deepskyblue; /* Màu chữ khi hover */
+    text-decoration: underline; /* Gạch chân chữ */
+}
+
+.nav-link.active, .nav-link.text-danger {
+    color: deepskyblue !important;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+
+
+
+
+.navbar-toggler {
+    border-color: #ffffff;
+}
+
+.navbar-brand {
+    color: #333333 !important;
+    font-weight: bold;
+}
+
+   
+
+.dropdown-menu {
+    border-radius: 10px;
+}
+
+.dropdown-item {
+    padding: 12px;
+    transition: background-color 0.3s;
+}
+
+    .dropdown-item:hover {
+        background-color: #f9e4e1; /* Màu nền sáng nhẹ khi hover */
+    }
+
+.nav-item.dropdown .nav-link {
+    padding-right: 10px;
+}
+
+.nav-item img {
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+    .nav-item img:hover {
+        transform: scale(1.1); /* Hiệu ứng phóng to khi hover */
+    }
+
+/* Điều chỉnh vị trí và kiểu cho icon người dùng */
+.navbar-nav .nav-item:last-child {
+    display: flex;
+    align-items: center;
+}
+
+    .navbar-nav .nav-item:last-child .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+       
+
+/* Cải thiện khoảng cách và căn chỉnh */
+.navbar-nav .nav-item i {
+    margin-right: 8px; /* Khoảng cách giữa icon và text */
+}
+
+.navbar-nav .nav-item i {
+    font-size: 1.2rem;
+}
+
+
+/* Custom Footer */
+.footer {
+    background-color: aliceblue; /* AliceBlue cho footer */
+    color: #333333; /* Màu chữ tối nhưng vẫn dễ đọc */
+    padding: 0.1px 0;
+    font-size: 0.7rem;
+     position: relative; /* hoặc bỏ hẳn thuộc tính position */
+    z-index: 1;
+
+
+}
+
+    .footer a {
+        color: #333333;
+        text-decoration: none; /* Loại bỏ gạch chân */
+    }
+
+      
+
+
+
+/* Phần Giới thiệu */
+#about {
+    background-color: aliceblue; /* AliceBlue nền sáng */
+
+    border-bottom: 2px solid #333333;
+}
+
+    #about h2 {
+        color: #f1b6b3; /* Màu hồng nhạt cho tiêu đề */
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    #about p {
+        color: #333333; /* Màu đen cho văn bản */
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+
+    #about .btn {
+        background-color: #FF7A8D; /* Màu hồng nhẹ */
+        border-color: #FF7A8D; /* Màu xanh nhạt cho nút gửi */
+        border-radius: 30px;
+        padding: 10px 25px;
+        font-weight: 500;
+    }
+
+        #about .btn:hover {
+            background-color: #E66674; /* Màu hồng đậm khi hover */
+            border-color: #E66674;
+        }
+/* Styles for the services section */
+#services {
+    background-color: #f0f8ff;
+    border-bottom: 2px solid #333333;
+}
+
+.service-card {
+    background-color: #ffffff;
+    padding: 20px;
+    text-align: center;
+    border: 2px solid #f1b6b3;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+    .service-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+.service-icon {
+    background-color: #f1b6b3;
+    padding: 20px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+    .service-icon img {
+        max-width: 60px;
+    }
+
+h4 {
+    color: #333333;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+p {
+    color: #555555;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+
+
+/* Phần Liên hệ */
+#contact {
+    background-color: aliceblue; /* Màu nền đen cho phần liên hệ */
+}
+
+    #contact h2 {
+        color: #f1b6b3; /* Màu hồng nhạt cho tiêu đề */
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    #contact form .form-control {
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #f1b6b3; /* Viền hồng nhạt cho input */
+    }
+
+    #contact button {
+        background-color: #FF7A8D; /* Màu hồng nhẹ */
+        border-color: #FF7A8D; /* Màu xanh nhạt cho nút gửi */
+        border-radius: 30px;
+        padding: 10px 25px;
+        font-weight: 500;
+    }
+
+        #contact button:hover {
+            background-color: #E66674; /* Màu hồng đậm khi hover */
+            border-color: #E66674;
+        }
+/* Cải thiện màu nền cho navbar */
+.navbar {
+    background-color: #ffffff; /* Màu trắng tinh tế cho navbar */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng mờ nhẹ để navbar nổi bật */
+}
+
+/* Chỉnh màu các liên kết navbar */
+.navbar-nav .nav-link {
+    color: #333333 !important; /* Màu chữ tối, dễ đọc */
+    font-weight: 600; /* Làm chữ dày hơn để dễ đọc */
+    padding: 15px 20px; /* Thêm khoảng cách giữa các liên kết */
+    transition: color 0.3s ease, background-color 0.3s ease; /* Thêm hiệu ứng chuyển màu khi hover */
+}
+
+    /* Hiệu ứng hover cho các liên kết */
+    .navbar-nav .nav-link:hover {
+        background-color: transparent !important; /* ✅ Không nền */
+        color: #3498db !important; /* ✅ Màu chữ hover */
+        border-radius: 0 !important; /* ✅ Không bo tròn */
+        text-decoration: underline; /* ✅ Gạch chân khi hover */
+        box-shadow: none !important; /* ✅ Không bóng đổ */
+    }
+
+
+/* Thêm hiệu ứng hover cho navbar brand */
+.navbar-brand {
+    color: #333333 !important;
+    font-weight: 700; /* Làm đậm hơn để nổi bật logo */
+    transition: color 0.3s ease;
+}
+
+    .navbar-brand:hover {
+        color: #FF7A8D; /* Chuyển sang màu hồng khi hover */
+    }
+
+/* Cải thiện giao diện dropdown */
+.nav-item.dropdown .nav-link {
+    padding-right: 15px; /* Thêm khoảng cách bên phải cho icon */
+}
+
+/* Cải thiện giao diện ảnh đại diện và dropdown */
+.navbar-nav .nav-item img {
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+    /* Hiệu ứng phóng to ảnh đại diện khi hover */
+    .navbar-nav .nav-item img:hover {
+        transform: scale(1.1);
+    }
+
+/* Tạo hiệu ứng cho dropdown menu */
+.dropdown-menu {
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Tạo hiệu ứng hover cho các item trong dropdown */
+.dropdown-item {
+    padding: 12px 20px;
+    transition: background-color 0.3s ease;
+}
+
+    .dropdown-item:hover {
+        background-color: #f9e4e1; /* Màu nền sáng nhẹ khi hover */
+    }
+
+/* Thêm bóng cho navbar khi di chuột vào */
+.navbar-nav .nav-link:hover, .navbar-brand:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+/* Cải thiện màu sắc cho navbar brand */
+.navbar-brand {
+    color: #2F3C7E; /* Màu chính cho logo */
+    font-weight: 700;
+    font-size: 1.3rem; /* Tăng kích thước chữ để nổi bật */
+    display: flex;
+    align-items: center;
+    transition: color 0.3s ease; /* Thêm hiệu ứng màu sắc */
+}
+
+    /* Hiệu ứng khi hover vào logo */
+    .navbar-brand:hover {
+        color: #FF7A8D; /* Màu hồng cho hiệu ứng hover, tạo cảm giác nổi bật */
+        transform: scale(1.05); /* Phóng to nhẹ logo khi hover */
+    }
+
+    /* Thêm hiệu ứng cho icon trong logo */
+    .navbar-brand i {
+        margin-right: 10px; /* Khoảng cách giữa icon và tên */
+        color: #FF7A8D; /* Màu icon khi hover */
+        transition: color 0.3s ease;
+    }
+
+    /* Đảm bảo icon không bị ảnh hưởng bởi hiệu ứng phóng to */
+    .navbar-brand i {
+        transform: none; /* Không áp dụng hiệu ứng phóng to cho icon */
+    }
+
+
+    /* Điều chỉnh hiệu ứng cho tên khi hover */
+    .navbar-brand span {
+        transition: transform 0.3s ease;
+    }
+
+    .navbar-brand:hover span {
+        transform: scale(1.05); /* Phóng to phần văn bản */
+    }
+
+/* Thêm khoảng cách giữa navbar và ảnh */
+#home-banner {
+    margin-top: 10px; /* Thêm khoảng cách trên */
+}
+
+
+/* Cập nhật màu cho nút trong phần Services */
+.btn-primary {
+    background-color: #FF7A8D; /* Màu hồng nhẹ */
+    border-color: #FF7A8D;
+}
+
+.btn-primary:hover {
+    background-color: #E66674; /* Màu hồng đậm khi hover */
+    border-color: #E66674;
+}
+
+/* Đảm bảo phần card hiển thị đúng */
+.card-body {
+    padding: 20px;
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.col-md-6 {
+    margin-bottom: 30px;
+}
+

@@ -1,0 +1,29 @@
+﻿@model MaiAmTinhThuong.Models.Supporter
+
+<h2>Chi tiết Người Hỗ Trợ</h2>
+
+<div>
+    <p><strong>Tên:</strong> @Model.Name</p>
+    <p><strong>Tuổi:</strong> @Model.Age</p>
+    <p><strong>Giới tính:</strong> @Model.Gender</p>
+    <p><strong>Số điện thoại:</strong> @Model.PhoneNumber</p>
+    <p><strong>Địa chỉ:</strong> @Model.Address</p>
+    <p>
+        <strong>Loại hỗ trợ:</strong>
+        @if (Model.SupporterSupportTypes != null && Model.SupporterSupportTypes.Any())
+        {
+            @string.Join(", ", Model.SupporterSupportTypes.Select(s => s.SupportType.Name))
+        }
+        else
+        {
+            <span>Chưa chọn loại hỗ trợ</span>
+        }
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <img src="@Model.ImageUrl" alt="Ảnh đại diện" style="max-width: 200px; max-height: 200px;" />
+    }
+</div>
+
+<a asp-action="ManageSupporters" asp-route-id="@Model.MaiAmId" class="btn btn-secondary mt-3">Quay lại danh sách tài trợ</a>

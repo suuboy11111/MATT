@@ -1,0 +1,69 @@
+﻿@model MaiAmTinhThuong.Models.SupportRequest
+
+<h2>Chi tiết Hồ sơ: @Model.Name</h2>
+
+<table class="table table-bordered">
+    <tr>
+        <th>Tên</th>
+        <td>@Model.Name</td>
+    </tr>
+    <tr>
+        <th>Tuổi</th>
+        <td>@Model.Age</td>
+    </tr>
+    <tr>
+        <th>Giới tính</th>
+        <td>@Model.Gender</td>
+    </tr>
+    <tr>
+        <th>Số điện thoại</th>
+        <td>@Model.PhoneNumber</td>
+    </tr>
+    <tr>
+        <th>Địa chỉ</th>
+        <td>@Model.Address</td>
+    </tr>
+    <tr>
+        <th>Số CCCD</th>
+        <td>@Model.CCCD</td>
+    </tr>
+    <tr>
+        <th>Hoàn cảnh</th>
+        <td>@Model.Reason</td>
+    </tr>
+    <tr>
+        <th>Tình trạng sức khỏe</th>
+        <td>@Model.HealthStatus</td>
+    </tr>
+    <tr>
+        <th>Đã duyệt</th>
+        <td>@(Model.IsApproved ? "✔️" : "❌")</td>
+    </tr>
+    <tr>
+        <th>Hỗ trợ hoàn cảnh</th>
+        <td>@(Model.IsSupportedReason ? "✔️" : "❌")</td>
+    </tr>
+    <tr>
+        <th>Hỗ trợ sức khỏe</th>
+        <td>@(Model.IsSupportedHealth ? "✔️" : "❌")</td>
+    </tr>
+    <tr>
+        <th>Hỗ trợ chung</th>
+        <td>@(Model.IsSupported ? "✔️" : "❌")</td>
+    </tr>
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <tr>
+            <th>Ảnh</th>
+            <td>
+                <img src="@Model.ImageUrl" alt="Ảnh hồ sơ" style="max-width:200px; max-height:200px;" />
+            </td>
+        </tr>
+    }
+</table>
+
+<p>
+    <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Quay lại</a>
+    <a asp-action="EditProfile" asp-route-id="@Model.Id" class="btn btn-warning">Sửa</a>
+    <a asp-action="DeleteProfile" asp-route-id="@Model.Id" class="btn btn-danger">Xóa</a>
+</p>

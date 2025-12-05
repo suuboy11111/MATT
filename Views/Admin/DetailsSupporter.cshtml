@@ -1,0 +1,52 @@
+﻿@model MaiAmTinhThuong.Models.Supporter
+
+<h2 class="mb-4">Chi tiết Người Hỗ Trợ</h2>
+
+<div class="row">
+    <div class="col-md-4 text-center mb-3">
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" alt="Ảnh đại diện" class="img-fluid rounded border" style="max-height: 200px; object-fit: cover;" />
+        }
+        else
+        {
+            <div class="bg-light text-muted d-flex align-items-center justify-content-center rounded" style="height: 200px;">
+                <span>Chưa có ảnh đại diện</span>
+            </div>
+        }
+    </div>
+    <div class="col-md-8">
+        <dl class="row">
+            <dt class="col-sm-4">Tên:</dt>
+            <dd class="col-sm-8">@Model.Name</dd>
+
+            <dt class="col-sm-4">Tuổi:</dt>
+            <dd class="col-sm-8">@Model.Age</dd>
+
+            <dt class="col-sm-4">Giới tính:</dt>
+            <dd class="col-sm-8">@Model.Gender</dd>
+
+            <dt class="col-sm-4">Số điện thoại:</dt>
+            <dd class="col-sm-8">@Model.PhoneNumber</dd>
+
+            <dt class="col-sm-4">Địa chỉ:</dt>
+            <dd class="col-sm-8">@Model.Address</dd>
+
+            <dt class="col-sm-4">Loại hỗ trợ:</dt>
+            <dd class="col-sm-8">
+                @if (Model.SupporterSupportTypes != null && Model.SupporterSupportTypes.Any())
+                {
+                    @string.Join(", ", Model.SupporterSupportTypes.Select(s => s.SupportType.Name))
+                }
+                else
+                {
+                    <span class="text-muted fst-italic">Chưa chọn loại hỗ trợ</span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<a asp-action="ManageSupporters" asp-route-id="@Model.MaiAmId" class="btn btn-secondary mt-4">
+    <i class="bi bi-arrow-left-circle me-1"></i> Quay lại danh sách tài trợ
+</a>

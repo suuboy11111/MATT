@@ -1,0 +1,101 @@
+﻿@model MaiAmTinhThuong.Models.SupportRequest
+
+<h2>Sửa Hồ sơ Người Cần Hỗ Trợ</h2>
+
+<form asp-action="EditProfile" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="MaiAmId" />
+
+    <div class="form-group">
+        <label asp-for="Name">Họ và Tên</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Age">Tuổi</label>
+        <input asp-for="Age" type="number" class="form-control" />
+        <span asp-validation-for="Age" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Gender">Giới tính</label>
+        <input asp-for="Gender" class="form-control" />
+        <span asp-validation-for="Gender" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PhoneNumber">Số điện thoại</label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Address">Địa chỉ</label>
+        <input asp-for="Address" class="form-control" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="CCCD">Số CCCD</label>
+        <input asp-for="CCCD" class="form-control" />
+        <span asp-validation-for="CCCD" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Reason">Hoàn cảnh</label>
+        <textarea asp-for="Reason" class="form-control"></textarea>
+        <span asp-validation-for="Reason" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="HealthStatus">Tình trạng sức khỏe</label>
+        <textarea asp-for="HealthStatus" class="form-control"></textarea>
+        <span asp-validation-for="HealthStatus" class="text-danger"></span>
+    </div>
+
+    <div class="form-check">
+        <input asp-for="IsApproved" class="form-check-input" type="checkbox" />
+        <label asp-for="IsApproved" class="form-check-label">Đã duyệt</label>
+    </div>
+
+    <div class="form-check">
+        <input asp-for="IsSupportedReason" class="form-check-input" type="checkbox" />
+        <label asp-for="IsSupportedReason" class="form-check-label">Hỗ trợ hoàn cảnh</label>
+    </div>
+
+    <div class="form-check">
+        <input asp-for="IsSupportedHealth" class="form-check-input" type="checkbox" />
+        <label asp-for="IsSupportedHealth" class="form-check-label">Hỗ trợ sức khỏe</label>
+    </div>
+
+    <div class="form-check">
+        <input asp-for="IsSupported" class="form-check-input" type="checkbox" />
+        <label asp-for="IsSupported" class="form-check-label">Hỗ trợ chung</label>
+    </div>
+
+    <div class="form-group mt-3">
+        <label>Ảnh đại diện</label>
+        <input type="file" name="ImageFile" accept="image/*" class="form-control" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <div class="mt-2">
+            <p>Ảnh hiện tại:</p>
+            <img src="@Model.ImageUrl" alt="Ảnh đại diện" style="max-width:200px; max-height:200px;" />
+        </div>
+    }
+
+    <div style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Lưu</button>
+        <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Hủy</a>
+    </div>
+    
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

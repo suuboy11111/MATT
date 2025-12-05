@@ -1,0 +1,13 @@
+﻿@model MaiAmTinhThuong.Models.SupportRequest
+
+<h2>Xóa Hồ sơ người cần hỗ trợ</h2>
+
+<div class="alert alert-warning">
+    Bạn có chắc chắn muốn xóa hồ sơ <strong>@Model.Name</strong> không?
+</div>
+
+<form asp-action="DeleteProfile" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Hủy</a>
+</form>

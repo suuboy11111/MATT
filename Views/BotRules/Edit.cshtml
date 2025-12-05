@@ -1,0 +1,36 @@
+﻿@model MaiAmTinhThuong.Models.BotRule
+
+<h2>Thêm Rule</h2>
+
+<form asp-action="Edit" method="post">
+    <div class="mb-3">
+        <label>Trigger</label>
+        <input asp-for="Trigger" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label>Response</label>
+        <textarea asp-for="Response" class="form-control" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label>MatchType</label>
+        <select asp-for="MatchType" class="form-control">
+            <option value="0">Exact</option>
+            <option value="1">Contains</option>
+            <option value="2">Regex</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Priority</label>
+        <input asp-for="Priority" type="number" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Active</label>
+        <input asp-for="IsActive" type="checkbox" />
+    </div>
+
+    <button class="btn btn-success">Lưu</button>
+</form>

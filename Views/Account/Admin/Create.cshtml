@@ -1,0 +1,103 @@
+﻿@model MaiAmTinhThuong.Models.MaiAm
+
+<style>
+    form {
+        max-width: 750px;
+        margin: auto;
+        padding-bottom: 60px;
+    }
+
+    .form-group {
+        margin-bottom: 0.8rem;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .btn-actions {
+        text-align: right;
+        margin-top: 1.5rem;
+    }
+
+    .preview-box {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 0.95rem;
+        white-space: pre-wrap;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white text-center">
+            <h4 class="text-primary fw-bold mb-0">🏠 Thêm Mái ấm mới</h4>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div class="form-group">
+                    <label asp-for="Name">Tên mái ấm</label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Description">Mô tả</label>
+                    <textarea asp-for="Description" class="form-control" rows="3" id="descriptionBox"></textarea>
+                    <small class="form-text text-muted">Xem trước:</small>
+                    <div class="preview-box" id="descriptionPreview">...</div>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Address">Địa chỉ</label>
+                    <input asp-for="Address" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Fund">Quỹ tài trợ (VNĐ)</label>
+                    <input asp-for="Fund" class="form-control" id="fundInput" type="number" />
+                    <small class="text-muted" id="formattedFund">0 VNĐ</small>
+                </div>
+
+                <div class="btn-actions">
+                    <button type="submit" class="btn btn-primary px-4">Lưu</button>
+                    <a asp-action="Manage" class="btn btn-secondary">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+    <script>
+    
+
+        // Format quỹ tài trợ
+        const fundInput = document.getElementById("fundInput");
+        const fundLabel = document.getElementById("formattedFund");
+
+        fundInput.addEventListener("input", function () {
+            const value = parseInt(this.value);
+            if (!isNaN(value)) {
+                fundLabel.textContent = value.toLocaleString("vi-VN") + " VNĐ";
+            } else {
+                fundLabel.textContent = "0 VNĐ";
+            }
+        });
+
+        // Load mặc định (khi sửa)
+        window.addEventListener("DOMContentLoaded", () => {
+            fundInput.dispatchEvent(new Event("input"));
+            document.getElementById("descriptionBox").dispatchEvent(new Event("input"));
+        });
+    </script>
+}
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

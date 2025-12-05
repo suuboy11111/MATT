@@ -1,0 +1,72 @@
+﻿@model MaiAmTinhThuong.Models.MaiAm
+
+<h2>Danh sách Người Hỗ Trợ cho Mái ấm: @Model.Name</h2>
+
+<p>
+    <a asp-action="Manage" class="btn btn-secondary mb-3">Quay lại danh sách Mái ấm</a>
+</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Tên</th>
+            <th>Tuổi</th>
+            <th>Loại hỗ trợ</th>
+            <th>Trạng thái duyệt</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var sma in Model.SupporterMaiAms)
+        {
+            var supporter = sma.Supporter;
+            if (supporter != null)
+            {
+                var supportTypeNames = supporter.SupporterSupportTypes?.Select(sst => sst.SupportType.Name).ToList() ?? new List<string>();
+                var supportTypeDisplay = string.Join(", ", supportTypeNames);
+                <tr>
+                    <td>@supporter.Name</td>
+                    <td>@supporter.Age</td>
+                    <td>@supportTypeDisplay</td>
+                    <td>
+                        @if (supporter.IsApproved)
+                        {
+                            <span class="badge bg-success">Đã duyệt</span>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-primary btn-approve" data-id="@supporter.Id">Duyệt</button>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="DetailsSupporter" asp-route-id="@supporter.Id" class="btn btn-info btn-sm">Xem</a>
+                        <a asp-action="EditSupporter" asp-route-id="@supporter.Id" class="btn btn-warning btn-sm">Sửa</a>
+                        <a asp-action="DeleteSupporter" asp-route-id="@supporter.Id" class="btn btn-danger btn-sm">Xóa</a>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.btn-approve').click(function () {
+                var supporterId = $(this).data('id');
+                var btn = $(this);
+                $.post('@Url.Action("ApproveSupporter", "MaiAmAdmin")', { supporterId: supporterId })
+                    .done(function (data) {
+                        if (data.success) {
+                            btn.replaceWith('<span class="badge bg-success">Đã duyệt</span>');
+                        } else {
+                            alert('Duyệt thất bại!');
+                        }
+                    })
+                    .fail(function () {
+                        alert('Lỗi server khi duyệt!');
+                    });
+            });
+        });
+    </script>
+}

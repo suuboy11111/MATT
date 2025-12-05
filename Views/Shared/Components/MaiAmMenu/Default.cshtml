@@ -1,0 +1,12 @@
+﻿@model IEnumerable<MaiAmTinhThuong.Models.MaiAm>
+
+<ul class="dropdown-menu" aria-labelledby="maiAmDropdown">
+    @foreach (var maiAm in Model)
+    {
+        <li>
+            <a class="dropdown-item" asp-controller="MaiAm" asp-action="Details" asp-route-id="@maiAm.Id">
+                @maiAm.Name
+            </a>
+        </li>
+    }
+</ul>

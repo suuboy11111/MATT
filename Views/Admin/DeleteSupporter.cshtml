@@ -1,0 +1,13 @@
+﻿@model MaiAmTinhThuong.Models.Supporter
+
+<h2>Xác nhận xóa Người Hỗ Trợ</h2>
+
+<div>
+    <p>Bạn có chắc chắn muốn xóa người hỗ trợ: <strong>@Model.Name</strong> không?</p>
+</div>
+
+<form asp-action="DeleteSupporter" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="ManageSupporters" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Hủy</a>
+</form>

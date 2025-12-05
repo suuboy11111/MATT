@@ -1,0 +1,102 @@
+﻿@model MaiAmTinhThuong.Models.SupportRequest
+
+<style>
+    .form-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .form-control {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+    }
+
+    label {
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .btn {
+        font-size: 0.9rem;
+        padding: 0.4rem 1rem;
+    }
+</style>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h4 class="card-title mb-3 text-primary text-center">📝 Thêm Hồ sơ Người Cần Hỗ Trợ</h4>
+
+        <form asp-action="CreateProfile" method="post" enctype="multipart/form-data">
+            <input type="hidden" asp-for="MaiAmId" />
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Name">Họ và Tên</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="Age">Tuổi</label>
+                        <input asp-for="Age" type="number" class="form-control" />
+                        <span asp-validation-for="Age" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="Gender">Giới tính</label>
+                        <input asp-for="Gender" class="form-control" />
+                        <span asp-validation-for="Gender" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="PhoneNumber">Số điện thoại</label>
+                <input asp-for="PhoneNumber" class="form-control" />
+                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Address">Địa chỉ</label>
+                <input asp-for="Address" class="form-control" />
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="CCCD">Số CCCD</label>
+                <input asp-for="CCCD" class="form-control" />
+                <span asp-validation-for="CCCD" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Reason">Hoàn cảnh</label>
+                <textarea asp-for="Reason" class="form-control"></textarea>
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="HealthStatus">Tình trạng sức khỏe</label>
+                <textarea asp-for="HealthStatus" class="form-control"></textarea>
+                <span asp-validation-for="HealthStatus" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Ảnh đại diện</label>
+                <input type="file" name="ImageFile" accept="image/*" class="form-control" />
+            </div>
+
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Lưu</button>
+                <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

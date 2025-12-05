@@ -1,0 +1,82 @@
+﻿@model MaiAmTinhThuong.Models.BlogPost
+
+@{
+    ViewData["Title"] = "Edit Blog Post";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body">
+                    <h5 class="text-center fw-bold text-pink mb-3" style="font-size: 1.25rem;">
+                        📝 Chỉnh sửa bài viết
+                    </h5>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <input type="text" class="form-control rounded-3" name="Title" value="@Model.Title" placeholder="Tiêu đề bài viết" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <textarea class="form-control rounded-3" name="Content" rows="4" placeholder="Nội dung chia sẻ..." required>@Model.Content</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ảnh mới (nếu muốn thay):</label>
+                            <input type="file" class="form-control" name="image" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Ảnh hiện tại:</label><br />
+                                <img src="@Model.ImageUrl" width="150" class="rounded shadow-sm" />
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-pink rounded-pill">Lưu thay đổi</button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a href="@Url.Action("Index", "Blog")" class="text-decoration-none text-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Quay về trang blog
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FontAwesome (nếu chưa có ở layout) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+<!-- Custom Style -->
+<style>
+    .btn-pink {
+        background-color: #ffb6c1;
+        color: white;
+    }
+
+        .btn-pink:hover {
+            background-color: #ff9bb0;
+            color: white;
+        }
+
+    .text-pink {
+        color: #ff69b4;
+    }
+
+    textarea::placeholder,
+    input::placeholder {
+        font-style: italic;
+    }
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(255, 182, 193, 0.25);
+        border-color: #ffb6c1;
+    }
+</style>

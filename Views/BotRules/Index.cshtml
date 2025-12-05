@@ -1,0 +1,33 @@
+﻿@model IEnumerable<MaiAmTinhThuong.Models.BotRule>
+
+<h2>Danh sách Rule</h2>
+
+<a class="btn btn-primary mb-3" asp-action="Create">+ Thêm Rule</a>
+
+<table class="table table-bordered">
+    <tr>
+        <th>ID</th>
+        <th>Trigger</th>
+        <th>Response</th>
+        <th>MatchType</th>
+        <th>Priority</th>
+        <th>Active</th>
+        <th>Hành động</th>
+    </tr>
+
+    @foreach (var r in Model)
+    {
+        <tr>
+            <td>@r.Id</td>
+            <td>@r.Trigger</td>
+            <td>@r.Response</td>
+            <td>@r.MatchType</td>
+            <td>@r.Priority</td>
+            <td>@r.IsActive</td>
+            <td>
+                <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@r.Id">Sửa</a>
+                <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@r.Id">Xoá</a>
+            </td>
+        </tr>
+    }
+</table>
