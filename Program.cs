@@ -24,14 +24,60 @@ builder.Services.AddSession(options =>
 });
 
 // Hỗ trợ cả SQL Server và PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Railway tự động inject DATABASE_URL hoặc các biến PGHOST, PGPORT, etc.
+string? connectionString = null;
+
+// Ưu tiên 1: DATABASE_URL (Railway tự động inject)
+var databaseUrl = builder.Configuration["DATABASE_URL"];
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Parse DATABASE_URL format: postgresql://user:password@host:port/database
+    if (databaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) || 
+        databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    {
+        var uri = new Uri(databaseUrl);
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var username = uri.UserInfo.Split(':')[0];
+        var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
+        
+        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
+    }
+    else
+    {
+        connectionString = databaseUrl;
+    }
+}
+
+// Ưu tiên 2: Build từ các biến riêng lẻ (PGHOST, PGPORT, etc.)
+if (string.IsNullOrEmpty(connectionString))
+{
+    var pgHost = builder.Configuration["PGHOST"];
+    var pgPort = builder.Configuration["PGPORT"];
+    var pgDatabase = builder.Configuration["PGDATABASE"];
+    var pgUser = builder.Configuration["PGUSER"];
+    var pgPassword = builder.Configuration["PGPASSWORD"];
+    
+    if (!string.IsNullOrEmpty(pgHost))
+    {
+        connectionString = $"Host={pgHost};Port={pgPort ?? "5432"};Database={pgDatabase ?? "railway"};Username={pgUser ?? "postgres"};Password={pgPassword}";
+    }
+}
+
+// Ưu tiên 3: ConnectionStrings__DefaultConnection
+if (string.IsNullOrEmpty(connectionString))
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
+// Xác định loại database và cấu hình
 if (!string.IsNullOrEmpty(connectionString) && 
     (connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) || 
      connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
      connectionString.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)))
 {
     // Sử dụng PostgreSQL (cho Railway, Render, etc.)
-    // Cần thêm package: dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
