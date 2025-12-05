@@ -7,22 +7,187 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MaiAmTinhThuong</title>
+    <title>@ViewData["Title"] - Mái Ấm Tình Thương</title>
+    <meta name="description" content="Mái Ấm Tình Thương - Nơi kết nối yêu thương, chia sẻ và hỗ trợ những hoàn cảnh khó khăn" />
     <script type="importmap"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MaiAmTinhThuong.styles.css" asp-append-version="true" />
+    
+    <!-- Fix: Ẩn dấu chấm đen notification bell (KHÔNG ẩn icon chuông) -->
+    <style>
+        /* Ẩn hoàn toàn dấu chấm đen từ notification bell - CHỈ ẩn ::after và ::before, KHÔNG ẩn icon */
+        #notificationDropdown::after,
+        #notificationDropdown::before {
+            display: none !important;
+            content: "" !important;
+            border: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        /* Ẩn dấu chấm đen từ nav-item dropdown */
+        .nav-item.dropdown:has(#notificationDropdown)::after,
+        .nav-item.dropdown:has(#notificationDropdown)::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn dấu chấm đen từ notification badge và các element xung quanh */
+        #notificationBadge::after,
+        #notificationBadge::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn dấu chấm đen từ các nút Đăng nhập và Đăng ký */
+        .nav-item:has(.btn-outline-dark)::after,
+        .nav-item:has(.btn-outline-dark)::before,
+        .nav-item:has(.btn-outline-primary)::after,
+        .nav-item:has(.btn-outline-primary)::before,
+        .nav-item .btn-outline-dark::after,
+        .nav-item .btn-outline-dark::before,
+        .nav-item .btn-outline-primary::after,
+        .nav-item .btn-outline-primary::before,
+        a.btn-outline-dark::after,
+        a.btn-outline-dark::before,
+        a.btn-outline-primary::after,
+        a.btn-outline-primary::before {
+            display: none !important;
+            content: "" !important;
+            border: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        /* Đảm bảo chuông hiển thị khi đã đăng nhập - QUAN TRỌNG */
+        #notificationDropdown {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        #notificationDropdown i,
+        #notificationDropdown i.fa-bell,
+        #notificationDropdown i.fas {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900 !important;
+        }
+        /* KHÔNG ẩn ::before của icon chuông vì đó là icon thực sự */
+        #notificationDropdown i.fa-bell::before,
+        #notificationDropdown i.fas::before {
+            content: "\f0f3" !important; /* Font Awesome bell icon code */
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900 !important;
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        /* Ẩn dấu chấm đen từ nav-item khi đã đăng nhập */
+        .nav-item.dropdown:has(#notificationDropdown)::after,
+        .nav-item.dropdown:has(#notificationDropdown)::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn dấu chấm đen từ notification badge và các element xung quanh khi đã đăng nhập */
+        #notificationBadge::after,
+        #notificationBadge::before,
+        .nav-item.dropdown:has(#notificationDropdown) > *:not(#notificationDropdown):not(.dropdown-menu)::after,
+        .nav-item.dropdown:has(#notificationDropdown) > *:not(#notificationDropdown):not(.dropdown-menu)::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn dấu chấm đen từ user dropdown khi đã đăng nhập */
+        .nav-item.dropdown:has(#userDropdown)::after,
+        .nav-item.dropdown:has(#userDropdown)::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn TẤT CẢ dấu chấm đen từ mọi nơi trong navbar khi đã đăng nhập */
+        .d-flex.align-items-center.gap-3::after,
+        .d-flex.align-items-center.gap-3::before,
+        .d-flex.align-items-center.gap-3 > *::after,
+        .d-flex.align-items-center.gap-3 > *::before,
+        .d-flex.align-items-center.gap-3 li::after,
+        .d-flex.align-items-center.gap-3 li::before {
+            display: none !important;
+            content: "" !important;
+        }
+        /* Ẩn dấu chấm đen từ tất cả nav-item trong phần user area */
+        .d-flex.align-items-center.gap-3 .nav-item::after,
+        .d-flex.align-items-center.gap-3 .nav-item::before,
+        .d-flex.align-items-center.gap-3 .nav-item.dropdown::after,
+        .d-flex.align-items-center.gap-3 .nav-item.dropdown::before,
+        .d-flex.align-items-center.gap-3 a::after,
+        .d-flex.align-items-center.gap-3 a::before,
+        .d-flex.align-items-center.gap-3 img::after,
+        .d-flex.align-items-center.gap-3 img::before,
+        .d-flex.align-items-center.gap-3 span::after,
+        .d-flex.align-items-center.gap-3 span::before {
+            display: none !important;
+            content: "" !important;
+            border: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+        /* Ẩn list-style markers (dấu chấm đen từ ul/li) */
+        .navbar ul,
+        .navbar li,
+        .navbar-nav,
+        .navbar-nav li,
+        .nav-item,
+        .nav-item li,
+        .d-flex.align-items-center.gap-3 ul,
+        .d-flex.align-items-center.gap-3 li {
+            list-style: none !important;
+            list-style-type: none !important;
+        }
+        .navbar ul::marker,
+        .navbar li::marker,
+        .navbar-nav::marker,
+        .navbar-nav li::marker,
+        .nav-item::marker,
+        .nav-item li::marker,
+        .d-flex.align-items-center.gap-3 ul::marker,
+        .d-flex.align-items-center.gap-3 li::marker {
+            display: none !important;
+            content: "" !important;
+        }
+    </style>
 
 </head>
 <body>
 
 
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-1" style="font-size: 0.9rem;">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" style="font-size: 0.875rem; padding: 0.4rem 0;">
             <div class="container-fluid">
                 <a class="navbar-brand fw-bold d-flex align-items-center" asp-controller="Home" asp-action="Index">
-                    <span style="font-size: 1.5rem; color: red;">❤️</span>
-                    <span class="ms-2" style="font-size: 1.2rem; color: #2c3e50;">Mái Ấm Tình Thương</span>
+                    <span style="font-size: 1.4rem; color: red;">❤️</span>
+                    <span class="ms-2" style="font-size: 1.1rem; color: #2c3e50;">Mái Ấm Tình Thương</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -51,12 +216,46 @@
                         </li>
 
                     </div>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center gap-3">
                         @if (User.Identity.IsAuthenticated)
                         {
+                            <!-- Notification Bell -->
+                            <li class="nav-item dropdown" style="position: relative; list-style: none;">
+                                <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: inline-block !important; position: relative; visibility: visible !important; opacity: 1 !important;">
+                                    <i class="fas fa-bell" style="position: relative; z-index: 1; display: inline-block !important; visibility: visible !important; opacity: 1 !important; font-size: 1.25rem !important; color: #333 !important;"></i>
+                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; z-index: 2;">
+                                        0
+                                    </span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" id="notificationList" style="min-width: 380px; max-height: 500px; overflow-y: auto;" aria-labelledby="notificationDropdown">
+                                    <li class="dropdown-header bg-light">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-bold">🔔 Thông báo</span>
+                                            <button class="btn btn-sm btn-link p-0 text-primary" id="markAllReadBtn" title="Đánh dấu tất cả đã đọc">
+                                                <i class="fas fa-check-double"></i> Đã đọc tất cả
+                                            </button>
+                                        </div>
+                                    </li>
+                                    <li><hr class="dropdown-divider m-0" /></li>
+                                    <li id="notificationItems">
+                                        <div class="text-center text-muted p-3">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Đang tải...</span>
+                                            </div>
+                                            <div class="mt-2">Đang tải thông báo...</div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-user-circle"></i> @User.Identity.Name
+                                @{
+                                    var currentUser = await UserManager.GetUserAsync(User);
+                                    var userAvatar = currentUser?.ProfilePicture ?? "/images/default1-avatar.png";
+                                }
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important;">
+                                    <img src="@userAvatar" alt="Avatar" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" onerror="this.src='/images/default1-avatar.png'" />
+                                    <span class="d-none d-md-inline" style="font-size: 0.875rem;">@User.Identity.Name</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     @* Hiển thị mục "Quản lý" nếu là Admin *@
@@ -72,11 +271,11 @@
                         }
                         else
                         {
-                            <li class="nav-item">
-                                <a class="btn btn-outline-dark btn-sm me-2 px-3" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                            <li class="nav-item" style="list-style: none;">
+                                <a class="btn btn-outline-dark btn-sm me-2 px-3" asp-controller="Account" asp-action="Login" style="text-decoration: none !important;">Đăng nhập</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="btn btn-outline-primary btn-sm me-2 px-3" asp-controller="Account" asp-action="Register">Đăng ký</a>
+                            <li class="nav-item" style="list-style: none;">
+                                <a class="btn btn-outline-primary btn-sm me-2 px-3" asp-controller="Account" asp-action="Register" style="text-decoration: none !important;">Đăng ký</a>
                             </li>
                         }
 
@@ -86,45 +285,80 @@
         </nav>
 
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <main role="main" class="pb-3" style="min-height: calc(100vh - 200px);">
+        @RenderBody()
+    </main>
 
-    <footer class="footer text-muted">
-        <div class="container text-center">
-            &copy; 2025 - MaiAmTinhThuong - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="footer">
+        <div class="container">
+            <div class="row py-4">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="text-white mb-3">
+                        <span style="font-size: 1.5rem;">❤️</span>
+                        <span class="ms-2">Mái Ấm Tình Thương</span>
+                    </h5>
+                    <p class="text-muted">Nơi kết nối yêu thương, chia sẻ và hỗ trợ những hoàn cảnh khó khăn trong cuộc sống.</p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="text-white mb-3">Liên kết nhanh</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="@Url.Action("Index", "Home")"><i class="fas fa-home me-2"></i>Trang chủ</a></li>
+                        <li class="mb-2"><a href="#about"><i class="fas fa-info-circle me-2"></i>Về chúng tôi</a></li>
+                        <li class="mb-2"><a href="#services"><i class="fas fa-hands-helping me-2"></i>Dịch vụ</a></li>
+                        <li class="mb-2"><a href="@Url.Action("Index", "Blog")"><i class="fas fa-book me-2"></i>Câu chuyện</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="text-white mb-3">Liên hệ</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-envelope me-2"></i>Email: contact@maiamtinhthuong.vn</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i>Hotline: 1900-xxxx</li>
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>Địa chỉ: Việt Nam</li>
+                    </ul>
+                    <div class="mt-3">
+                        <a href="#" class="text-white me-3" style="font-size: 1.5rem;"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-white me-3" style="font-size: 1.5rem;"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-white" style="font-size: 1.5rem;"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.1);">
+            <div class="text-center text-muted">
+                <p class="mb-0">&copy; 2025 Mái Ấm Tình Thương. Tất cả quyền được bảo lưu.</p>
+                <p class="mb-0 mt-2">
+                    <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-muted">Chính sách bảo mật</a> | 
+                    <a href="#" class="text-muted">Điều khoản sử dụng</a>
+                </p>
+            </div>
         </div>
     </footer>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
     <!-- Rule-based Chatbot -->
-    <div id="geminiChat"
-         style="position: fixed; bottom: 20px; right: 20px; width: 340px;
-            z-index: 9999; font-family: 'Segoe UI', sans-serif;">
+    <div id="geminiChat" style="position: fixed; bottom: 20px; right: 20px; width: 360px; z-index: 9999; font-family: var(--font-primary);">
 
         <!-- Header -->
-        <div id="chatHeader"
-             style="background: #ff4d6d; color: white; padding: 12px; cursor: pointer;
-                border-radius: 10px 10px 0 0; font-weight: bold; text-align: center;">
-            💬 Chat với Mái Ấm
+        <div id="chatHeader" style="background: var(--primary-gradient); color: white; padding: 16px; cursor: pointer; border-radius: var(--radius-xl) var(--radius-xl) 0 0; font-weight: 600; text-align: center; box-shadow: var(--shadow-lg);">
+            <i class="fas fa-comments me-2"></i>Chat với Mái Ấm
         </div>
 
         <!-- Body -->
-        <div id="chatBody"
-             style="display: none; background: #fff; border: 1px solid #ff6b81;
-                border-radius: 0 0 10px 10px; max-height: 350px; overflow-y: auto;">
+        <div id="chatBody" style="display: none; background: var(--white); border: none; border-radius: 0 0 var(--radius-xl) var(--radius-xl); max-height: 400px; overflow-y: auto; box-shadow: var(--shadow-xl);">
 
-            <div id="chatMessages"
-                 style="padding: 10px; height: 280px; overflow-y: auto;"></div>
+            <div id="chatMessages" style="padding: 16px; height: 320px; overflow-y: auto; background: var(--gray-50);"></div>
 
-            <input id="chatInput" type="text"
-                   placeholder="Nhập câu hỏi..."
-                   style="width: 100%; padding: 10px; border-top: 1px solid #ff6b81;" />
+            <div style="padding: 12px; background: var(--white); border-top: 2px solid var(--gray-200);">
+                <div class="input-group">
+                    <input id="chatInput" type="text" class="form-control" placeholder="Nhập câu hỏi..." style="border-radius: var(--radius-full) 0 0 var(--radius-full);" />
+                    <button class="btn btn-primary" onclick="sendMessage()" style="border-radius: 0 var(--radius-full) var(--radius-full) 0;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -176,7 +410,143 @@
                     if (e.key === "Enter") sendMessage();
                 });
             }
+
+            // Load notifications
+            @if (User.Identity.IsAuthenticated)
+            {
+                <text>
+                loadNotifications();
+                // Refresh notifications mỗi 30 giây
+                setInterval(loadNotifications, 30000);
+                
+                // Auto-refresh khi dropdown được mở
+                const notificationDropdown = document.getElementById("notificationDropdown");
+                if (notificationDropdown) {
+                    // Xóa tất cả dấu chấm đen xung quanh notification bell - CHỈ ẩn ::after và ::before của link
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        #notificationDropdown::after,
+                        #notificationDropdown::before,
+                        .nav-item.dropdown:has(#notificationDropdown)::after,
+                        .nav-item.dropdown:has(#notificationDropdown)::before {
+                            display: none !important;
+                            content: "" !important;
+                            border: none !important;
+                            width: 0 !important;
+                            height: 0 !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            opacity: 0 !important;
+                            visibility: hidden !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                    
+                    const dropdownElement = new bootstrap.Dropdown(notificationDropdown);
+                    notificationDropdown.addEventListener('shown.bs.dropdown', function () {
+                        loadNotifications();
+                    });
+                }
+
+                // Mark all as read
+                const markAllReadBtn = document.getElementById("markAllReadBtn");
+                if (markAllReadBtn) {
+                    markAllReadBtn.addEventListener("click", async function(e) {
+                        e.stopPropagation();
+                        await fetch('/Notification/MarkAllAsRead', { method: 'POST' });
+                        loadNotifications();
+                    });
+                }
+                </text>
+            }
         });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/Notification/GetNotifications');
+                const data = await response.json();
+                
+                const badge = document.getElementById("notificationBadge");
+                const items = document.getElementById("notificationItems");
+                
+                if (badge && items) {
+                    if (data.unreadCount > 0) {
+                        badge.textContent = data.unreadCount;
+                        badge.style.display = "block";
+                    } else {
+                        badge.style.display = "none";
+                    }
+
+                    if (data.notifications && data.notifications.length > 0) {
+                        items.innerHTML = data.notifications.map(n => {
+                            const typeClass = n.type === 'Success' ? 'text-success' : 
+                                            n.type === 'Warning' ? 'text-warning' : 
+                                            n.type === 'Error' ? 'text-danger' : 'text-info';
+                            const typeIcon = n.type === 'Success' ? '✓' : 
+                                           n.type === 'Warning' ? '⚠' : 
+                                           n.type === 'Error' ? '✗' : 'ℹ';
+                            const linkAttr = n.link ? `onclick="if(event.target.tagName !== 'BUTTON') { window.location.href='${n.link}'; markAsRead(${n.id}); }"` : '';
+                            return `
+                            <li class="dropdown-item-text ${!n.isRead ? 'bg-light border-start border-3 border-primary' : ''}" style="cursor: pointer; padding: 10px;" ${linkAttr}>
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="${typeClass} me-2" style="font-size: 1.2em;">${typeIcon}</span>
+                                            <strong class="${typeClass}">${escapeHtml(n.title)}</strong>
+                                        </div>
+                                        <small class="text-muted d-block mb-1">${escapeHtml(n.message || '')}</small>
+                                        <small class="text-muted" style="font-size: 0.75rem;">${new Date(n.createdAt).toLocaleString('vi-VN')}</small>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end gap-1">
+                                        ${!n.isRead ? '<span class="badge bg-primary">Mới</span>' : ''}
+                                        <button class="btn btn-sm btn-link text-danger p-0" onclick="event.stopPropagation(); deleteNotification(${n.id});" title="Xóa">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+                        `;
+                        }).join('');
+                    } else {
+                        items.innerHTML = '<div class="text-center text-muted p-3">Không có thông báo</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                const items = document.getElementById("notificationItems");
+                if (items) {
+                    items.innerHTML = '<div class="text-center text-danger p-3">Lỗi khi tải thông báo</div>';
+                }
+            }
+        }
+
+        async function markAsRead(id) {
+            try {
+                await fetch(`/Notification/MarkAsRead?id=${id}`, { method: 'POST' });
+                loadNotifications();
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        }
+
+        async function deleteNotification(id) {
+            if (confirm('Bạn có chắc muốn xóa thông báo này?')) {
+                try {
+                    await fetch(`/Notification/Delete?id=${id}`, { method: 'POST' });
+                    loadNotifications();
+                } catch (error) {
+                    console.error('Error deleting notification:', error);
+                    alert('Lỗi khi xóa thông báo');
+                }
+            }
+        }
     </script>
 
 

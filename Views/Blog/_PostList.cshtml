@@ -1,40 +1,107 @@
-﻿@model IEnumerable<MaiAmTinhThuong.Models.BlogPost>
+﻿@using Microsoft.AspNetCore.Identity
+@using MaiAmTinhThuong.Models
+@model IEnumerable<BlogPost>
+@inject UserManager<ApplicationUser> UserManager
 
-@foreach (var item in Model)
+@foreach (var post in Model)
 {
-    <div class="col-md-12 mb-4">
-        <div class="card">
-            @if (!string.IsNullOrEmpty(item.ImageUrl))
+    <div class="blog-card blog-post-card" data-post-id="@post.Id">
+        <!-- Post Header -->
+        <div class="blog-card-header">
+            <div class="d-flex align-items-center">
+                <img src="@(post.Author?.ProfilePicture ?? "/images/default1-avatar.png")" 
+                     alt="@(post.Author?.FullName ?? "User")" 
+                     class="blog-avatar" 
+                     onerror="this.src='/images/default1-avatar.png'" />
+                <div class="ms-3 flex-grow-1">
+                    <strong>@(post.Author?.FullName ?? post.Author?.Email ?? "Unknown")</strong>
+                    <p class="mb-0 text-muted small">@post.CreatedAt.ToString("dd MMM yyyy 'lúc' HH:mm")</p>
+                </div>
+                @{
+                    var currentUser = await UserManager.GetUserAsync(User);
+                    var userId = currentUser?.Id;
+                }
+                @if (post.AuthorId == userId)
+                {
+                    <div class="blog-post-actions">
+                        <a href="@Url.Action("Edit", "Blog", new { id = post.Id })" class="blog-action-btn" title="Chỉnh sửa">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="@Url.Action("Delete", "Blog", new { id = post.Id })" class="blog-action-btn text-danger" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa bài viết này?');">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Post Image -->
+        @if (!string.IsNullOrEmpty(post.ImageUrl))
+        {
+            <div class="blog-post-image">
+                <img src="@post.ImageUrl" alt="@post.Title" class="img-fluid" />
+            </div>
+        }
+
+        <!-- Post Content -->
+        <div class="blog-card-body">
+            <h5 class="blog-post-title">@post.Title</h5>
+            <p class="blog-post-content">@post.Content</p>
+        </div>
+
+        <!-- Post Actions -->
+        <div class="blog-card-footer">
+            <div class="blog-actions">
+                <button class="blog-like-btn @(post.LikedByUser ? "liked" : "")" data-post-id="@post.Id">
+                    <i class="@(post.LikedByUser ? "fas" : "far") fa-heart"></i>
+                </button>
+                <button class="blog-comment-btn" data-post-id="@post.Id">
+                    <i class="far fa-comment"></i>
+                </button>
+                <button class="blog-share-btn">
+                    <i class="far fa-share-square"></i>
+                </button>
+            </div>
+            <div class="blog-likes-count">
+                <strong id="likeCount-@post.Id">@post.LikeCount</strong> lượt thích
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="blog-comments-section" id="comments-@post.Id">
+            @if (post.Comments != null && post.Comments.Any())
             {
-                <img src="@item.ImageUrl" class="card-img-top" alt="Blog Image" />
+                @foreach (var comment in post.Comments.OrderByDescending(c => c.CreatedAt))
+                {
+                    <div class="blog-comment-item">
+                        <img src="@(comment.Author?.ProfilePicture ?? "/images/default1-avatar.png")" 
+                             alt="@(comment.Author?.FullName ?? "User")" 
+                             class="blog-comment-avatar" 
+                             onerror="this.src='/images/default1-avatar.png'" />
+                        <div class="blog-comment-content">
+                            <strong>@(comment.Author?.FullName ?? comment.Author?.Email ?? "Unknown")</strong>
+                            <span>@comment.Content</span>
+                            <small class="text-muted">@comment.CreatedAt.ToString("dd MMM yyyy HH:mm")</small>
+                        </div>
+                    </div>
+                }
             }
-            <div class="card-body">
-                <h5 class="card-title">@item.Title</h5>
-                <p class="card-text">
-                    @if (item.Content.Length > 100)
-                    {
-                        @($"{item.Content.Substring(0, 100)}... ({item.CreatedAt.ToString("MM/dd/yyyy")})")
-                    }
-                    else
-                    {
-                        @($"{item.Content} ({item.CreatedAt.ToString("MM/dd/yyyy")})")
-                    }
-                </p>
-            </div>
-            <div class="card-footer">
-                <form method="post" action="@Url.Action("Like", "Blog")">
-                    <input type="hidden" name="blogPostId" value="@item.Id" />
-                    @if (item.LikedByUser)
-                    {
-                        <button class="btn btn-outline-danger" type="submit">Unlike</button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-outline-primary" type="submit">Like</button>
-                    }
-                </form>
-                <span>@item.LikeCount Likes</span>
-            </div>
+        </div>
+
+        <!-- Add Comment Form -->
+        <div class="blog-add-comment">
+            @{
+                var userAvatar = currentUser?.ProfilePicture ?? "/images/default1-avatar.png";
+            }
+            <form class="blog-comment-form" data-post-id="@post.Id">
+                <div class="d-flex align-items-center">
+                    <img src="@userAvatar" alt="Avatar" class="blog-comment-avatar" onerror="this.src='/images/default1-avatar.png'" />
+                    <input type="text" class="form-control blog-comment-input" placeholder="Thêm bình luận..." required />
+                    <button type="submit" class="btn blog-comment-submit">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 }

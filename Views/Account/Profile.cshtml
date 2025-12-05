@@ -4,6 +4,12 @@
     ViewData["Title"] = "Cập nhật thông tin tài khoản";
 }
 
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
 <div class="container mt-5">
     <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem; font-weight: 600;">CẬP NHẬT THÔNG TIN TÀI KHOẢN</h2>
 
@@ -15,10 +21,53 @@
     }
 
     <form method="post" enctype="multipart/form-data" class="profile-form">
+        <div asp-validation-summary="All" class="alert alert-danger"></div>
+
         <!-- Họ và Tên -->
         <div class="mb-4">
-            <label for="FullName" class="form-label">Họ và Tên</label>
-            <input type="text" class="form-control" id="FullName" name="FullName" value="@Model.FullName" required />
+            <label asp-for="FullName" class="form-label">Họ và Tên</label>
+            <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+
+        <!-- Email (readonly) -->
+        <div class="mb-4">
+            <label asp-for="Email" class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" readonly />
+            <small class="form-text text-muted">Email không thể thay đổi</small>
+        </div>
+
+        <!-- Giới tính -->
+        <div class="mb-4">
+            <label asp-for="Gender" class="form-label">Giới tính</label>
+            <select asp-for="Gender" class="form-control">
+                <option value="">-- Chọn giới tính --</option>
+                <option value="Nam">Nam</option>
+                <option value="Nu">Nữ</option>
+                <option value="Khac">Khác</option>
+            </select>
+            <span asp-validation-for="Gender" class="text-danger"></span>
+        </div>
+
+        <!-- Ngày sinh -->
+        <div class="mb-4">
+            <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
+            <input asp-for="DateOfBirth" type="date" class="form-control" />
+            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+        </div>
+
+        <!-- Địa chỉ -->
+        <div class="mb-4">
+            <label asp-for="Address" class="form-label">Địa chỉ</label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+
+        <!-- Số điện thoại -->
+        <div class="mb-4">
+            <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
+            <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678 hoặc +84912345678" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
         </div>
 
         <!-- Ảnh đại diện -->
@@ -54,18 +103,21 @@
         <!-- Thay đổi mật khẩu (ẩn/hiện) -->
         <div id="passwordFields" style="display:none;">
             <div class="mb-3">
-                <label for="CurrentPassword" class="form-label">Mật khẩu hiện tại</label>
-                <input type="password" class="form-control" id="CurrentPassword" name="CurrentPassword" />
+                <label asp-for="CurrentPassword" class="form-label">Mật khẩu hiện tại</label>
+                <input asp-for="CurrentPassword" type="password" class="form-control" />
+                <span asp-validation-for="CurrentPassword" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
-                <label for="NewPassword" class="form-label">Mật khẩu mới</label>
-                <input type="password" class="form-control" id="NewPassword" name="NewPassword" />
+                <label asp-for="NewPassword" class="form-label">Mật khẩu mới</label>
+                <input asp-for="NewPassword" type="password" class="form-control" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
             </div>
 
             <div class="mb-3">
-                <label for="ConfirmPassword" class="form-label">Xác nhận mật khẩu mới</label>
-                <input type="password" class="form-control" id="ConfirmPassword" name="ConfirmPassword" />
+                <label asp-for="ConfirmPassword" class="form-label">Xác nhận mật khẩu mới</label>
+                <input asp-for="ConfirmPassword" type="password" class="form-control" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
             </div>
         </div>
 

@@ -1,4 +1,6 @@
 ﻿@model MaiAmTinhThuong.Models.MaiAm
+@using MaiAmTinhThuong.Models
+@using System.Linq
 
 <div class="container py-5" style="max-width: 1100px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fafafa; border-radius: 12px; box-shadow: 0 6px 15px rgb(0 0 0 / 0.05); padding: 30px;">
 
@@ -48,20 +50,99 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var request in Model.SupportRequests)
+                        @foreach (var request in Model.SupportRequests ?? new List<SupportRequest>())
                         {
                             <tr>
-                                <td>@request.Name</td>
+                                <td>@(request.Name ?? "N/A")</td>
                                 <td class="text-center">@request.Age</td>
-                                <td>@(request.Reason.Length > 40 ? request.Reason.Substring(0, 40) + "..." : request.Reason)</td>
-                                <td>@(request.HealthStatus.Length > 40 ? request.HealthStatus.Substring(0, 40) + "..." : request.HealthStatus)</td>
+                                <td>@{
+                                    var reason = request.Reason ?? "";
+                                    @(reason.Length > 40 ? reason.Substring(0, 40) + "..." : reason)
+                                }</td>
+                                <td>@{
+                                    var healthStatus = request.HealthStatus ?? "";
+                                    @(healthStatus.Length > 40 ? healthStatus.Substring(0, 40) + "..." : healthStatus)
+                                }</td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm" style="background-color: #b8d8f7; color: #305e9e; border: none;" data-bs-toggle="modal" data-bs-target="#detailModal_@request.Id">
+                                    <button type="button" class="btn btn-sm" style="background-color: #b8d8f7; color: #305e9e; border: none;" data-bs-toggle="modal" data-bs-target="#detailModal_@(request.Id)">
                                         Xem
                                     </button>
                                 </td>
                             </tr>
-                            <!-- Modal... (giữ nguyên như trước, bạn có thể thêm style nhẹ cho modal nếu cần) -->
+                            
+                            <!-- Modal Chi tiết Hồ sơ Cần Hỗ Trợ -->
+                            <div class="modal fade" id="detailModal_@(request.Id)" tabindex="-1" aria-labelledby="detailModalLabel_@(request.Id)" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header" style="background-color: #b8d8f7;">
+                                            <h5 class="modal-title" id="detailModalLabel_@(request.Id)">Chi tiết Hồ sơ: @(request.Name ?? "N/A")</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <strong>Họ và tên:</strong> @(request.Name ?? "N/A")
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Tuổi:</strong> @request.Age
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Giới tính:</strong> @(request.Gender ?? "N/A")
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <strong>Số điện thoại:</strong> @(request.PhoneNumber ?? "N/A")
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <strong>Số CCCD:</strong> @(request.CCCD ?? "N/A")
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Địa chỉ:</strong> @(request.Address ?? "N/A")
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Hoàn cảnh:</strong>
+                                                <p class="mt-2">@(request.Reason ?? "Chưa có thông tin")</p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Tình trạng sức khỏe:</strong>
+                                                <p class="mt-2">@(request.HealthStatus ?? "Chưa có thông tin")</p>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(request.ImageUrl))
+                                            {
+                                                <div class="mb-3">
+                                                    <strong>Ảnh đại diện:</strong>
+                                                    <img src="@request.ImageUrl" alt="Ảnh đại diện" class="img-fluid mt-2" style="max-height: 300px; border-radius: 8px;" />
+                                                </div>
+                                            }
+                                            <div class="row mb-3">
+                                                <div class="col-md-4">
+                                                    <strong>Trạng thái:</strong>
+                                                    <span class="badge @(request.IsApproved ? "bg-success" : "bg-warning")">
+                                                        @(request.IsApproved ? "Đã duyệt" : "Chờ duyệt")
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <strong>Hỗ trợ hoàn cảnh:</strong>
+                                                    <span class="badge @(request.IsSupportedReason ? "bg-success" : "bg-secondary")">
+                                                        @(request.IsSupportedReason ? "Có" : "Chưa")
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <strong>Hỗ trợ sức khỏe:</strong>
+                                                    <span class="badge @(request.IsSupportedHealth ? "bg-success" : "bg-secondary")">
+                                                        @(request.IsSupportedHealth ? "Có" : "Chưa")
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         }
                     </tbody>
                 </table>
@@ -81,20 +162,105 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var sma in Model.SupporterMaiAms)
+                        @foreach (var sma in Model.SupporterMaiAms ?? new List<SupporterMaiAm>())
                         {
-                            var supporter = sma.Supporter;
-                            <tr>
-                                <td>@supporter.Name</td>
-                                <td class="text-center">@supporter.Age</td>
-                                <td>@string.Join(", ", supporter.SupporterSupportTypes.Select(sst => sst.SupportType.Name))</td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm" style="background-color: #c9e5db; color: #2a6041; border: none;" data-bs-toggle="modal" data-bs-target="#supporterDetailModal_@supporter.Id">
-                                        Xem
-                                    </button>
-                                </td>
-                            </tr>
-                            <!-- Modal... giữ nguyên -->
+                            var supporter = sma?.Supporter;
+                            @if (supporter != null)
+                            {
+                                <tr>
+                                    <td>@(supporter.Name ?? "N/A")</td>
+                                    <td class="text-center">@supporter.Age</td>
+                                    <td>@{
+                                        var supportTypes = supporter.SupporterSupportTypes?
+                                            .Where(sst => sst?.SupportType != null)
+                                            .Select(sst => sst.SupportType.Name)
+                                            .ToList() ?? new List<string>();
+                                        @string.Join(", ", supportTypes)
+                                    }</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm" style="background-color: #c9e5db; color: #2a6041; border: none;" data-bs-toggle="modal" data-bs-target="#supporterDetailModal_@(supporter.Id)">
+                                            Xem
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Modal Chi tiết Người Hỗ Trợ -->
+                                <div class="modal fade" id="supporterDetailModal_@(supporter.Id)" tabindex="-1" aria-labelledby="supporterDetailModalLabel_@(supporter.Id)" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header" style="background-color: #c9e5db;">
+                                                <h5 class="modal-title" id="supporterDetailModalLabel_@(supporter.Id)">Chi tiết Người Hỗ Trợ: @(supporter.Name ?? "N/A")</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Họ và tên:</strong> @(supporter.Name ?? "N/A")
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <strong>Tuổi:</strong> @supporter.Age
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <strong>Giới tính:</strong> @(supporter.Gender ?? "N/A")
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <strong>Số điện thoại:</strong> @(supporter.PhoneNumber ?? "N/A")
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Số CCCD:</strong> @(supporter.CCCD ?? "N/A")
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Địa chỉ:</strong> @(supporter.Address ?? "N/A")
+                                                </div>
+                                                <div class="mb-3">
+                                                    <strong>Loại hỗ trợ:</strong>
+                                                    <ul class="mt-2">
+                                                        @{
+                                                            var types = supporter.SupporterSupportTypes?
+                                                                .Where(sst => sst?.SupportType != null)
+                                                                .Select(sst => sst.SupportType.Name)
+                                                                .ToList() ?? new List<string>();
+                                                        }
+                                                        @foreach (var type in types)
+                                                        {
+                                                            <li>@type</li>
+                                                        }
+                                                        @if (!types.Any())
+                                                        {
+                                                            <li>Chưa có thông tin</li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(supporter.ImageUrl))
+                                                {
+                                                    <div class="mb-3">
+                                                        <strong>Ảnh đại diện:</strong>
+                                                        <img src="@supporter.ImageUrl" alt="Ảnh đại diện" class="img-fluid mt-2" style="max-height: 300px; border-radius: 8px;" />
+                                                    </div>
+                                                }
+                                                <div class="mb-3">
+                                                    <strong>Trạng thái:</strong>
+                                                    <span class="badge @(supporter.IsApproved ? "bg-success" : "bg-warning")">
+                                                        @(supporter.IsApproved ? "Đã duyệt" : "Chờ duyệt")
+                                                    </span>
+                                                </div>
+                                                @if (supporter.MaiAm != null)
+                                                {
+                                                    <div class="mb-3">
+                                                        <strong>Mái ấm hỗ trợ:</strong> @supporter.MaiAm.Name
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         }
                     </tbody>
                 </table>

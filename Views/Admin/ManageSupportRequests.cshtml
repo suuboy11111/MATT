@@ -1,0 +1,201 @@
+@model MaiAmTinhThuong.Helpers.PagedResult<MaiAmTinhThuong.Models.SupportRequest>
+@using MaiAmTinhThuong.Models
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Quản lý Hồ sơ Cần Hỗ Trợ";
+}
+
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-file-alt me-3"></i>Quản Lý Hồ Sơ Cần Hỗ Trợ</h2>
+            <p>Duyệt và quản lý các hồ sơ cần hỗ trợ từ người dùng</p>
+        </div>
+
+        <!-- Search & Filter Form -->
+        <div class="admin-search-form">
+            <form method="get" asp-action="ManageSupportRequests" class="row g-3">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="searchString" class="form-control admin-form-control border-start-0" 
+                               placeholder="Tìm kiếm theo tên, SĐT, địa chỉ..." 
+                               value="@ViewBag.SearchString" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="filterApproved" class="form-select admin-form-control">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="approved" selected="@(ViewBag.FilterApproved == "approved")">Đã duyệt</option>
+                        <option value="pending" selected="@(ViewBag.FilterApproved == "pending")">Chờ duyệt</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="filterMaiAm" class="form-select admin-form-control">
+                        <option value="">Tất cả mái ấm</option>
+                        @foreach (var maiAm in ViewBag.MaiAms as List<MaiAm> ?? new List<MaiAm>())
+                        {
+                            <option value="@maiAm.Id" selected="@(ViewBag.FilterMaiAm == maiAm.Id.ToString())">@maiAm.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="pageSize" class="form-select admin-form-control">
+                        @foreach (var option in ViewBag.PageSizeOptions as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
+                        {
+                            <option value="@option.Value" selected="@(option.Selected)">@option.Text / trang</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="admin-btn admin-btn-primary">
+                        <i class="fas fa-search"></i> Tìm kiếm
+                    </button>
+                    <a asp-action="ManageSupportRequests" class="admin-btn admin-btn-secondary">
+                        <i class="fas fa-times"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="admin-table-wrapper">
+            <table class="table admin-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-user me-2"></i>Tên</th>
+                        <th><i class="fas fa-birthday-cake me-2"></i>Tuổi</th>
+                        <th><i class="fas fa-venus-mars me-2"></i>Giới Tính</th>
+                        <th><i class="fas fa-phone me-2"></i>Số Điện Thoại</th>
+                        <th><i class="fas fa-home me-2"></i>Mái Ấm</th>
+                        <th><i class="fas fa-info-circle me-2"></i>Trạng Thái</th>
+                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items != null && Model.Items.Any())
+                    {
+                        @foreach (var request in Model.Items)
+                        {
+                            <tr>
+                                <td><strong>@(request.Name ?? "N/A")</strong></td>
+                                <td>@request.Age</td>
+                                <td>@(request.Gender?.ToString() ?? "N/A")</td>
+                                <td>@(request.PhoneNumber ?? "N/A")</td>
+                                <td>@(request.MaiAm?.Name ?? "N/A")</td>
+                                <td>
+                                    @if (request.IsApproved)
+                                    {
+                                        <span class="admin-badge admin-badge-success">
+                                            <i class="fas fa-check-circle"></i> Đã duyệt
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="admin-badge admin-badge-warning">
+                                            <i class="fas fa-clock"></i> Chờ duyệt
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a asp-action="DetailsProfile" asp-controller="MaiAmAdmin" asp-route-id="@request.Id" 
+                                           class="admin-btn admin-btn-info admin-btn-sm">
+                                            <i class="fas fa-eye"></i> Xem
+                                        </a>
+                                        <a asp-action="EditProfile" asp-controller="MaiAmAdmin" asp-route-id="@request.Id" 
+                                           class="admin-btn admin-btn-warning admin-btn-sm">
+                                            <i class="fas fa-edit"></i> Sửa
+                                        </a>
+                                        @if (!request.IsApproved)
+                                        {
+                                            <form asp-action="Approve" method="post" style="display:inline;">
+                                                <input type="hidden" name="id" value="@request.Id" />
+                                                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">
+                                                    <i class="fas fa-check"></i> Duyệt
+                                                </button>
+                                            </form>
+                                        }
+                                        <form asp-action="DeleteRequest" method="post" style="display:inline;" 
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                            <input type="hidden" name="id" value="@request.Id" />
+                                            <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm">
+                                                <i class="fas fa-trash-alt"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="admin-empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h4>Không có dữ liệu</h4>
+                                <p>Không tìm thấy hồ sơ nào phù hợp với tiêu chí tìm kiếm.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="admin-pagination">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link admin-page-link" href="@Url.Action("ManageSupportRequests", new { 
+                            page = Model.PageNumber - 1, 
+                            pageSize = Model.PageSize,
+                            searchString = ViewBag.SearchString,
+                            filterApproved = ViewBag.FilterApproved,
+                            filterMaiAm = ViewBag.FilterMaiAm
+                        })">
+                            <i class="fas fa-chevron-left"></i> Trước
+                        </a>
+                    </li>
+                    
+                    @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                    {
+                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                            <a class="page-link admin-page-link" href="@Url.Action("ManageSupportRequests", new { 
+                                page = i, 
+                                pageSize = Model.PageSize,
+                                searchString = ViewBag.SearchString,
+                                filterApproved = ViewBag.FilterApproved,
+                                filterMaiAm = ViewBag.FilterMaiAm
+                            })">@i</a>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link admin-page-link" href="@Url.Action("ManageSupportRequests", new { 
+                            page = Model.PageNumber + 1, 
+                            pageSize = Model.PageSize,
+                            searchString = ViewBag.SearchString,
+                            filterApproved = ViewBag.FilterApproved,
+                            filterMaiAm = ViewBag.FilterMaiAm
+                        })">
+                            Sau <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="text-center text-muted mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Hiển thị <strong>@((Model.PageNumber - 1) * Model.PageSize + 1)</strong> - 
+                <strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalItems))</strong> 
+                trong tổng số <strong>@Model.TotalItems</strong> kết quả
+            </div>
+        }
+    </div>
+</div>

@@ -3,6 +3,7 @@ using MaiAmTinhThuong.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,7 +27,7 @@ namespace MaiAmTinhThuong.Controllers
 
             var maiAm = await _context.MaiAms
                 .Include(m => m.SupportRequests.Where(r => r.IsApproved))  // Lọc hồ sơ đã duyệt
-                .Include(m => m.SupporterMaiAms.Where(sma => sma.Supporter.IsApproved))
+                .Include(m => m.SupporterMaiAms.Where(sma => sma.Supporter != null && sma.Supporter.IsApproved))
                     .ThenInclude(sma => sma.Supporter)
                         .ThenInclude(s => s.SupporterSupportTypes)
                             .ThenInclude(sst => sst.SupportType)
@@ -34,9 +35,16 @@ namespace MaiAmTinhThuong.Controllers
 
             if (maiAm == null) return NotFound();
 
-            ViewBag.TotalSupportRequests = maiAm.SupportRequests.Count;
-            ViewBag.ApprovedSupportRequests = maiAm.SupportRequests.Count(r => r.IsApproved);
-            ViewBag.TotalSupporters = maiAm.SupporterMaiAms.Count(sma => sma.Supporter.IsApproved);
+            // Khởi tạo collections nếu null
+            if (maiAm.SupportRequests == null)
+                maiAm.SupportRequests = new List<SupportRequest>();
+            
+            if (maiAm.SupporterMaiAms == null)
+                maiAm.SupporterMaiAms = new List<SupporterMaiAm>();
+
+            ViewBag.TotalSupportRequests = maiAm.SupportRequests?.Count ?? 0;
+            ViewBag.ApprovedSupportRequests = maiAm.SupportRequests?.Count(r => r.IsApproved) ?? 0;
+            ViewBag.TotalSupporters = maiAm.SupporterMaiAms?.Count(sma => sma.Supporter != null && sma.Supporter.IsApproved) ?? 0;
 
             return View(maiAm);
         }

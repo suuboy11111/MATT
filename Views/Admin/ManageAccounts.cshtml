@@ -1,173 +1,188 @@
-﻿@model List<MaiAmTinhThuong.Models.ApplicationUser>
+﻿@model MaiAmTinhThuong.Helpers.PagedResult<MaiAmTinhThuong.Models.ApplicationUser>
+@using System.Linq
 
 @{
     ViewData["Title"] = "QUẢN LÝ NGƯỜI DÙNG";
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem; font-weight: 600;">QUẢN LÝ NGƯỜI DÙNG</h2>
-
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-info">
-            @TempData["Message"]
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-users me-3"></i>Quản Lý Người Dùng</h2>
+            <p>Quản lý và theo dõi tất cả tài khoản người dùng trong hệ thống</p>
         </div>
-    }
 
-    <table class="table table-striped table-bordered shadow-sm rounded">
-        <thead class="thead-light">
-            <tr>
-                <th>Email</th>
-                <th>Họ tên</th>
-                <th>Loại tài khoản</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model)
-            {
-                <tr>
-                    <td>@user.Email</td>
-                    <td>@user.FullName</td>
-                    <td>@user.Role</td>
-                    <td>
-                        @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow)
-                        {
-                            <!-- Hiển thị nút Mở khóa nếu tài khoản bị chặn -->
-                            <form method="post" asp-action="Unblock" style="display:inline;">
-                                <input type="hidden" name="id" value="@user.Id" />
-                                <button type="submit" class="btn btn-success btn-sm">
-                                    <i class="fas fa-unlock-alt"></i> Mở khóa
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <!-- Hiển thị nút Chặn nếu tài khoản chưa bị chặn -->
-                            <form method="post" asp-action="Block" style="display:inline;">
-                                <input type="hidden" name="id" value="@user.Id" />
-                                <button type="submit" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-lock"></i> Chặn
-                                </button>
-                            </form>
-                        }
+        @if (TempData["Message"] != null)
+        {
+            <div class="admin-alert admin-alert-info">
+                <i class="fas fa-info-circle me-2"></i>@TempData["Message"]
+            </div>
+        }
 
-                        <!-- Nút Xóa sẽ luôn có -->
-                        <form method="post" asp-action="Delete" style="display:inline;">
-                            <input type="hidden" name="id" value="@user.Id" />
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash-alt"></i> Xóa
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+        <!-- Search & Filter Form -->
+        <div class="admin-search-form">
+            <form method="get" asp-action="ManageAccounts" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="searchString" class="form-control admin-form-control border-start-0" 
+                               placeholder="Tìm kiếm theo email, tên, SĐT..." 
+                               value="@ViewBag.SearchString" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="filterRole" class="form-select admin-form-control">
+                        <option value="">Tất cả vai trò</option>
+                        @foreach (var role in ViewBag.Roles as List<string> ?? new List<string>())
+                        {
+                            <option value="@role" selected="@(ViewBag.FilterRole == role)">@role</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="pageSize" class="form-select admin-form-control">
+                        @foreach (var option in ViewBag.PageSizeOptions as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
+                        {
+                            <option value="@option.Value" selected="@(option.Selected)">@option.Text / trang</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="admin-btn admin-btn-primary">
+                        <i class="fas fa-search"></i> Tìm kiếm
+                    </button>
+                    <a asp-action="ManageAccounts" class="admin-btn admin-btn-secondary">
+                        <i class="fas fa-times"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="admin-table-wrapper">
+            <table class="table admin-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-envelope me-2"></i>Email</th>
+                        <th><i class="fas fa-user me-2"></i>Họ Tên</th>
+                        <th><i class="fas fa-user-tag me-2"></i>Loại Tài Khoản</th>
+                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items != null && Model.Items.Any())
+                    {
+                        @foreach (var user in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-envelope text-muted me-2"></i>
+                                        <strong>@user.Email</strong>
+                                    </div>
+                                </td>
+                                <td>@(user.FullName ?? "N/A")</td>
+                                <td>
+                                    <span class="admin-badge admin-badge-info">
+                                        <i class="fas fa-user-tag"></i>
+                                        @(user.Role ?? "N/A")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.UtcNow)
+                                        {
+                                            <form method="post" asp-action="Unblock" style="display:inline;">
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">
+                                                    <i class="fas fa-unlock-alt"></i> Mở khóa
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" asp-action="Block" style="display:inline;">
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="admin-btn admin-btn-warning admin-btn-sm">
+                                                    <i class="fas fa-lock"></i> Chặn
+                                                </button>
+                                            </form>
+                                        }
+                                        <form method="post" asp-action="Delete" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm">
+                                                <i class="fas fa-trash-alt"></i> Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="admin-empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h4>Không có dữ liệu</h4>
+                                <p>Không tìm thấy người dùng nào phù hợp với tiêu chí tìm kiếm.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="admin-pagination">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link admin-page-link" href="@Url.Action("ManageAccounts", new { 
+                            page = Model.PageNumber - 1, 
+                            pageSize = Model.PageSize,
+                            searchString = ViewBag.SearchString,
+                            filterRole = ViewBag.FilterRole
+                        })">
+                            <i class="fas fa-chevron-left"></i> Trước
+                        </a>
+                    </li>
+                    
+                    @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                    {
+                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                            <a class="page-link admin-page-link" href="@Url.Action("ManageAccounts", new { 
+                                page = i, 
+                                pageSize = Model.PageSize,
+                                searchString = ViewBag.SearchString,
+                                filterRole = ViewBag.FilterRole
+                            })">@i</a>
+                        </li>
+                    }
+                    
+                    <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                        <a class="page-link admin-page-link" href="@Url.Action("ManageAccounts", new { 
+                            page = Model.PageNumber + 1, 
+                            pageSize = Model.PageSize,
+                            searchString = ViewBag.SearchString,
+                            filterRole = ViewBag.FilterRole
+                        })">
+                            Sau <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="text-center text-muted mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Hiển thị <strong>@((Model.PageNumber - 1) * Model.PageSize + 1)</strong> - 
+                <strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalItems))</strong> 
+                trong tổng số <strong>@Model.TotalItems</strong> kết quả
+            </div>
+        }
+    </div>
 </div>
-
-<hr />
-
-<style>
-    /* Cải thiện giao diện tổng thể */
-    .container {
-        max-width: 1200px;
-    }
-
-    .table {
-        background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .thead-light {
-        background-color: #f1f6f9;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-
-    .table-striped tbody tr:nth-of-type(odd) {
-        background-color: #f9f9f9;
-    }
-
-    .table-bordered {
-        border: 1px solid #ddd;
-    }
-
-    /* Cải thiện giao diện nút */
-    .btn {
-        font-weight: 500;
-        padding: 8px 16px;
-        border-radius: 30px;
-        transition: all 0.3s ease;
-    }
-
-    /* Màu sắc cho các nút */
-    .btn-success {
-        background-color: #28a745;
-        border-color: #28a745;
-    }
-
-        .btn-success:hover {
-            background-color: #218838;
-            border-color: #1e7e34;
-        }
-
-    .btn-warning {
-        background-color: #ffc107;
-        border-color: #ffc107;
-    }
-
-        .btn-warning:hover {
-            background-color: #e0a800;
-            border-color: #d39e00;
-        }
-
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-
-        .btn-danger:hover {
-            background-color: #c82333;
-            border-color: #bd2130;
-        }
-
-    /* Cải thiện thông báo */
-    .alert-info {
-        background-color: #d1ecf1;
-        color: #0c5460;
-        border-color: #bee5eb;
-    }
-
-        .alert-info .alert-link {
-            color: #0c5460;
-        }
-
-    /* Hiệu ứng hover cho các dòng bảng */
-    tr:hover {
-        background-color: #f1b6b3; /* Màu hồng nhạt khi hover */
-        cursor: pointer;
-    }
-
-    /* Cải thiện khoảng cách và căn chỉnh */
-    .mt-5 {
-        margin-top: 50px;
-    }
-
-    .mb-4 {
-        margin-bottom: 40px;
-    }
-
-    .text-center {
-        text-align: center;
-    }
-
-    /* Cải thiện giao diện icon trong nút */
-    .btn i {
-        margin-right: 5px;
-    }
-</style>
-
-<!-- Thêm link tới Font Awesome nếu bạn chưa sử dụng -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">

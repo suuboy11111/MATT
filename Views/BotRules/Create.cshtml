@@ -1,36 +1,88 @@
 ﻿@model MaiAmTinhThuong.Models.BotRule
 
-<h2>Thêm Rule</h2>
+@{
+    ViewData["Title"] = "Thêm Rule Mới";
+}
 
-<form asp-action="Create" method="post">
-    <div class="mb-3">
-        <label>Trigger</label>
-        <input asp-for="Trigger" class="form-control" required />
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-plus-circle me-3"></i>Thêm Rule Mới</h2>
+            <p>Tạo quy tắc phản hồi mới cho ChatBot</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert-danger mb-4"></div>
+
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <label asp-for="Trigger" class="form-label fw-bold">
+                                <i class="fas fa-key me-2"></i>Trigger (Từ khóa kích hoạt)
+                            </label>
+                            <input asp-for="Trigger" class="form-control admin-form-control" required 
+                                   placeholder="Nhập từ khóa hoặc câu hỏi..." />
+                            <span asp-validation-for="Trigger" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="Response" class="form-label fw-bold">
+                                <i class="fas fa-reply me-2"></i>Response (Phản hồi)
+                            </label>
+                            <textarea asp-for="Response" class="form-control admin-form-control" rows="5" required 
+                                      placeholder="Nhập nội dung phản hồi..."></textarea>
+                            <span asp-validation-for="Response" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="MatchType" class="form-label fw-bold">
+                                <i class="fas fa-search me-2"></i>Match Type (Loại khớp)
+                            </label>
+                            <select asp-for="MatchType" asp-items="Html.GetEnumSelectList<MaiAmTinhThuong.Models.MatchType>()" class="form-select admin-form-control">
+                            </select>
+                            <span asp-validation-for="MatchType" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Priority" class="form-label fw-bold">
+                                <i class="fas fa-sort-numeric-up me-2"></i>Priority (Độ ưu tiên)
+                            </label>
+                            <input asp-for="Priority" type="number" class="form-control admin-form-control" 
+                                   placeholder="Số càng cao, ưu tiên càng lớn" />
+                            <span asp-validation-for="Priority" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-toggle-on me-2"></i>Trạng Thái
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" 
+                                       style="width: 3rem; height: 1.5rem;" />
+                                <label class="form-check-label ms-2" asp-for="IsActive">
+                                    @(Model?.IsActive == true ? "Active" : "Inactive")
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-3">
+                        <button type="submit" class="admin-btn admin-btn-success">
+                            <i class="fas fa-save"></i> Lưu Rule
+                        </button>
+                        <a asp-action="Index" class="admin-btn admin-btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="mb-3">
-        <label>Response</label>
-        <textarea asp-for="Response" class="form-control" required></textarea>
-    </div>
-
-    <div class="mb-3">
-        <label>MatchType</label>
-        <select asp-for="MatchType" class="form-control">
-            <option value="0">Exact</option>
-            <option value="1">Contains</option>
-            <option value="2">Regex</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label>Priority</label>
-        <input asp-for="Priority" type="number" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label>Active</label>
-        <input asp-for="IsActive" type="checkbox" />
-    </div>
-
-    <button class="btn btn-success">Lưu</button>
-</form>
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

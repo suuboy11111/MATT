@@ -32,6 +32,19 @@
             <h4 class="text-primary fw-bold mb-0">🤝 Đăng ký Người Hỗ Trợ</h4>
         </div>
         <div class="card-body">
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">
+                    @Html.Raw(TempData["Error"])
+                </div>
+            }
+            @if (TempData["Message"] != null)
+            {
+                <div class="alert alert-success">
+                    @TempData["Message"]
+                </div>
+            }
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
             <form asp-action="CreateSupporter" method="post" enctype="multipart/form-data">
                 <div class="form-group">
                     <label asp-for="Name">Họ và tên</label>
@@ -45,12 +58,19 @@
 
                 <div class="form-group">
                     <label asp-for="Gender">Giới tính</label>
-                    <input asp-for="Gender" class="form-control" required />
+                    <select asp-for="Gender" class="form-control" required>
+                        <option value="">-- Chọn giới tính --</option>
+                        <option value="Nam">Nam</option>
+                        <option value="Nu">Nữ</option>
+                        <option value="Khac">Khác</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
                     <label asp-for="PhoneNumber">Số điện thoại</label>
-                    <input asp-for="PhoneNumber" class="form-control" required />
+                    <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678 hoặc +84912345678" required />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
@@ -78,67 +98,20 @@
                         <option value="2">Vật tư</option>
                         <option value="3">Chỗ ở</option>
                     </select>
+                    <small class="form-text text-muted">Bạn có thể chọn nhiều loại hỗ trợ</small>
                 </div>
 
                 <!-- Tabs nội dung hướng dẫn -->
                 <div class="tab-content mt-3" id="supportTabsContent">
                     <div class="tab-pane fade" id="financial" role="tabpanel">
                         <h5>💰 Hỗ trợ tài chính</h5>
-                        
-                        <!-- Form thanh toán trực tiếp -->
-                        <div class="card border-primary mb-3">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">💳 Thanh toán trực tuyến</h6>
-                            </div>
-                            <div class="card-body">
-                                <form id="paymentForm">
-                                    <div class="mb-3">
-                                        <label for="donorName" class="form-label">Họ và tên người ủng hộ</label>
-                                        <input type="text" class="form-control" id="donorName" required placeholder="Nhập họ tên của bạn">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="donorPhone" class="form-label">Số điện thoại (tùy chọn)</label>
-                                        <input type="tel" class="form-control" id="donorPhone" placeholder="Nhập số điện thoại">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="donationAmount" class="form-label">Số tiền ủng hộ (VNĐ)</label>
-                                        <input type="number" class="form-control" id="donationAmount" min="10000" step="1000" required placeholder="Tối thiểu 10,000 VNĐ">
-                                        <small class="form-text text-muted">Số tiền tối thiểu: 10,000 VNĐ</small>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="donationMaiAm" class="form-label">Chọn mái ấm (tùy chọn)</label>
-                                        <select class="form-control" id="donationMaiAm">
-                                            <option value="">-- Chọn mái ấm --</option>
-                                            @if (ViewBag.MaiAms != null)
-                                            {
-                                                @foreach (var maiAm in ViewBag.MaiAms)
-                                                {
-                                                    <option value="@maiAm.Id">@maiAm.Name</option>
-                                                }
-                                            }
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100" id="btnPayNow">
-                                        <i class="bi bi-credit-card"></i> Thanh toán ngay
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Hoặc quét mã QR -->
-                        <div class="card border-secondary">
-                            <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">📱 Hoặc quét mã QR chuyển khoản</h6>
-                            </div>
-                            <div class="card-body text-center">
-                                <img src="/images/z6625643985564_efd68e38656a89cf3e6a31d961684b8a.jpg" alt="QR chuyển khoản" class="img-fluid mb-2" style="max-width: 300px;" />
-                                <ul class="small text-start">
-                                    <li><strong>Tài khoản:</strong> Mặt trận Tổ quốc Việt Nam - Ban Cứu trợ Trung ương</li>
-                                    <li><strong>Số TK:</strong> 0011.00.1932418 – Vietcombank</li>
-                                    <li><strong>Nội dung:</strong> Hỗ trợ tài chính - [Tên][SĐT]</li>
-                                </ul>
-                            </div>
-                        </div>
+                        <p>Quét mã QR ngân hàng:</p>
+                        <img src="/images/z6625643985564_efd68e38656a89cf3e6a31d961684b8a.jpg" alt="QR chuyển khoản" class="img-fluid mb-2" style="max-width: 300px;" />
+                        <ul class="small">
+                            <li><strong>Tài khoản:</strong> Mặt trận Tổ quốc Việt Nam - Ban Cứu trợ Trung ương</li>
+                            <li><strong>Số TK:</strong> 0011.00.1932418 – Vietcombank</li>
+                            <li><strong>Nội dung:</strong> Hỗ trợ tài chính - [Tên][SĐT]</li>
+                        </ul>
                     </div>
                     <div class="tab-pane fade" id="material" role="tabpanel">
                         <h5>📦 Hỗ trợ vật tư</h5>
@@ -183,51 +156,6 @@
             });
 
             $('#supportType').trigger('change');
-
-            // Xử lý form thanh toán
-            $('#paymentForm').on('submit', function (e) {
-                e.preventDefault();
-                
-                var donorName = $('#donorName').val();
-                var donorPhone = $('#donorPhone').val();
-                var amount = parseFloat($('#donationAmount').val());
-                var maiAmId = $('#donationMaiAm').val() || null;
-
-                if (!donorName || !amount || amount < 10000) {
-                    alert('Vui lòng nhập đầy đủ thông tin và số tiền tối thiểu 10,000 VNĐ');
-                    return;
-                }
-
-                // Disable button
-                var $btn = $('#btnPayNow');
-                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang xử lý...');
-
-                // Gọi API tạo payment link
-                $.ajax({
-                    url: '/Payment/CreatePaymentLink',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        amount: amount,
-                        donorName: donorName,
-                        phoneNumber: donorPhone,
-                        maiAmId: maiAmId ? parseInt(maiAmId) : null
-                    }),
-                    success: function (response) {
-                        if (response.success && response.checkoutUrl) {
-                            // Redirect đến trang thanh toán
-                            window.location.href = response.checkoutUrl;
-                        } else {
-                            alert(response.message || 'Có lỗi xảy ra khi tạo liên kết thanh toán');
-                            $btn.prop('disabled', false).html('<i class="bi bi-credit-card"></i> Thanh toán ngay');
-                        }
-                    },
-                    error: function () {
-                        alert('Có lỗi xảy ra. Vui lòng thử lại sau.');
-                        $btn.prop('disabled', false).html('<i class="bi bi-credit-card"></i> Thanh toán ngay');
-                    }
-                });
-            });
         });
     </script>
 }

@@ -14,6 +14,46 @@
             </a>
         </div>
 
+        <!-- Form tìm kiếm và lọc -->
+        <form method="get" asp-action="ManageProfiles" asp-route-id="@Model.Id" class="mb-3">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <input type="text" name="searchString" class="form-control form-control-sm" 
+                           placeholder="Tìm kiếm..." value="@ViewBag.SearchString" />
+                </div>
+                <div class="col-md-2">
+                    <select name="filterApproved" class="form-select form-select-sm">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="true" selected="@(ViewBag.FilterApproved == "true")">Đã duyệt</option>
+                        <option value="false" selected="@(ViewBag.FilterApproved == "false")">Chưa duyệt</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="filterSupported" class="form-select form-select-sm">
+                        <option value="">Tất cả hỗ trợ</option>
+                        <option value="reason" selected="@(ViewBag.FilterSupported == "reason")">Hỗ trợ HC</option>
+                        <option value="health" selected="@(ViewBag.FilterSupported == "health")">Hỗ trợ SK</option>
+                        <option value="general" selected="@(ViewBag.FilterSupported == "general")">Hỗ trợ chung</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="sortBy" class="form-select form-select-sm">
+                        <option value="date" selected="@(ViewBag.SortBy == "date" || ViewBag.SortBy == null)">Mới nhất</option>
+                        <option value="name" selected="@(ViewBag.SortBy == "name")">Tên A-Z</option>
+                        <option value="age" selected="@(ViewBag.SortBy == "age")">Tuổi</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                    <a asp-action="ManageProfiles" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
+                    </a>
+                </div>
+            </div>
+        </form>
+
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover align-middle text-center">
                 <thead class="table-light">

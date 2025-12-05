@@ -2,117 +2,486 @@
     ViewData["Title"] = "TRANG QUẢN LÝ ADMIN";
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem;">TRANG QUẢN LÝ ADMIN</h2>
-
-    <div class="row justify-content-center">
-        <!-- Sidebar -->
-        <div class="col-md-6">
-            <div class="list-group shadow-sm rounded">
-                <a href="@Url.Action("ManageAccounts", "Admin")" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fas fa-users"></i> Quản lý tài khoản
+<!-- Modern Admin Dashboard -->
+<div class="admin-dashboard" style="min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem 0;">
+    <div class="container-fluid px-4">
+        <!-- Header -->
+        <div class="dashboard-header mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="text-white mb-2" style="font-size: 2.5rem; font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                        <i class="fas fa-tachometer-alt me-3"></i>Bảng Điều Khiển
+                    </h1>
+                    <p class="text-white-50 mb-0" style="font-size: 1.1rem;">Quản lý và theo dõi hệ thống Mái Ấm Tình Thương</p>
+                </div>
+                <a href="@Url.Action("Index", "Home")" class="btn btn-light btn-lg px-4">
+                    <i class="fas fa-home me-2"></i>Về Trang Chủ
                 </a>
-                <a href="@Url.Action("Manage", "MaiAmAdmin")" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fas fa-home"></i> Quản lý Mái ấm
-                </a>
-                <a href="@Url.Action("ManageBlogPosts", "Admin")" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fas fa-blog"></i> Quản lý bài viết
-                </a>
-                <a href="@Url.Action("ContactResponses", "Admin")" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fas fa-comments"></i> Nhận phản hồi từ liên hệ
-                </a>
-                <!-- 🔧 Nút mới đã chỉnh sửa -->
-                <a href="@Url.Action("Index", "BotRules")" class="list-group-item list-group-item-action sidebar-link">
-                    <i class="fas fa-robot"></i> Quản lý Rule ChatBot
-                </a>
-
             </div>
         </div>
 
-        <!-- Content Area -->
-        <div class="col-md-8">
-            <!-- Nội dung quản lý sẽ hiển thị tại đây -->
-        </div>
-    </div>
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+            <!-- Total Users -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-primary">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalUsers</h3>
+                        <p class="stat-card-label">Tổng Người Dùng</p>
+                        <div class="stat-card-trend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Hoạt động</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Quay lại trang chủ -->
-    <div class="mt-4 text-center">
-        <a class="btn btn-primary btn-lg" href="@Url.Action("Index", "Home")">Quay lại trang chủ</a>
+            <!-- Support Requests -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-info">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalSupportRequests</h3>
+                        <p class="stat-card-label">Hồ Sơ Cần Hỗ Trợ</p>
+                        <div class="stat-card-badge badge-warning">
+                            <i class="fas fa-clock me-1"></i>@ViewBag.Stats.PendingSupportRequests chờ duyệt
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supporters -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-success">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-hand-holding-heart"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalSupporters</h3>
+                        <p class="stat-card-label">Người Hỗ Trợ</p>
+                        <div class="stat-card-badge badge-success">
+                            <i class="fas fa-check-circle me-1"></i>@ViewBag.Stats.ApprovedSupporters đã duyệt
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MaiAms -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-danger">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalMaiAms</h3>
+                        <p class="stat-card-label">Mái Ấm</p>
+                        <div class="stat-card-trend">
+                            <i class="fas fa-heart"></i>
+                            <span>Đang hoạt động</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blog Posts -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-warning">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-blog"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalBlogPosts</h3>
+                        <p class="stat-card-label">Bài Viết</p>
+                        <div class="stat-card-badge badge-warning">
+                            <i class="fas fa-clock me-1"></i>@ViewBag.Stats.PendingBlogPosts chờ duyệt
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions -->
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card stat-card-success">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <h3 class="stat-card-number">@ViewBag.Stats.TotalTransactions</h3>
+                        <p class="stat-card-label">Giao Dịch</p>
+                        <div class="stat-card-amount">
+                            <i class="fas fa-coins me-1"></i>@string.Format("{0:N0}", ViewBag.Stats.TotalAmount) VNĐ
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Management Links -->
+        <div class="row g-4">
+            <!-- Quick Actions -->
+            <div class="col-xl-8">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-bolt me-2"></i>Thao Tác Nhanh
+                        </h3>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <a href="@Url.Action("ManageAccounts", "Admin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-primary">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Quản Lý Tài Khoản</h5>
+                                            <p class="text-muted mb-0">Xem và quản lý người dùng</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="@Url.Action("ManageSupportRequests", "Admin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-info">
+                                            <i class="fas fa-file-alt"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Hồ Sơ Cần Hỗ Trợ</h5>
+                                            <p class="text-muted mb-0">Duyệt và quản lý hồ sơ</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="@Url.Action("ManageSupporters", "Admin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-success">
+                                            <i class="fas fa-hand-holding-heart"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Người Hỗ Trợ</h5>
+                                            <p class="text-muted mb-0">Quản lý người hỗ trợ</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="@Url.Action("Manage", "MaiAmAdmin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-danger">
+                                            <i class="fas fa-home"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Quản Lý Mái Ấm</h5>
+                                            <p class="text-muted mb-0">Quản lý các mái ấm</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="@Url.Action("ManageBlogPosts", "Admin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-warning">
+                                            <i class="fas fa-blog"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Quản Lý Bài Viết</h5>
+                                            <p class="text-muted mb-0">Duyệt và quản lý bài viết</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="@Url.Action("ContactResponses", "Admin")" class="quick-action-link">
+                                    <div class="quick-action-item">
+                                        <div class="quick-action-icon bg-secondary">
+                                            <i class="fas fa-comments"></i>
+                                        </div>
+                                        <div class="quick-action-content">
+                                            <h5>Phản Hồi Liên Hệ</h5>
+                                            <p class="text-muted mb-0">Xem phản hồi từ người dùng</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right quick-action-arrow"></i>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Links -->
+            <div class="col-xl-4">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">
+                            <i class="fas fa-cog me-2"></i>Cài Đặt
+                        </h3>
+                    </div>
+                    <div class="admin-card-body">
+                        <div class="admin-menu-list">
+                            <a href="@Url.Action("Index", "BotRules")" class="admin-menu-item">
+                                <i class="fas fa-robot me-3"></i>
+                                <span>Quản Lý ChatBot</span>
+                                <i class="fas fa-chevron-right ms-auto"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-    /* Cải thiện giao diện của Sidebar */
-    .list-group {
-        background-color: #ffffff;
-        border-radius: 8px;
+    /* Admin Dashboard Styles */
+    .admin-dashboard {
+        font-family: 'Inter', sans-serif;
     }
 
-    .list-group-item {
-        font-size: 1.1rem;
-        padding: 15px;
-        color: #333333;
-        border: none;
-        border-radius: 8px;
+    /* Stat Cards */
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
         display: flex;
         align-items: center;
+        gap: 1.5rem;
+        height: 100%;
     }
 
-        .list-group-item i {
-            margin-right: 10px;
-            color: #f1b6b3; /* Màu icon */
-        }
-
-        .list-group-item:hover {
-            background-color: #f1b6b3; /* Màu hồng nhạt khi hover */
-            color: #ffffff;
-            transform: scale(1.05); /* Hiệu ứng phóng to khi hover */
-        }
-
-    .sidebar-link {
-        font-weight: 500;
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--card-color);
     }
 
-    /* Cải thiện kiểu dáng cho nút quay lại */
-    .btn {
-        font-size: 1.1rem;
-        font-weight: 500;
-        padding: 10px 20px;
-        border-radius: 30px;
-        text-transform: uppercase;
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
     }
 
-    .btn-primary {
-        background-color: #87cefa; /* Xanh nhạt */
-        border-color: #87cefa;
-    }
+    .stat-card-primary { --card-color: #667eea; }
+    .stat-card-info { --card-color: #17a2b8; }
+    .stat-card-success { --card-color: #28a745; }
+    .stat-card-danger { --card-color: #dc3545; }
+    .stat-card-warning { --card-color: #ffc107; }
 
-        .btn-primary:hover {
-            background-color: #f1b6b3; /* Màu hồng nhạt khi hover */
-            border-color: #f1b6b3;
-        }
-
-    /* Tạo độ bóng cho các phần tử */
-    .shadow-sm {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Tối ưu độ rộng của container */
-    .container {
-        max-width: 1200px;
-    }
-
-    /* Tạo khoảng cách và căn chỉnh cho các phần tử */
-    .mt-5 {
-        margin-top: 50px;
-    }
-
-    /* Căn giữa các phần tử trong sidebar */
-    .row.justify-content-center {
+    .stat-card-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
         justify-content: center;
+        background: linear-gradient(135deg, var(--card-color), var(--card-color));
+        color: white;
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    .stat-card-content {
+        flex: 1;
+    }
+
+    .stat-card-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .stat-card-label {
+        font-size: 0.95rem;
+        color: #6c757d;
+        margin: 0.5rem 0;
+        font-weight: 500;
+    }
+
+    .stat-card-trend,
+    .stat-card-badge,
+    .stat-card-amount {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .stat-card-trend {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+    }
+
+    .stat-card-badge.badge-warning {
+        background: rgba(255, 193, 7, 0.1);
+        color: #f59e0b;
+    }
+
+    .stat-card-badge.badge-success {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .stat-card-amount {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    /* Admin Cards */
+    .admin-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .admin-card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        color: white;
+    }
+
+    .admin-card-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .admin-card-body {
+        padding: 1.5rem;
+    }
+
+    /* Quick Action Items */
+    .quick-action-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .quick-action-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .quick-action-item:hover {
+        background: white;
+        border-color: #667eea;
+        transform: translateX(5px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .quick-action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .quick-action-content {
+        flex: 1;
+    }
+
+    .quick-action-content h5 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .quick-action-arrow {
+        color: #6c757d;
+        transition: transform 0.3s ease;
+    }
+
+    .quick-action-item:hover .quick-action-arrow {
+        transform: translateX(5px);
+        color: #667eea;
+    }
+
+    /* Admin Menu List */
+    .admin-menu-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .admin-menu-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        color: #2c3e50;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        margin-bottom: 0.5rem;
+    }
+
+    .admin-menu-item:hover {
+        background: #f8f9fa;
+        color: #667eea;
+        transform: translateX(5px);
+    }
+
+    .admin-menu-item i:first-child {
+        width: 24px;
+        text-align: center;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .dashboard-header h1 {
+            font-size: 1.75rem !important;
+        }
+
+        .stat-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .stat-card-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .stat-card-number {
+            font-size: 2rem;
+        }
     }
 </style>
-
-<!-- Thêm link đến Font Awesome nếu bạn chưa sử dụng -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">

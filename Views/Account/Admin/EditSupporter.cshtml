@@ -25,7 +25,12 @@
 
     <div class="form-group mb-3">
         <label asp-for="Gender" class="form-label">Giới tính</label>
-        <input asp-for="Gender" class="form-control" />
+        <select asp-for="Gender" class="form-control">
+            <option value="">-- Chọn giới tính --</option>
+            <option value="Nam">Nam</option>
+            <option value="Nu">Nữ</option>
+            <option value="Khac">Khác</option>
+        </select>
         <span asp-validation-for="Gender" class="text-danger"></span>
     </div>
 

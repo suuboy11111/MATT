@@ -1,31 +1,57 @@
-﻿namespace MaiAmTinhThuong.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MaiAmTinhThuong.Models
 {
     public class Supporter
     {
         public int Id { get; set; }
+
+        [Required(ErrorMessage = "Họ tên không được để trống")]
+        [StringLength(100, ErrorMessage = "Họ tên không được vượt quá 100 ký tự")]
+        [Display(Name = "Họ và tên")]
         public string Name { get; set; }
+
+        [Required(ErrorMessage = "Tuổi không được để trống")]
+        [Range(0, 150, ErrorMessage = "Tuổi phải từ 0 đến 150")]
+        [Display(Name = "Tuổi")]
         public int Age { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng chọn giới tính")]
+        [Display(Name = "Giới tính")]
         public string Gender { get; set; }
+
+        [Required(ErrorMessage = "Số điện thoại không được để trống")]
+        [RegularExpression(@"^(0|\+84)[0-9]{9,10}$", ErrorMessage = "Số điện thoại không hợp lệ. Ví dụ: 0912345678 hoặc +84912345678")]
+        [Display(Name = "Số điện thoại")]
         public string PhoneNumber { get; set; }
-        public string Address { get; set; }
+
+        [StringLength(200, ErrorMessage = "Địa chỉ không được vượt quá 200 ký tự")]
+        [Display(Name = "Địa chỉ")]
+        public string? Address { get; set; }
+
+        [RegularExpression(@"^[0-9]{12}$", ErrorMessage = "Số CCCD phải có 12 chữ số")]
+        [Display(Name = "Số CCCD")]
         public string? CCCD { get; set; }
-        public string ImageUrl { get; set; }
 
-        // Thêm MaiAmId vào Supporter
-        public int? MaiAmId { get; set; }  // Chỉ chọn 1 mái ấm
+        [Display(Name = "Ảnh đại diện")]
+        public string? ImageUrl { get; set; }
 
-        // Quan hệ 1-1 với MaiAm
-        public virtual MaiAm MaiAm { get; set; }  // Liên kết mái ấm
+        [Display(Name = "Mái ấm")]
+        public int? MaiAmId { get; set; }
+        public virtual MaiAm? MaiAm { get; set; }
 
-        // Loại hỗ trợ có thể chọn nhiều loại (Tài chính, Vật tư, Chỗ ở)
         public ICollection<SupportType> SupportTypes { get; set; } = new List<SupportType>();
         public virtual ICollection<SupporterSupportType> SupporterSupportTypes { get; set; }
 
-        public bool IsApproved { get; set; }       // Duyệt hồ sơ
+        [Display(Name = "Đã duyệt")]
+        public bool IsApproved { get; set; }
 
-        public virtual ICollection<SupporterMaiAm> SupporterMaiAms { get; set; } // Quan hệ nhiều mái ấm
+        public virtual ICollection<SupporterMaiAm> SupporterMaiAms { get; set; } = new List<SupporterMaiAm>();
 
+        [Display(Name = "Ngày tạo")]
         public DateTime CreatedDate { get; set; }
+
+        [Display(Name = "Ngày cập nhật")]
         public DateTime UpdatedDate { get; set; }
     }
 }

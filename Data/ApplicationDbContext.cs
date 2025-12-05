@@ -24,7 +24,7 @@ namespace MaiAmTinhThuong.Data
         public DbSet<VinhDanh> VinhDanhs { get; set; }
         public DbSet<ChungNhanQuyenGop> ChungNhanQuyenGops { get; set; }
         public DbSet<BotRule> BotRules { get; set; }
-
+        public DbSet<Notification> Notifications { get; set; }
 
         // Thêm DbSet cho blog
         public DbSet<BlogPost> BlogPosts { get; set; }

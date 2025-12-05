@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
+using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
@@ -15,31 +16,33 @@ namespace MaiAmTinhThuong.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly NotificationService _notificationService;
 
-        public BlogController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public BlogController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         // GET: Blog
         public async Task<IActionResult> Index()
         {
-            var user = await _userManager.GetUserAsync(User);  // Lấy thông tin người dùng hiện tại
+            var user = await _userManager.GetUserAsync(User);
 
-            if (user == null)  // Nếu người dùng chưa đăng nhập
+            if (user == null)
             {
-                // Bạn có thể hiển thị một thông báo hoặc chuyển hướng đến trang đăng nhập
-                return RedirectToAction("Login", "Account"); // Hoặc redirect đến trang đăng nhập
+                return RedirectToAction("Login", "Account");
             }
 
-            ViewData["UserId"] = user.Id; // Lưu UserId vào ViewData
+            ViewData["UserId"] = user.Id;
 
             var blogPosts = await _context.BlogPosts
-                                          .Include(b => b.Author)  // Bao gồm tác giả
-                                          .Include(b => b.Comments) // Bao gồm bình luận của bài viết
-                                          .ThenInclude(c => c.Author)  // Bao gồm tác giả của bình luận
-                                          .OrderByDescending(b => b.CreatedAt)  // Sắp xếp bài viết theo ngày tạo
+                                          .Where(b => b.IsApproved)
+                                          .Include(b => b.Author)
+                                          .Include(b => b.Comments)
+                                          .ThenInclude(c => c.Author)
+                                          .OrderByDescending(b => b.CreatedAt)
                                           .ToListAsync();
 
             // Tính số lượt like cho mỗi bài viết và kiểm tra xem người dùng đã like bài viết này chưa
@@ -52,15 +55,22 @@ namespace MaiAmTinhThuong.Controllers
             return View(blogPosts);
         }
 
-        // POST: Blog/Like
+        // API: Like/Unlike (AJAX)
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> Like(int blogPostId)
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> ToggleLike(int blogPostId)
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
             var existingLike = await _context.Likes
                                              .FirstOrDefaultAsync(l => l.BlogPostId == blogPostId && l.UserId == user.Id);
 
+            bool isLiked;
             if (existingLike == null)
             {
                 var like = new Like
@@ -69,14 +79,72 @@ namespace MaiAmTinhThuong.Controllers
                     UserId = user.Id
                 };
                 _context.Likes.Add(like);
-                await _context.SaveChangesAsync();
+                isLiked = true;
             }
             else
             {
                 _context.Likes.Remove(existingLike);
-                await _context.SaveChangesAsync();
+                isLiked = false;
             }
 
+            await _context.SaveChangesAsync();
+
+            var likeCount = await _context.Likes.CountAsync(l => l.BlogPostId == blogPostId);
+
+            return Json(new { success = true, isLiked = isLiked, likeCount = likeCount });
+        }
+
+        // API: Add Comment (AJAX)
+        [HttpPost]
+        [Authorize]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> AddComment(int blogPostId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Vui lòng đăng nhập" });
+            }
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return Json(new { success = false, message = "Nội dung bình luận không được để trống" });
+            }
+
+            var comment = new Comment
+            {
+                BlogPostId = blogPostId,
+                Content = content.Trim(),
+                CreatedAt = DateTime.Now,
+                AuthorId = user.Id
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            // Load lại comment với Author
+            await _context.Entry(comment).Reference(c => c.Author).LoadAsync();
+
+            return Json(new
+            {
+                success = true,
+                comment = new
+                {
+                    id = comment.Id,
+                    content = comment.Content,
+                    createdAt = comment.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
+                    authorName = comment.Author?.FullName ?? comment.Author?.Email ?? "Unknown",
+                    authorAvatar = comment.Author?.ProfilePicture ?? "/images/default1-avatar.png"
+                }
+            });
+        }
+
+        // POST: Blog/Like (Legacy - giữ lại để tương thích)
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> Like(int blogPostId)
+        {
+            var result = await ToggleLike(blogPostId);
             return RedirectToAction(nameof(Index));
         }
 
@@ -85,9 +153,22 @@ namespace MaiAmTinhThuong.Controllers
         [Authorize]
         public async Task<IActionResult> CreatePost(BlogPost model, IFormFile image)
         {
+            ModelState.Remove("image");
+            ModelState.Remove("ImageUrl");
+            ModelState.Remove("AuthorId");
+            ModelState.Remove("Author");
+            ModelState.Remove("LikeCount");
+            ModelState.Remove("LikedByUser");
+            ModelState.Remove("Comments");
+            ModelState.Remove("IsApproved");
+
             if (ModelState.IsValid)
             {
                 var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login", "Account");
+                }
 
                 var blogPost = new BlogPost
                 {
@@ -95,66 +176,98 @@ namespace MaiAmTinhThuong.Controllers
                     Content = model.Content,
                     CreatedAt = DateTime.Now,
                     AuthorId = user.Id,
+                    IsApproved = false
                 };
 
-                // Nếu có hình ảnh, lưu trữ nó
-                if (image != null)
+                if (image != null && image.Length > 0)
                 {
-                    var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images", image.FileName);
-                    using (var stream = new FileStream(imagePath, FileMode.Create))
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                    var fileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(fileExtension))
                     {
-                        await image.CopyToAsync(stream);
+                        ModelState.AddModelError("image", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
                     }
-                    blogPost.ImageUrl = "/images/" + image.FileName;  // Lưu đường dẫn hình ảnh
+                    else if (image.Length > 5 * 1024 * 1024)
+                    {
+                        ModelState.AddModelError("image", "Kích thước file không được vượt quá 5MB");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                            var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images");
+                            if (!Directory.Exists(uploadDir))
+                            {
+                                Directory.CreateDirectory(uploadDir);
+                            }
+                            
+                            var imagePath = Path.Combine(uploadDir, uniqueFileName);
+                            using (var stream = new FileStream(imagePath, FileMode.Create))
+                            {
+                                await image.CopyToAsync(stream);
+                            }
+                            blogPost.ImageUrl = "/images/" + uniqueFileName;
+                        }
+                        catch (Exception ex)
+                        {
+                            ModelState.AddModelError("image", $"Lỗi khi lưu file: {ex.Message}");
+                        }
+                    }
                 }
 
-                // Thêm bài viết vào cơ sở dữ liệu
-                _context.BlogPosts.Add(blogPost);
-                await _context.SaveChangesAsync();
+                if (ModelState.IsValid)
+                {
+                    _context.BlogPosts.Add(blogPost);
+                    await _context.SaveChangesAsync();
 
-                // Lưu thông báo vào TempData
-                TempData["PostPending"] = "Bài viết của bạn đã được gửi và đang chờ duyệt. Cảm ơn bạn đã chia sẻ! 💖";
+                    await _notificationService.NotifyBlogPostCreatedAsync(user.Id, blogPost.Title);
+                    await _notificationService.NotifyAdminNewBlogPostAsync(blogPost.Title, blogPost.Id, user.FullName ?? user.Email);
 
-                return RedirectToAction(nameof(Index));
+                    TempData["PostPending"] = "Bài viết của bạn đã được gửi và đang chờ duyệt. Cảm ơn bạn đã chia sẻ! 💖";
+
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
             return View(model);
         }
 
-        // POST: Blog/Comment
+        // POST: Blog/Comment (Legacy - giữ lại để tương thích)
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> Comment(int blogPostId, string content)
         {
-            var user = await _userManager.GetUserAsync(User);
-
-            var comment = new Comment
-            {
-                BlogPostId = blogPostId,
-                Content = content,
-                CreatedAt = DateTime.Now,
-                AuthorId = user.Id  // Lưu ID của người dùng đã đăng bình luận
-            };
-
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction("Index");  // Quay lại trang Index với các bài viết đã có bình luận
+            var result = await AddComment(blogPostId, content);
+            return RedirectToAction("Index");
         }
 
         // GET: Blog/LoadMorePosts
         public async Task<IActionResult> LoadMorePosts(int page)
         {
+            var user = await _userManager.GetUserAsync(User);
             var blogPosts = await _context.BlogPosts
+                .Where(b => b.IsApproved)
                 .OrderByDescending(b => b.CreatedAt)
                 .Skip(page * 5)
                 .Take(5)
                 .Include(b => b.Author)
-                .Include(b => b.Comments) // Bao gồm bình luận khi tải thêm
+                .Include(b => b.Comments)
+                .ThenInclude(c => c.Author)
                 .ToListAsync();
+
+            if (user != null)
+            {
+                foreach (var post in blogPosts)
+                {
+                    post.LikeCount = await _context.Likes.CountAsync(l => l.BlogPostId == post.Id);
+                    post.LikedByUser = await _context.Likes.AnyAsync(l => l.BlogPostId == post.Id && l.UserId == user.Id);
+                }
+            }
 
             return PartialView("_PostList", blogPosts);
         }
+
         // GET: Blog/Edit/{id}
         [Authorize]
         public async Task<IActionResult> Edit(int id)
@@ -162,7 +275,6 @@ namespace MaiAmTinhThuong.Controllers
             var blogPost = await _context.BlogPosts.FindAsync(id);
             if (blogPost == null || blogPost.AuthorId != _userManager.GetUserId(User))
             {
-                // Nếu bài viết không tồn tại hoặc không phải của người dùng hiện tại
                 return NotFound();
             }
 
@@ -190,11 +302,9 @@ namespace MaiAmTinhThuong.Controllers
                         return NotFound();
                     }
 
-                    // Cập nhật các thông tin bài viết
                     blogPost.Title = model.Title;
                     blogPost.Content = model.Content;
 
-                    // Nếu có hình ảnh, lưu trữ nó
                     if (image != null)
                     {
                         var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images", image.FileName);
@@ -205,7 +315,6 @@ namespace MaiAmTinhThuong.Controllers
                         blogPost.ImageUrl = "/images/" + image.FileName;
                     }
 
-                    // Cập nhật bài viết vào cơ sở dữ liệu
                     _context.Update(blogPost);
                     await _context.SaveChangesAsync();
                 }
@@ -226,6 +335,7 @@ namespace MaiAmTinhThuong.Controllers
 
             return View(model);
         }
+
         // GET: Blog/Delete/{id}
         [Authorize]
         public async Task<IActionResult> Delete(int id)
@@ -233,7 +343,6 @@ namespace MaiAmTinhThuong.Controllers
             var blogPost = await _context.BlogPosts.FindAsync(id);
             if (blogPost == null || blogPost.AuthorId != _userManager.GetUserId(User))
             {
-                // Nếu bài viết không tồn tại hoặc không phải của người dùng hiện tại
                 return NotFound();
             }
 

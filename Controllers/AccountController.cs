@@ -39,7 +39,10 @@ namespace MaiAmTinhThuong.Controllers
                 Email = model.Email,
                 FullName = model.FullName,
                 Role = model.Role,
-                ProfilePicture = "/images/default1-avatar.png"  // Gán ảnh mặc định nếu người dùng không upload ảnh
+                ProfilePicture = "/images/default1-avatar.png",
+                Gender = model.Gender?.ToString(),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -55,7 +58,7 @@ namespace MaiAmTinhThuong.Controllers
                 await _userManager.AddToRoleAsync(user, model.Role);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("Index", "Home"); // Hoặc chuyển theo Role
+                return RedirectToAction("Index", "Home");
             }
 
             foreach (var error in result.Errors)
@@ -106,7 +109,12 @@ namespace MaiAmTinhThuong.Controllers
             var model = new ProfileViewModel
             {
                 FullName = user.FullName,
-                ProfilePicture = user.ProfilePicture ?? "/images/default1-avatar.png" // Đảm bảo có ảnh mặc định nếu không có ảnh đại diện
+                Email = user.Email,
+                ProfilePicture = user.ProfilePicture ?? "/images/default1-avatar.png",
+                Gender = user.Gender,
+                DateOfBirth = user.DateOfBirth,
+                Address = user.Address,
+                PhoneNumber = user.PhoneNumber ?? user.PhoneNumber2
             };
 
             return View(model);
@@ -121,29 +129,84 @@ namespace MaiAmTinhThuong.Controllers
                 return RedirectToAction("Login");
             }
 
+            // Remove profilePicture khỏi ModelState để không ảnh hưởng đến validation
+            ModelState.Remove("profilePicture");
+
+            // Validate mật khẩu nếu có thay đổi
+            if (!string.IsNullOrEmpty(model.NewPassword))
+            {
+                if (string.IsNullOrEmpty(model.CurrentPassword))
+                {
+                    ModelState.AddModelError("CurrentPassword", "Vui lòng nhập mật khẩu hiện tại");
+                }
+                if (model.NewPassword != model.ConfirmPassword)
+                {
+                    ModelState.AddModelError("ConfirmPassword", "Xác nhận mật khẩu không khớp");
+                }
+            }
+
+            // Xử lý upload ảnh riêng biệt (không phụ thuộc vào ModelState.IsValid)
+            if (profilePicture != null && profilePicture.Length > 0)
+            {
+                // Validate file type
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    ModelState.AddModelError("profilePicture", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
+                }
+                // Validate file size (max 5MB)
+                else if (profilePicture.Length > 5 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("profilePicture", "Kích thước file không được vượt quá 5MB");
+                }
+                else
+                {
+                    // File hợp lệ, lưu file
+                    try
+                    {
+                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
+                        if (!Directory.Exists(uploadDir))
+                        {
+                            Directory.CreateDirectory(uploadDir);
+                        }
+
+                        var filePath = Path.Combine(uploadDir, uniqueFileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await profilePicture.CopyToAsync(stream);
+                        }
+                        user.ProfilePicture = "/images/profiles/" + uniqueFileName;
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("profilePicture", $"Lỗi khi lưu file: {ex.Message}");
+                    }
+                }
+            }
+
+            // Kiểm tra ModelState sau khi đã xử lý file
             if (ModelState.IsValid)
             {
                 // Cập nhật thông tin người dùng
                 user.FullName = model.FullName;
-
-                // Cập nhật ảnh đại diện nếu có
-                if (profilePicture != null && profilePicture.Length > 0)
+                user.Gender = model.Gender;
+                user.DateOfBirth = model.DateOfBirth;
+                user.Address = model.Address;
+                if (!string.IsNullOrEmpty(model.PhoneNumber))
                 {
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", profilePicture.FileName);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await profilePicture.CopyToAsync(stream);
-                    }
-                    user.ProfilePicture = "/images/" + profilePicture.FileName; // Cập nhật đường dẫn ảnh đại diện
+                    user.PhoneNumber2 = model.PhoneNumber;
                 }
+                user.UpdatedAt = DateTime.Now;
 
-                // Thay đổi mật khẩu
-                if (!string.IsNullOrEmpty(model.CurrentPassword) && !string.IsNullOrEmpty(model.NewPassword) && model.NewPassword == model.ConfirmPassword)
+                // Thay đổi mật khẩu nếu có
+                if (!string.IsNullOrEmpty(model.CurrentPassword) && !string.IsNullOrEmpty(model.NewPassword))
                 {
-                    var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
-                    if (!result.Succeeded)
+                    var passwordResult = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+                    if (!passwordResult.Succeeded)
                     {
-                        foreach (var error in result.Errors)
+                        foreach (var error in passwordResult.Errors)
                         {
                             ModelState.AddModelError("", error.Description);
                         }
@@ -155,7 +218,7 @@ namespace MaiAmTinhThuong.Controllers
                 var updateResult = await _userManager.UpdateAsync(user);
                 if (updateResult.Succeeded)
                 {
-                    TempData["Message"] = "Thông tin tài khoản đã được cập nhật!";
+                    TempData["Message"] = "Thông tin tài khoản đã được cập nhật thành công!";
                     return RedirectToAction("Profile");
                 }
                 else
@@ -167,6 +230,9 @@ namespace MaiAmTinhThuong.Controllers
                 }
             }
 
+            // Nếu có lỗi, load lại model với dữ liệu user
+            model.Email = user.Email;
+            model.ProfilePicture = user.ProfilePicture ?? "/images/default1-avatar.png";
             return View(model);
         }
         [HttpPost]

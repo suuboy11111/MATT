@@ -1,166 +1,224 @@
-﻿@model IEnumerable<MaiAmTinhThuong.Models.BlogPost>
+﻿@using Microsoft.AspNetCore.Identity
+@using MaiAmTinhThuong.Models
+@model IEnumerable<BlogPost>
+@inject UserManager<ApplicationUser> UserManager
 
 @{
-    ViewData["Title"] = "Social Feed";
+    ViewData["Title"] = "Câu Chuyện - Mái Ấm Tình Thương";
 }
 
-<div class="container-fluid bg-light py-4" style="min-height: 100vh;">
-    @if (TempData["PostPending"] != null)
-    {
-        <div class="alert alert-info alert-dismissible fade show text-center rounded-pill mx-auto mb-4" style="max-width: 600px;">
-            <i class="fas fa-clock me-2"></i> @TempData["PostPending"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<!-- Anti-forgery token for AJAX -->
+@Html.AntiForgeryToken()
+
+<div class="blog-container">
+    <!-- Page Header -->
+    <div class="text-center mb-4">
+        <h1 class="blog-page-title">
+            <i class="fas fa-book-open me-3"></i>Câu Chuyện
+        </h1>
+        <p class="blog-page-subtitle">Chia sẻ những khoảnh khắc đẹp và câu chuyện ý nghĩa</p>
+    </div>
+
+    <!-- Create Post Card -->
+    <div class="blog-create-post">
+        <div class="blog-card">
+            <div class="blog-card-header">
+                <div class="d-flex align-items-center">
+                    @{
+                        var currentUser = await UserManager.GetUserAsync(User);
+                        var userAvatar = currentUser?.ProfilePicture ?? "/images/default1-avatar.png";
+                    }
+                    <img src="@userAvatar" alt="Avatar" class="blog-avatar" onerror="this.src='/images/default1-avatar.png'" />
+                    <div class="ms-3">
+                        <strong style="font-size: 1.1rem; color: #2c3e50;">@(currentUser?.FullName ?? currentUser?.Email ?? "Bạn")</strong>
+                        <p class="mb-0 text-muted" style="font-size: 0.9rem;">Chia sẻ khoảnh khắc của bạn</p>
+                    </div>
+                </div>
+            </div>
+            <div class="blog-card-body">
+                @if (TempData["PostPending"] != null)
+                {
+                    <div class="alert alert-info alert-dismissible fade show mb-3" role="alert" style="border-radius: 12px; border-left: 4px solid #17a2b8;">
+                        <i class="fas fa-info-circle me-2"></i>@TempData["PostPending"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                <form method="post" enctype="multipart/form-data" action="@Url.Action("CreatePost", "Blog")" id="createPostForm">
+                    <div class="mb-3">
+                        <input type="text" class="form-control blog-input" name="Title" placeholder="✨ Tiêu đề bài viết..." required />
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control blog-textarea" name="Content" rows="4" placeholder="💭 Bạn đang nghĩ gì thế? Hãy chia sẻ với mọi người..." required></textarea>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+                        <label class="blog-file-label">
+                            <i class="fas fa-image me-2"></i>Thêm ảnh
+                            <input type="file" name="image" accept="image/*" class="d-none" id="imageInput" />
+                        </label>
+                        <span id="imageFileName" class="ms-2"></span>
+                    </div>
+                    <button type="submit" class="btn blog-btn-primary w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Đăng bài
+                    </button>
+                </form>
+            </div>
         </div>
-    }
-    <!-- Form đăng bài mới -->
-    <div class="row justify-content-center">
-        <div class="col-md-8 mb-4">
-            <div class="card shadow-sm rounded-4">
-                <div class="card-body">
-                    <h5 class="text-center fw-bold text-pink mb-3" style="font-size: 1.25rem;">
-                        ✨ Bạn đang nghĩ gì thế?
+    </div>
+
+    <!-- Main Content with Sidebar -->
+    <div class="blog-main-content">
+        <!-- Posts Feed -->
+        <div class="blog-feed" id="blogFeed">
+        @foreach (var post in Model)
+        {
+            <div class="blog-card blog-post-card" data-post-id="@post.Id">
+                <!-- Post Header -->
+                <div class="blog-card-header">
+                    <div class="d-flex align-items-center">
+                        <img src="@(post.Author?.ProfilePicture ?? "/images/default1-avatar.png")" 
+                             alt="@(post.Author?.FullName ?? "User")" 
+                             class="blog-avatar" 
+                             onerror="this.src='/images/default1-avatar.png'" />
+                        <div class="ms-3 flex-grow-1">
+                            <strong style="font-size: 1.1rem; color: #2c3e50; display: block; margin-bottom: 0.25rem;">@(post.Author?.FullName ?? post.Author?.Email ?? "Unknown")</strong>
+                            <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+                                <i class="far fa-clock me-1"></i>@post.CreatedAt.ToString("dd MMM yyyy 'lúc' HH:mm")
+                            </p>
+                        </div>
+                        @if (post.AuthorId == ViewData["UserId"]?.ToString())
+                        {
+                            <div class="blog-post-actions">
+                                <a href="@Url.Action("Edit", "Blog", new { id = post.Id })" class="blog-action-btn" title="Chỉnh sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="@Url.Action("Delete", "Blog", new { id = post.Id })" class="blog-action-btn text-danger" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa bài viết này?');">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Post Image -->
+                @if (!string.IsNullOrEmpty(post.ImageUrl))
+                {
+                    <div class="blog-post-image">
+                        <img src="@post.ImageUrl" alt="@post.Title" class="img-fluid" />
+                    </div>
+                }
+
+                <!-- Post Content -->
+                <div class="blog-card-body">
+                    <h5 class="blog-post-title">
+                        <i class="fas fa-quote-left me-2" style="color: #667eea; font-size: 1.2rem;"></i>@post.Title
                     </h5>
-                    <form method="post" enctype="multipart/form-data" action="@Url.Action("CreatePost", "Blog")">
-                        <input type="text" class="form-control mb-2 rounded-3" name="Title" placeholder="Tiêu đề bài viết" required />
-                        <textarea class="form-control mb-2 rounded-3" name="Content" rows="3" placeholder="Chia sẻ cảm nghĩ của bạn..." required></textarea>
-                        <input type="file" class="form-control mb-2" name="image" />
-                        <button type="submit" class="btn btn-pink w-100 rounded-pill">Đăng bài</button>
+                    <p class="blog-post-content">@post.Content</p>
+                </div>
+
+                <!-- Post Actions -->
+                <div class="blog-card-footer">
+                    <div class="blog-actions">
+                        <button class="blog-like-btn @(post.LikedByUser ? "liked" : "")" data-post-id="@post.Id">
+                            <i class="@(post.LikedByUser ? "fas" : "far") fa-heart"></i>
+                        </button>
+                        <button class="blog-comment-btn" data-post-id="@post.Id">
+                            <i class="far fa-comment"></i>
+                        </button>
+                        <button class="blog-share-btn">
+                            <i class="far fa-share-square"></i>
+                        </button>
+                    </div>
+                    <div class="blog-likes-count">
+                        <strong id="likeCount-@post.Id">@post.LikeCount</strong> lượt thích
+                    </div>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="blog-comments-section" id="comments-@post.Id">
+                    @if (post.Comments != null && post.Comments.Any())
+                    {
+                        @foreach (var comment in post.Comments.OrderByDescending(c => c.CreatedAt))
+                        {
+                            <div class="blog-comment-item">
+                                <img src="@(comment.Author?.ProfilePicture ?? "/images/default1-avatar.png")" 
+                                     alt="@(comment.Author?.FullName ?? "User")" 
+                                     class="blog-comment-avatar" 
+                                     onerror="this.src='/images/default1-avatar.png'" />
+                                <div class="blog-comment-content">
+                                    <strong>@(comment.Author?.FullName ?? comment.Author?.Email ?? "Unknown")</strong>
+                                    <span>@comment.Content</span>
+                                    <small class="text-muted">@comment.CreatedAt.ToString("dd MMM yyyy HH:mm")</small>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Add Comment Form -->
+                <div class="blog-add-comment">
+                    <form class="blog-comment-form" data-post-id="@post.Id">
+                        <div class="d-flex align-items-center">
+                            <img src="@userAvatar" alt="Avatar" class="blog-comment-avatar" onerror="this.src='/images/default1-avatar.png'" />
+                            <input type="text" class="form-control blog-comment-input" placeholder="Thêm bình luận..." required />
+                            <button type="submit" class="btn blog-comment-submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
                     </form>
+                </div>
+            </div>
+        }
+        </div>
+
+        <!-- Sidebar -->
+        <div class="blog-sidebar">
+            <div class="blog-card">
+                <div class="blog-card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-fire me-2"></i>Xu Hướng
+                    </h5>
+                </div>
+                <div class="blog-card-body">
+                    <div class="blog-trending-item">
+                        <i class="fas fa-hashtag text-primary me-2"></i>
+                        <span>#MaiAmTinhThuong</span>
+                    </div>
+                    <div class="blog-trending-item">
+                        <i class="fas fa-hashtag text-primary me-2"></i>
+                        <span>#YeuThuong</span>
+                    </div>
+                    <div class="blog-trending-item">
+                        <i class="fas fa-hashtag text-primary me-2"></i>
+                        <span>#ChiaSe</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blog-card mt-3">
+                <div class="blog-card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Thông Tin
+                    </h5>
+                </div>
+                <div class="blog-card-body">
+                    <p class="small text-muted mb-2">
+                        <i class="fas fa-lightbulb me-2"></i>Chia sẻ những câu chuyện, khoảnh khắc đẹp và lan tỏa yêu thương đến mọi người.
+                    </p>
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Nội dung sẽ được kiểm duyệt trước khi hiển thị.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Danh sách bài viết -->
-    <div class="row justify-content-center" id="postList">
-        @foreach (var item in Model)
-        {
-            @if (item.IsApproved)
-            {
-                <div class="col-md-8 mb-4">
-                    <div class="card shadow-sm rounded-4">
-                        @if (!string.IsNullOrEmpty(item.ImageUrl))
-                        {
-                            <img src="@item.ImageUrl" class="card-img-top rounded-top-4" alt="Post Image">
-                        }
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="@item.Author.ProfilePicture" class="rounded-circle me-2" width="40" height="40" />
-                                <div>
-                                    <strong>@item.Author.FullName</strong><br />
-                                    <small class="text-muted">@item.CreatedAt.ToString("MMM dd, yyyy")</small>
-                                </div>
-                            </div>
-                            <h5>@item.Title</h5>
-                            <p>@item.Content</p>
-                        </div>
-                        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center px-3 py-2">
-                            <form method="post" action="@Url.Action("Like", "Blog")" class="m-0">
-                                <input type="hidden" name="blogPostId" value="@item.Id" />
-                                <button type="submit" class="btn btn-icon">
-                                    <i class="@((item.LikedByUser ? "fas fa-heart liked" : "far fa-heart"))"></i>
-                                </button>
-                                <span class="ms-1 text-muted">@item.LikeCount</span>
-                            </form>
-
-                            <i class="far fa-comment-dots text-muted"></i>
-
-                            @if (item.AuthorId == ViewData["UserId"].ToString())
-                            {
-                                <div>
-                                    <a href="@Url.Action("Edit", "Blog", new { id = item.Id })" class="text-muted me-2"><i class="fas fa-edit"></i></a>
-                                    <a href="@Url.Action("Delete", "Blog", new { id = item.Id })" class="text-danger"><i class="fas fa-trash-alt"></i></a>
-                                </div>
-                            }
-                        </div>
-
-                        <div class="card-body pt-2">
-                            @foreach (var comment in item.Comments)
-                            {
-                                <div class="d-flex align-items-start mb-2">
-                                    <img src="@comment.Author.ProfilePicture" class="rounded-circle me-2" width="30" height="30" />
-                                    <div>
-                                        <strong>@comment.Author.FullName</strong>
-                                        <p class="mb-0">@comment.Content</p>
-                                    </div>
-                                </div>
-                            }
-                            <form method="post" action="@Url.Action("Comment", "Blog")" class="mt-2">
-                                <input type="hidden" name="blogPostId" value="@item.Id" />
-                                <textarea name="content" class="form-control rounded-pill" placeholder="Add a comment..." required></textarea>
-                                <button type="submit" class="btn btn-pink btn-sm rounded-pill mt-2">Post</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            }
-        }
-    </div>
-
-    <div class="text-center">
-        <button id="loadMoreBtn" class="btn btn-outline-secondary rounded-pill">Load More</button>
+    <!-- Load More Button -->
+    <div class="text-center mt-4">
+        <button id="loadMoreBtn" class="btn blog-btn-secondary">
+            <i class="fas fa-chevron-down me-2"></i>Tải thêm
+        </button>
     </div>
 </div>
 
-<!-- FontAwesome CDN -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-
-<!-- Custom CSS -->
-<style>
-    .btn-pink {
-        background-color: #ffb6c1;
-        color: white;
-    }
-
-        .btn-pink:hover {
-            background-color: #ff9bb0;
-            color: white;
-        }
-
-    .btn-icon {
-        border: none;
-        background: none;
-        color: #ff69b4;
-        font-size: 1.2rem;
-    }
-
-        .btn-icon:hover {
-            color: #ff4081;
-        }
-
-    .liked {
-        color: #ff4081 !important;
-    }
-
-    textarea::placeholder {
-        font-style: italic;
-    }
-</style>
-
-<!-- JavaScript để xử lý AJAX Load More Posts -->
-<script>
-    var isLoading = false;
-    var pageNumber = 1;
-
-    $(window).scroll(function () {
-        if ($(window).scrollTop() + $(window).height() >= $(document).height() - 100) {
-            if (!isLoading) {
-                isLoading = true;
-                pageNumber++;
-
-                $.ajax({
-                    url: '/Blog/LoadMorePosts',
-                    type: 'GET',
-                    data: { page: pageNumber },
-                    success: function (data) {
-                        $('#postList').append(data);
-                        isLoading = false;
-                    },
-                    error: function () {
-                        isLoading = false;
-                    }
-                });
-            }
-        }
-    });
-</script>
+<link rel="stylesheet" href="~/css/blog.css" asp-append-version="true" />
+<script src="~/js/blog.js" asp-append-version="true"></script>

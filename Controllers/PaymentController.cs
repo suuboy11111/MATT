@@ -25,10 +25,10 @@ namespace MaiAmTinhThuong.Controllers
 
         // GET: Payment/Donate
         [HttpGet]
-        public IActionResult Donate(int? maiAmId = null)
+        public async Task<IActionResult> Donate(int? maiAmId = null)
         {
             ViewBag.MaiAmId = maiAmId;
-            var maiAms = _context.MaiAms.ToList();
+            var maiAms = await _context.MaiAms.ToListAsync();
             ViewBag.MaiAms = maiAms;
             return View();
         }

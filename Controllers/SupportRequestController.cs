@@ -1,23 +1,30 @@
 ﻿using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
+using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.IO;
 
 public class SupportRequestController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly NotificationService _notificationService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public SupportRequestController(ApplicationDbContext context)
+    public SupportRequestController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _notificationService = notificationService;
+        _userManager = userManager;
     }
 
     [HttpGet]
-    public IActionResult CreateRequest()
+    public async Task<IActionResult> CreateRequest()
     {
-        var maiAms = _context.MaiAms.ToList();
+        var maiAms = await _context.MaiAms.ToListAsync();
         ViewBag.MaiAms = new SelectList(maiAms, "Id", "Name");
         return View();
     }
@@ -26,36 +33,65 @@ public class SupportRequestController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateRequest(SupportRequest model, IFormFile ImageFile)
     {
-        if (ModelState.IsValid)
+        // Remove ImageFile khỏi ModelState để không ảnh hưởng đến validation
+        ModelState.Remove("ImageFile");
+        
+        // Xử lý lưu ảnh nếu có (xử lý riêng, không phụ thuộc vào ModelState.IsValid)
+        if (ImageFile != null && ImageFile.Length > 0)
         {
-            // Xử lý lưu ảnh nếu có
-            if (ImageFile != null && ImageFile.Length > 0)
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var fileExtension = Path.GetExtension(ImageFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
             {
-                // Lưu ảnh vào thư mục và tạo đường dẫn
-                var fileName = Path.GetFileName(ImageFile.FileName);
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles", fileName);
-
-                // Kiểm tra xem thư mục đã tồn tại chưa, nếu không thì tạo
-                var directory = Path.GetDirectoryName(filePath);
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Lưu ảnh vào thư mục
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await ImageFile.CopyToAsync(stream);
-                }
-
-                // Lưu đường dẫn ảnh vào model
-                model.ImageUrl = "/images/profiles/" + fileName;
+                ModelState.AddModelError("ImageFile", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
+            }
+            // Validate file size (max 5MB)
+            else if (ImageFile.Length > 5 * 1024 * 1024)
+            {
+                ModelState.AddModelError("ImageFile", "Kích thước file không được vượt quá 5MB");
             }
             else
             {
-                model.ImageUrl = "";  // Nếu không có ảnh, để null hoặc giá trị mặc định
-            }
+                // File hợp lệ, lưu file
+                try
+                {
+                    var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                    var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
+                    if (!Directory.Exists(uploadDir))
+                    {
+                        Directory.CreateDirectory(uploadDir);
+                    }
 
+                    var filePath = Path.Combine(uploadDir, uniqueFileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(stream);
+                    }
+
+                    model.ImageUrl = "/images/profiles/" + uniqueFileName;
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            // Set giá trị mặc định thay vì null để tránh lỗi database
+            model.ImageUrl = model.ImageUrl ?? "";
+        }
+
+        // Đảm bảo ImageUrl không null trước khi lưu
+        if (string.IsNullOrEmpty(model.ImageUrl))
+        {
+            model.ImageUrl = "";
+        }
+
+        // Kiểm tra ModelState sau khi đã xử lý file
+        if (ModelState.IsValid)
+        {
             // Cập nhật các trường khác và lưu vào cơ sở dữ liệu
             model.CreatedDate = DateTime.Now;
             model.UpdatedDate = DateTime.Now;
@@ -65,12 +101,25 @@ public class SupportRequestController : Controller
             _context.SupportRequests.Add(model);
             await _context.SaveChangesAsync();
 
+            // Gửi thông báo cho user nếu đã đăng nhập
+            if (User.Identity.IsAuthenticated)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    await _notificationService.NotifySupportRequestCreatedAsync(user.Id, model.Name);
+                }
+            }
+
+            // Gửi thông báo cho tất cả admin
+            await _notificationService.NotifyAdminNewSupportRequestAsync(model.Name, model.Id);
+
             TempData["Message"] = "Đăng ký hồ sơ cần hỗ trợ thành công!";
             return RedirectToAction("Index", "Home");
         }
 
         // Nếu có lỗi, trả về lại view
-        var maiAms = _context.MaiAms.ToList();
+        var maiAms = await _context.MaiAms.ToListAsync();
         ViewBag.MaiAms = new SelectList(maiAms, "Id", "Name");
         return View(model);
     }

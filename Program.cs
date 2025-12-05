@@ -3,6 +3,7 @@ using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using PayOS;
 using MatchType = MaiAmTinhThuong.Models.MatchType;
@@ -23,73 +24,20 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// Register custom services
+builder.Services.AddScoped<MaiAmTinhThuong.Services.SupportRequestService>();
+builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
+builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
+
 // Hỗ trợ cả SQL Server và PostgreSQL
-// Railway tự động inject DATABASE_URL hoặc các biến PGHOST, PGPORT, etc.
-string? connectionString = null;
-
-// Ưu tiên 1: DATABASE_URL (Railway tự động inject)
-var databaseUrl = builder.Configuration["DATABASE_URL"];
-if (!string.IsNullOrEmpty(databaseUrl))
-{
-    // Parse DATABASE_URL format: postgresql://user:password@host:port/database
-    if (databaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) || 
-        databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
-    {
-        var uri = new Uri(databaseUrl);
-        var host = uri.Host;
-        var port = uri.Port > 0 ? uri.Port : 5432;
-        var database = uri.AbsolutePath.TrimStart('/');
-        var username = uri.UserInfo.Split(':')[0];
-        var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
-        
-        connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password}";
-    }
-    else
-    {
-        connectionString = databaseUrl;
-    }
-}
-
-// Ưu tiên 2: Build từ các biến riêng lẻ (PGHOST, PGPORT, etc.)
-if (string.IsNullOrEmpty(connectionString))
-{
-    var pgHost = builder.Configuration["PGHOST"];
-    var pgPort = builder.Configuration["PGPORT"];
-    var pgDatabase = builder.Configuration["PGDATABASE"];
-    var pgUser = builder.Configuration["PGUSER"];
-    var pgPassword = builder.Configuration["PGPASSWORD"];
-    
-    if (!string.IsNullOrEmpty(pgHost))
-    {
-        connectionString = $"Host={pgHost};Port={pgPort ?? "5432"};Database={pgDatabase ?? "railway"};Username={pgUser ?? "postgres"};Password={pgPassword}";
-    }
-}
-
-// Ưu tiên 3: ConnectionStrings__DefaultConnection
-if (string.IsNullOrEmpty(connectionString))
-{
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    
-    // Nếu connection string có postgres.railway.internal nhưng không có PGHOST, thử dùng PGHOST
-    if (!string.IsNullOrEmpty(connectionString) && 
-        connectionString.Contains("postgres.railway.internal", StringComparison.OrdinalIgnoreCase))
-    {
-        var pgHost = builder.Configuration["PGHOST"];
-        if (!string.IsNullOrEmpty(pgHost))
-        {
-            // Thay thế postgres.railway.internal bằng PGHOST
-            connectionString = connectionString.Replace("postgres.railway.internal", pgHost, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-}
-
-// Xác định loại database và cấu hình
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrEmpty(connectionString) && 
     (connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) || 
      connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
      connectionString.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)))
 {
     // Sử dụng PostgreSQL (cho Railway, Render, etc.)
+    // Cần thêm package: dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -117,11 +65,7 @@ builder.Services.AddSingleton<PayOSClient>(serviceProvider =>
 
     if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
     {
-        // Log warning nhưng không throw exception để app vẫn chạy được
-        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning("PayOS configuration is missing. Payment features will not work. Please set PayOS:ClientId, PayOS:ApiKey, and PayOS:ChecksumKey environment variables.");
-        // Trả về PayOSClient với empty strings - sẽ fail khi sử dụng nhưng không crash app
-        return new PayOSClient("", "", "");
+        throw new InvalidOperationException("PayOS configuration is missing. Please check appsettings.json");
     }
 
     return new PayOSClient(clientId, apiKey, checksumKey);
@@ -134,12 +78,10 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // Không dùng HSTS trên Railway vì Railway tự xử lý HTTPS
-    // app.UseHsts();
+    app.UseHsts();
 }
 
-// Tắt HTTPS redirection trên Railway (Railway tự xử lý HTTPS)
-// app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -153,95 +95,260 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Tự động chạy migration khi khởi động
+// Tự động chạy migration khi khởi động (Production)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        // Kiểm tra database có thể kết nối được không
-        if (db.Database.CanConnect())
+        // Kiểm tra và thêm các cột mới nếu chưa có
+        var connection = db.Database.GetDbConnection();
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        
+        // Kiểm tra xem đang dùng SQL Server hay PostgreSQL
+        var isPostgreSQL = connection.GetType().Name.Contains("Npgsql");
+        
+        if (isPostgreSQL)
         {
-            // Chạy migration tự động
+            // PostgreSQL commands
+            // Thêm Gender column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'Gender') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Gender"" text;
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm DateOfBirth column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'DateOfBirth') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""DateOfBirth"" timestamp without time zone;
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm Address column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'Address') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Address"" varchar(200);
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm PhoneNumber2 column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'PhoneNumber2') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""PhoneNumber2"" text;
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm CreatedAt column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'CreatedAt') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""CreatedAt"" timestamp without time zone;
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm UpdatedAt column
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'AspNetUsers' AND column_name = 'UpdatedAt') THEN
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""UpdatedAt"" timestamp without time zone;
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+            
+            // Tạo bảng Notifications nếu chưa có (PostgreSQL)
+            command.CommandText = @"
+                DO $$ 
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Notifications') THEN
+                        CREATE TABLE ""Notifications"" (
+                            ""Id"" SERIAL PRIMARY KEY,
+                            ""Title"" varchar(200) NOT NULL,
+                            ""Message"" varchar(1000),
+                            ""Type"" text NOT NULL,
+                            ""UserId"" varchar(450),
+                            ""IsRead"" boolean NOT NULL DEFAULT false,
+                            ""CreatedAt"" timestamp without time zone NOT NULL,
+                            ""Link"" text,
+                            CONSTRAINT ""FK_Notifications_AspNetUsers_UserId"" 
+                                FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
+                        );
+                        CREATE INDEX ""IX_Notifications_UserId"" ON ""Notifications"" (""UserId"");
+                    END IF;
+                END $$;";
+            await command.ExecuteNonQueryAsync();
+        }
+        else
+        {
+            // SQL Server commands
+            // Thêm Gender column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'Gender')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [Gender] nvarchar(max) NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+        
+            // Thêm DateOfBirth column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'DateOfBirth')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [DateOfBirth] datetime2 NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm Address column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'Address')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [Address] nvarchar(200) NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm PhoneNumber2 column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'PhoneNumber2')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [PhoneNumber2] nvarchar(max) NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm CreatedAt column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'CreatedAt')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [CreatedAt] datetime2 NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+            
+            // Thêm UpdatedAt column
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'UpdatedAt')
+                BEGIN
+                    ALTER TABLE [dbo].[AspNetUsers] ADD [UpdatedAt] datetime2 NULL;
+                END";
+            await command.ExecuteNonQueryAsync();
+            
+            // Tạo bảng Notifications nếu chưa có (SQL Server)
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+                BEGIN
+                    CREATE TABLE [dbo].[Notifications] (
+                        [Id] int IDENTITY(1,1) NOT NULL,
+                        [Title] nvarchar(200) NOT NULL,
+                        [Message] nvarchar(1000) NULL,
+                        [Type] nvarchar(max) NOT NULL,
+                        [UserId] nvarchar(450) NULL,
+                        [IsRead] bit NOT NULL,
+                        [CreatedAt] datetime2 NOT NULL,
+                        [Link] nvarchar(max) NULL,
+                        CONSTRAINT [PK_Notifications] PRIMARY KEY ([Id]),
+                        CONSTRAINT [FK_Notifications_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers] ([Id]) ON DELETE CASCADE
+                    );
+                    CREATE INDEX [IX_Notifications_UserId] ON [dbo].[Notifications] ([UserId]);
+                END";
+            await command.ExecuteNonQueryAsync();
+        }
+        
+        await connection.CloseAsync();
+        
+        // Chạy migration tự động - bỏ qua warning về pending changes
+        try
+        {
             db.Database.Migrate();
             logger.LogInformation("Database migration completed successfully.");
         }
-        else
+        catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
         {
-            logger.LogWarning("Cannot connect to database. Please check connection string.");
+            // Bỏ qua warning về pending changes - đã xử lý thủ công ở trên
+            logger.LogWarning("Skipping pending model changes warning - columns already added manually.");
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while migrating the database. App will continue but database operations may fail.");
-        // Không throw exception để app vẫn có thể start
+        logger.LogError(ex, "An error occurred while migrating the database.");
+        // Không throw exception để ứng dụng vẫn có thể chạy
     }
 }
 
-// Khởi tạo database và seed data (wrap trong try-catch để không crash app)
 using (var scope = app.Services.CreateScope())
 {
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    try
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    // Tạo role Admin nếu chưa có
+    if (!await roleManager.RoleExistsAsync("Admin"))
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+    // Tạo user admin
+    var adminEmail = "admin@localhost.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser == null)
     {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        
-        // Chỉ chạy nếu database có thể kết nối
-        if (db.Database.CanConnect())
+        var user = new ApplicationUser
         {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-            // Tạo role Admin nếu chưa có
-            if (!await roleManager.RoleExistsAsync("Admin"))
-                await roleManager.CreateAsync(new IdentityRole("Admin"));
-
-            // Tạo user admin
-            var adminEmail = "admin@localhost.com";
-            var adminUser = await userManager.FindByEmailAsync(adminEmail);
-            if (adminUser == null)
-            {
-                var user = new ApplicationUser
-                {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    FullName = "Quản trị viên",
-                    ProfilePicture = "default1-avatar.png",
-                    Role = "Admin",
-                    EmailConfirmed = true
-                };
-                var result = await userManager.CreateAsync(user, "Admin@123");
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(user, "Admin");
-                }
-            }
-
-            // Seed BotRules
-            if (!db.BotRules.Any())
-            {
-                db.BotRules.AddRange(new[]
-                {
-                    new BotRule { Trigger = "xin chào", MatchType = MatchType.Contains, Response = "Chào bạn! Mình có thể giúp gì cho bạn?", Priority = 100 },
-                    new BotRule { Trigger = "đóng góp", MatchType = MatchType.Contains, Response = "Bạn có thể đóng góp tại /DongGop hoặc liên hệ số (+84) 902115231.", Priority = 90 },
-                    new BotRule { Trigger = "giờ làm việc", MatchType = MatchType.Exact, Response = "Mái Ấm mở cửa: 8:00 - 17:00 (T2-T7).", Priority = 80 },
-                    new BotRule { Trigger = "lien he", MatchType = MatchType.Regex, Response = "Bạn có thể gọi (+84)902115231 hoặc email MaiAmYeuThuong@gmail.com", Priority = 70 }
-                });
-                db.SaveChanges();
-            }
-            
-            logger.LogInformation("Database initialization completed successfully.");
-        }
-        else
+            UserName = adminEmail,
+            Email = adminEmail,
+            FullName = "Quản trị viên",
+            ProfilePicture = "default1-avatar.png",  // Cung cấp giá trị mặc định
+            Role = "Admin",
+            EmailConfirmed = true
+        };
+        var result = await userManager.CreateAsync(user, "Admin@123");
+        if (result.Succeeded)
         {
-            logger.LogWarning("Cannot connect to database. Skipping initialization. Please check connection string.");
+            await userManager.AddToRoleAsync(user, "Admin");
         }
     }
-    catch (Exception ex)
+}
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (!db.BotRules.Any())
     {
-        logger.LogError(ex, "An error occurred during database initialization. App will continue but some features may not work.");
-        // Không throw exception để app vẫn có thể start
+        db.BotRules.AddRange(new[]
+        {
+            new BotRule { Trigger = "xin chào", MatchType = MatchType.Contains, Response = "Chào bạn! Mình có thể giúp gì cho bạn?", Priority = 100 },
+            new BotRule { Trigger = "đóng góp", MatchType = MatchType.Contains, Response = "Bạn có thể đóng góp tại /DongGop hoặc liên hệ số (+84) 902115231.", Priority = 90 },
+            new BotRule { Trigger = "giờ làm việc", MatchType = MatchType.Exact, Response = "Mái Ấm mở cửa: 8:00 - 17:00 (T2-T7).", Priority = 80 },
+            new BotRule { Trigger = "lien he", MatchType = MatchType.Regex, Response = "Bạn có thể gọi (+84)902115231 hoặc email MaiAmYeuThuong@gmail.com", Priority = 70 }
+        });
+        db.SaveChanges();
+    }
+    
+    // Seed SupportTypes nếu chưa có
+    if (!db.SupportTypes.Any())
+    {
+        db.SupportTypes.AddRange(new[]
+        {
+            new SupportType { Name = "Tài chính" },
+            new SupportType { Name = "Vật tư" },
+            new SupportType { Name = "Chỗ ở" }
+        });
+        db.SaveChanges();
     }
 }
 

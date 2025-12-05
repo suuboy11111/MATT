@@ -1,33 +1,127 @@
 ﻿@model IEnumerable<MaiAmTinhThuong.Models.BotRule>
 
-<h2>Danh sách Rule</h2>
+@{
+    ViewData["Title"] = "Quản lý ChatBot Rules";
+}
 
-<a class="btn btn-primary mb-3" asp-action="Create">+ Thêm Rule</a>
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-robot me-3"></i>Quản Lý ChatBot Rules</h2>
+            <p>Quản lý các quy tắc phản hồi tự động của ChatBot</p>
+        </div>
 
-<table class="table table-bordered">
-    <tr>
-        <th>ID</th>
-        <th>Trigger</th>
-        <th>Response</th>
-        <th>MatchType</th>
-        <th>Priority</th>
-        <th>Active</th>
-        <th>Hành động</th>
-    </tr>
+        <!-- Action Button -->
+        <div class="mb-4">
+            <a asp-action="Create" class="admin-btn admin-btn-success">
+                <i class="fas fa-plus-circle"></i> Thêm Rule Mới
+            </a>
+        </div>
 
-    @foreach (var r in Model)
-    {
-        <tr>
-            <td>@r.Id</td>
-            <td>@r.Trigger</td>
-            <td>@r.Response</td>
-            <td>@r.MatchType</td>
-            <td>@r.Priority</td>
-            <td>@r.IsActive</td>
-            <td>
-                <a class="btn btn-warning btn-sm" asp-action="Edit" asp-route-id="@r.Id">Sửa</a>
-                <a class="btn btn-danger btn-sm" asp-action="Delete" asp-route-id="@r.Id">Xoá</a>
-            </td>
-        </tr>
-    }
-</table>
+        <!-- Table -->
+        <div class="admin-table-wrapper">
+            <table class="table admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th><i class="fas fa-key me-2"></i>Trigger</th>
+                        <th><i class="fas fa-reply me-2"></i>Response</th>
+                        <th><i class="fas fa-search me-2"></i>Match Type</th>
+                        <th><i class="fas fa-sort-numeric-up me-2"></i>Priority</th>
+                        <th><i class="fas fa-toggle-on me-2"></i>Active</th>
+                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var r in Model)
+                        {
+                            <tr>
+                                <td><strong>@r.Id</strong></td>
+                                <td>
+                                    <code style="background: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                        @r.Trigger
+                                    </code>
+                                </td>
+                                <td>
+                                    @{
+                                        var response = r.Response ?? "";
+                                        var responsePreview = response.Length > 80 ? response.Substring(0, 80) + "..." : response;
+                                    }
+                                    <span title="@response">@responsePreview</span>
+                                </td>
+                                <td>
+                                    @switch (r.MatchType)
+                                    {
+                                        case MaiAmTinhThuong.Models.MatchType.Exact:
+                                            <span class="admin-badge admin-badge-info">
+                                                <i class="fas fa-equals"></i> Exact
+                                            </span>
+                                            break;
+                                        case MaiAmTinhThuong.Models.MatchType.Contains:
+                                            <span class="admin-badge admin-badge-warning">
+                                                <i class="fas fa-search"></i> Contains
+                                            </span>
+                                            break;
+                                        case MaiAmTinhThuong.Models.MatchType.Regex:
+                                            <span class="admin-badge admin-badge-danger">
+                                                <i class="fas fa-code"></i> Regex
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="text-muted">N/A</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <span class="admin-badge admin-badge-secondary">
+                                        <i class="fas fa-sort-numeric-up"></i> @r.Priority
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (r.IsActive)
+                                    {
+                                        <span class="admin-badge admin-badge-success">
+                                            <i class="fas fa-check-circle"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="admin-badge admin-badge-danger">
+                                            <i class="fas fa-times-circle"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a asp-action="Edit" asp-route-id="@r.Id" 
+                                           class="admin-btn admin-btn-warning admin-btn-sm">
+                                            <i class="fas fa-edit"></i> Sửa
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@r.Id" 
+                                           class="admin-btn admin-btn-danger admin-btn-sm"
+                                           onclick="return confirm('Bạn có chắc muốn xóa rule này?');">
+                                            <i class="fas fa-trash-alt"></i> Xóa
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="admin-empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h4>Không có dữ liệu</h4>
+                                <p>Chưa có rule nào. Hãy thêm rule mới để ChatBot hoạt động!</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

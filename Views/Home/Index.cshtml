@@ -12,44 +12,82 @@
     </div>
 }
 
-<!-- Phần banner -->
-<div id="home-banner">
-    <div class="carousel slide" data-bs-ride="carousel" id="carouselExampleControls">
-        <div class="carousel-inner">
-            <div class="carousel-item active">
-                <img src="~/images/image1.jpg" class="d-block w-100" alt="...">
+<!-- Hero Section with Carousel -->
+<section class="hero-section" style="position: relative; min-height: 90vh; overflow: hidden;">
+    <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+        <div class="carousel-inner" style="height: 100%;">
+            <div class="carousel-item active" style="height: 100%;">
+                <div class="hero-slide" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('@Url.Content("~/images/image1.jpg")'); background-size: cover; background-position: center; background-attachment: fixed; height: 100%;"></div>
             </div>
-            <div class="carousel-item">
-                <img src="~/images/image2.jpg" class="d-block w-100" alt="...">
+            <div class="carousel-item" style="height: 100%;">
+                <div class="hero-slide" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('@Url.Content("~/images/image2.jpg")'); background-size: cover; background-position: center; background-attachment: fixed; height: 100%;"></div>
             </div>
-            <div class="carousel-item">
-                <img src="~/images/image3.jpg" class="d-block w-100" alt="...">
+            <div class="carousel-item" style="height: 100%;">
+                <div class="hero-slide" style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('@Url.Content("~/images/image3.jpg")'); background-size: cover; background-position: center; background-attachment: fixed; height: 100%;"></div>
             </div>
         </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-        </button>
     </div>
-</div>
-<style>
-    /* Đảm bảo tất cả hình ảnh trong carousel đều có cùng kích thước */
-    .carousel-inner {
-        position: relative;
-        width: 100%;
-        height: 600px; /* Thay đổi chiều cao tùy thích */
-        overflow: hidden;
-    }
+    <div class="container" style="position: relative; z-index: 2; height: 100%; display: flex; align-items: center;">
+        <div class="row justify-content-center text-center w-100">
+            <div class="col-lg-10">
+                <h1 class="hero-title text-white mb-4" style="font-size: 3.5rem; font-weight: 800; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); line-height: 1.2;">
+                    Tạo nên một Thế Giới Tốt Đẹp Hơn cho Người Già & Trẻ Em
+                </h1>
+                <p class="hero-subtitle text-white mb-5" style="font-size: 1.5rem; font-weight: 400; text-shadow: 1px 1px 4px rgba(0,0,0,0.5); max-width: 800px; margin: 0 auto;">
+                    Chung tay bảo vệ, hỗ trợ và trao cơ hội cho những hoàn cảnh khó khăn.
+                </p>
+                <a href="#services" class="btn btn-hero btn-lg px-5 py-3" style="background: white; color: #333; font-weight: 600; border-radius: 50px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); transition: all 0.3s ease;">
+                    Bắt đầu ngay
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
 
-    .carousel-item img {
+<style>
+    .hero-section {
+        margin-top: 0;
+    }
+    
+    .btn-hero:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.4) !important;
+        background: #f8f9fa !important;
+    }
+    
+    /* Ẩn carousel controls cho hero */
+    #heroCarousel .carousel-control-prev,
+    #heroCarousel .carousel-control-next,
+    #heroCarousel .carousel-indicators {
+        display: none !important;
+    }
+    
+    /* Đảm bảo carousel hoạt động */
+    #heroCarousel {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover; /* Đảm bảo ảnh không bị méo mà vẫn giữ tỷ lệ đúng */
-        border-bottom: 2px solid #333333;
+        z-index: 1;
+    }
+    
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem !important;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.1rem !important;
+        }
+        
+        .hero-section {
+            min-height: 70vh;
+        }
+        
+        .hero-slide {
+            background-attachment: scroll !important;
+        }
     }
 </style>
 
@@ -57,30 +95,34 @@
 
 
 <!-- Phần SERVICES -->
-<section id="services" class="py-5" style="background-color: aliceblue margin-top: 60px;" data-aos="fade-up">
+<section id="services" class="py-5" style="background-color: aliceblue; margin-top: 60px;" data-aos="fade-up">
     <div class="container">
         <h2 class="text-center mb-5" style="color: #2c3e50; font-size: 2.5rem;">OUR SERVICE</h2>
         <div class="row justify-content-center">
             <!-- Card 1: Tôi cần được hỗ trợ -->
             <div class="col-md-6 text-center mb-4">
-                <div class="card" style="height: 100%; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); border-radius: 15px; transition: transform 0.3s ease;">
-                    <img src="https://i.pinimg.com/736x/8c/33/88/8c33883dde80c2e1137bca24897966d6.jpg" class="card-img-top" alt="Tôi cần hỗ trợ" style="border-radius: 15px 15px 0 0; height: 250px; object-fit: cover;" />
-                    <div class="card-body">
-                        <h5 class="card-title" style="font-size: 1.5rem; color: #2c3e50;">Tôi cần được hỗ trợ</h5>
-                        <p class="card-text" style="font-size: 1rem; color: #555;">Đăng ký hồ sơ để nhận sự giúp đỡ từ cộng đồng. Bạn không đơn độc, chúng tôi luôn sẵn sàng giúp đỡ.</p>
-                        <a class="btn btn-primary btn-lg" asp-controller="SupportRequest" asp-action="CreateRequest" style="border-radius: 30px; padding: 12px 30px; font-weight: 500;">Đăng ký hồ sơ cần hỗ trợ</a>
+                <div class="service-card">
+                    <img src="https://i.pinimg.com/736x/8c/33/88/8c33883dde80c2e1137bca24897966d6.jpg" class="card-img-top" alt="Tôi cần hỗ trợ" style="height: 280px; object-fit: cover;" />
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Tôi cần được hỗ trợ</h5>
+                        <p class="card-text flex-grow-1">Đăng ký hồ sơ để nhận sự giúp đỡ từ cộng đồng. Bạn không đơn độc, chúng tôi luôn sẵn sàng giúp đỡ.</p>
+                        <a class="btn btn-primary btn-lg mt-auto" asp-controller="SupportRequest" asp-action="CreateRequest">
+                            <i class="fas fa-hand-holding-heart me-2"></i>Đăng ký hồ sơ cần hỗ trợ
+                        </a>
                     </div>
                 </div>
             </div>
 
             <!-- Card 2: Tôi muốn giúp đỡ người khác -->
             <div class="col-md-6 text-center mb-4">
-                <div class="card" style="height: 100%; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); border-radius: 15px; transition: transform 0.3s ease;">
-                    <img src="https://i.pinimg.com/736x/2e/e1/ff/2ee1ff42af98a6e6c03de6d70dfb43a1.jpg" class="card-img-top" alt="Tôi muốn giúp đỡ người khác" style="border-radius: 15px 15px 0 0; height: 250px; object-fit: cover;" />
-                    <div class="card-body">
-                        <h5 class="card-title" style="font-size: 1.5rem; color: #2c3e50;">Tôi muốn giúp đỡ người khác</h5>
-                        <p class="card-text" style="font-size: 1rem; color: #555;">Đăng ký làm người hỗ trợ hoặc tổ chức từ thiện, chia sẻ yêu thương và giúp đỡ những hoàn cảnh khó khăn.</p>
-                        <a class="btn btn-primary btn-lg" asp-controller="Supporter" asp-action="CreateSupporter" style="border-radius: 30px; padding: 12px 30px; font-weight: 500;">Đăng ký người hỗ trợ</a>
+                <div class="service-card">
+                    <img src="https://i.pinimg.com/736x/2e/e1/ff/2ee1ff42af98a6e6c03de6d70dfb43a1.jpg" class="card-img-top" alt="Tôi muốn giúp đỡ người khác" style="height: 280px; object-fit: cover;" />
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Tôi muốn giúp đỡ người khác</h5>
+                        <p class="card-text flex-grow-1">Đăng ký làm người hỗ trợ hoặc tổ chức từ thiện, chia sẻ yêu thương và giúp đỡ những hoàn cảnh khó khăn.</p>
+                        <a class="btn btn-primary btn-lg mt-auto" asp-controller="Supporter" asp-action="CreateSupporter">
+                            <i class="fas fa-heart me-2"></i>Đăng ký người hỗ trợ
+                        </a>
                     </div>
                 </div>
             </div>
@@ -124,43 +166,91 @@
 </section>
 
 <!-- PHẦN TIN TỨC MỚI NHẤT -->
-<section id="news" class="py-5" style="background-color: aliceblue;" data-aos="fade-up">
+<section id="news" class="py-5 fade-in-up" style="background: linear-gradient(180deg, #F8F9FA 0%, #FFFFFF 100%);">
     <div class="container">
-        <h2 class="text-center mb-5" style="color: #2c3e50; font-size: 2.5rem;">TIN TỨC MỚI NHẤT</h2>
+        <div class="section-title">
+            <h2>TIN TỨC MỚI NHẤT</h2>
+            <p class="text-muted">🔥 Top 3 bài viết có tương tác cao nhất</p>
+        </div>
         <div class="row">
-            <!-- Tin 1 -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm border-0">
-                    <img src="~/images/3.jpg" class="card-img-top" alt="tin tức 1">
-                    <div class="card-body">
-                        <h5 class="card-title">Chuyến thăm mái ấm</h5>
-                        <p class="card-text text-muted small">Ngày 15/05/2025</p>
-                        <p class="card-text">Các tình nguyện viên đã trao tặng 100 phần quà và tổ chức các hoạt động vui chơi tại mái ấm.</p>
+            @if (ViewBag.TopBlogPosts != null && ((List<MaiAmTinhThuong.Models.ViewModels.BlogPostViewModel>)ViewBag.TopBlogPosts).Any())
+            {
+                @foreach (var post in (List<MaiAmTinhThuong.Models.ViewModels.BlogPostViewModel>)ViewBag.TopBlogPosts)
+                {
+                    var contentPreview = post.Content != null && post.Content.Length > 100 
+                        ? post.Content.Substring(0, 100) + "..." 
+                        : post.Content ?? "Không có nội dung";
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100" style="cursor: pointer;" 
+                             onclick="window.location.href='@Url.Action("Index", "Blog")#post-@(post.Id)'">
+                            @if (!string.IsNullOrEmpty(post.ImageUrl))
+                            {
+                                <img src="@post.ImageUrl" class="card-img-top" alt="@post.Title" style="height: 200px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <img src="~/images/default-news.jpg" class="card-img-top" alt="@post.Title" style="height: 200px; object-fit: cover;" onerror="this.src='/images/default-news.jpg'">
+                            }
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">@post.Title</h5>
+                                <p class="card-text text-muted small mb-2">
+                                    <i class="fas fa-calendar-alt"></i> @post.CreatedAt.ToString("dd/MM/yyyy")
+                                    <span class="ms-3">
+                                        <i class="fas fa-user"></i> @post.AuthorName
+                                    </span>
+                                </p>
+                                <p class="card-text flex-grow-1">@contentPreview</p>
+                                <div class="mt-auto pt-2 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-heart text-danger"></i> @post.LikeCount
+                                            <i class="fas fa-comment text-primary ms-2"></i> @post.CommentCount
+                                        </small>
+                                        <small class="text-primary fw-bold">
+                                            <i class="fas fa-fire"></i> @post.TotalInteraction tương tác
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <!-- Hiển thị tin tức mặc định nếu không có bài viết nào -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <img src="~/images/3.jpg" class="card-img-top" alt="tin tức 1" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">Chuyến thăm mái ấm</h5>
+                            <p class="card-text text-muted small">Ngày 15/05/2025</p>
+                            <p class="card-text">Các tình nguyện viên đã trao tặng 100 phần quà và tổ chức các hoạt động vui chơi tại mái ấm.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <!-- Tin 2 -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm border-0">
-                    <img src="~/images/5.jpg" class="card-img-top" alt="tin tức 2">
-                    <div class="card-body">
-                        <h5 class="card-title">Chương trình nấu ăn yêu thương</h5>
-                        <p class="card-text text-muted small">Ngày 10/05/2025</p>
-                        <p class="card-text">Mái ấm tổ chức bữa cơm trưa cho hơn 50 các em nhỏ không nơi nương tựa với sự hỗ trợ từ nhà tài trợ.</p>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <img src="~/images/5.jpg" class="card-img-top" alt="tin tức 2" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">Chương trình nấu ăn yêu thương</h5>
+                            <p class="card-text text-muted small">Ngày 10/05/2025</p>
+                            <p class="card-text">Mái ấm tổ chức bữa cơm trưa cho hơn 50 các em nhỏ không nơi nương tựa với sự hỗ trợ từ nhà tài trợ.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <!-- Tin 3 -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm border-0">
-                    <img src="~/images/2.jpg" class="card-img-top" alt="tin tức 3">
-                    <div class="card-body">
-                        <h5 class="card-title">Ủng hộ gạo và mì tôm mùa mưa</h5>
-                        <p class="card-text text-muted small">Ngày 05/05/2025</p>
-                        <p class="card-text">Các nhà hảo tâm ủng họ gạo và mì tôm cho các cụ già.</p>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <img src="~/images/2.jpg" class="card-img-top" alt="tin tức 3" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">Ủng hộ gạo và mì tôm mùa mưa</h5>
+                            <p class="card-text text-muted small">Ngày 05/05/2025</p>
+                            <p class="card-text">Các nhà hảo tâm ủng hộ gạo và mì tôm cho các cụ già.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </section>
@@ -168,48 +258,90 @@
 
 
 <!-- PHẦN CONTACT -->
-<section id="contact" class="py-5" style="background-color: aliceblue;" data-aos="fade-up">
+<section id="contact" class="py-5 fade-in-up" style="background: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);">
     <div class="container">
+        <div class="section-title">
+            <h2>LIÊN HỆ VỚI CHÚNG TÔI</h2>
+            <p class="text-muted">Chúng tôi luôn sẵn sàng lắng nghe và hỗ trợ bạn</p>
+        </div>
 
-        <div class="row">
+        <div class="row align-items-start">
             <!-- Form liên hệ -->
-            <div class="row">
-                <div class="col-md-12">
-                    <h5>GỬI PHẢN HỒI</h5>
-                    <form asp-controller="Home" asp-action="Contact" method="post">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Họ tên</label>
-                            <input type="text" class="form-control" id="name" name="Name" placeholder="Nhập họ tên của bạn" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="Email" placeholder="Nhập email" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="message" class="form-label">Nội dung</label>
-                            <textarea class="form-control" id="message" name="Message" rows="4" placeholder="Nhập nội dung liên hệ..." required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-lg" style="border-radius: 30px; padding: 10px 25px; font-weight: 500;">Gửi</button>
-                    </form>
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="card shadow-custom">
+                    <div class="card-body p-4">
+                        <h4 class="mb-4 text-gradient">
+                            <i class="fas fa-paper-plane me-2"></i>Gửi phản hồi
+                        </h4>
+                        <form asp-controller="Home" asp-action="Contact" method="post">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">
+                                    <i class="fas fa-user me-2"></i>Họ tên
+                                </label>
+                                <input type="text" class="form-control" id="name" name="Name" placeholder="Nhập họ tên của bạn" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>Email
+                                </label>
+                                <input type="email" class="form-control" id="email" name="Email" placeholder="Nhập email của bạn" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">
+                                    <i class="fas fa-comment me-2"></i>Nội dung
+                                </label>
+                                <textarea class="form-control" id="message" name="Message" rows="5" placeholder="Nhập nội dung liên hệ..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-paper-plane me-2"></i>Gửi phản hồi
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <!-- Thông tin liên hệ -->
-            <div class="col-md-6 mb-4">
-                <h2 class="text-center mb-4" style="color: #2c3e50;">CONTACT</h2>
-                <h5>Thông tin liên hệ</h5>
-                <p><i class="bi bi-envelope-fill"></i> <strong>Email:</strong> daotao@hutech.edu.vn</p>
-                <p><i class="bi bi-telephone-fill"></i> <strong>Số điện thoại:</strong> (028) 7105 6686</p>
-                <p><i class="bi bi-geo-alt-fill"></i> <strong>Địa chỉ:</strong> 10/80c Song Hành Xa Lộ Hà Nội, Thủ Đức, Hồ Chí Minh</p>
-
-            </div>
-
-            <!-- Thêm bản đồ vào phần cùng hàng -->
-            <div class="text-center col-md-6">
-                <h5>Vị trí của chúng tôi</h5>
-                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.4184519728788!2d106.7830265114746!3d10.855743457679312!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3175276e7ea103df%3A0xb6cf10bb7d719327!2zSFVURUNIIC0gxJDhuqFpIGjhu41jIEPDtG5nIG5naOG7hyBUUC5IQ00gKFRodSBEdWMgQ2FtcHVzKQ!5e0!3m2!1svi!2s!4v1743512442167!5m2!1svi!2s"
-                        width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                </iframe>
+            
+            <!-- Thông tin liên hệ và bản đồ -->
+            <div class="col-md-6">
+                <div class="card shadow-custom mb-4">
+                    <div class="card-body p-4">
+                        <h4 class="mb-4 text-gradient">
+                            <i class="fas fa-info-circle me-2"></i>Thông tin liên hệ
+                        </h4>
+                        <ul class="list-unstyled">
+                            <li class="mb-3 d-flex align-items-start">
+                                <i class="fas fa-envelope text-primary me-3 mt-1" style="font-size: 1.2rem;"></i>
+                                <div>
+                                    <strong class="d-block mb-1">Email</strong>
+                                    <a href="mailto:contact@maiamtinhthuong.vn">contact@maiamtinhthuong.vn</a>
+                                </div>
+                            </li>
+                            <li class="mb-3 d-flex align-items-start">
+                                <i class="fas fa-phone text-primary me-3 mt-1" style="font-size: 1.2rem;"></i>
+                                <div>
+                                    <strong class="d-block mb-1">Số điện thoại</strong>
+                                    <a href="tel:1900xxxx">1900-xxxx</a>
+                                </div>
+                            </li>
+                            <li class="mb-3 d-flex align-items-start">
+                                <i class="fas fa-map-marker-alt text-primary me-3 mt-1" style="font-size: 1.2rem;"></i>
+                                <div>
+                                    <strong class="d-block mb-1">Địa chỉ</strong>
+                                    <span>Việt Nam</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Bản đồ -->
+                <div class="card shadow-custom">
+                    <div class="card-body p-0">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3918.4184519728788!2d106.7830265114746!3d10.855743457679312!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3175276e7ea103df%3A0xb6cf10bb7d719327!2zSFVURUNIIC0gxJDhuqFpIGjhu41jIEPDtG5nIG5naOG7hyBUUC5IQ00gKFRodSBEdWMgQ2FtcHVzKQ!5e0!3m2!1svi!2s!4v1743512442167!5m2!1svi!2s"
+                                width="100%" height="300" style="border:0; border-radius: var(--radius-lg);" allowfullscreen="" loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -220,4 +352,16 @@
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script>
     AOS.init();
+    
+    // Khởi tạo carousel cho hero section
+    document.addEventListener('DOMContentLoaded', function() {
+        var heroCarousel = document.getElementById('heroCarousel');
+        if (heroCarousel && typeof bootstrap !== 'undefined') {
+            var carousel = new bootstrap.Carousel(heroCarousel, {
+                interval: 5000,
+                wrap: true,
+                ride: 'carousel'
+            });
+        }
+    });
 </script>
