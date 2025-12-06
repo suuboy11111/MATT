@@ -54,9 +54,19 @@ namespace MaiAmTinhThuong.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -65,19 +75,10 @@ namespace MaiAmTinhThuong.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Gender")
                         .HasColumnType("nvarchar(max)");
@@ -102,11 +103,11 @@ namespace MaiAmTinhThuong.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("bit");
-
                     b.Property<string>("PhoneNumber2")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ProfilePicture")
                         .IsRequired()
@@ -340,6 +341,46 @@ namespace MaiAmTinhThuong.Migrations
                     b.ToTable("MaiAms");
                 });
 
+            modelBuilder.Entity("MaiAmTinhThuong.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("MaiAmTinhThuong.Models.SupportRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -349,14 +390,13 @@ namespace MaiAmTinhThuong.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
 
                     b.Property<string>("CCCD")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
@@ -367,11 +407,10 @@ namespace MaiAmTinhThuong.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("HealthStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsApproved")
@@ -391,15 +430,16 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("datetime2");
@@ -442,8 +482,8 @@ namespace MaiAmTinhThuong.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
@@ -459,7 +499,6 @@ namespace MaiAmTinhThuong.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsApproved")
@@ -470,7 +509,8 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -776,6 +816,15 @@ namespace MaiAmTinhThuong.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("BlogPost");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.Notification", b =>
+                {
+                    b.HasOne("MaiAmTinhThuong.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MaiAmTinhThuong.Models.SupportRequest", b =>

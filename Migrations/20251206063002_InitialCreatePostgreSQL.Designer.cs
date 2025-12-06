@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MaiAmTinhThuong.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250520084532_MakeMaiAmIdNullableInSupportRequest")]
-    partial class MakeMaiAmIdNullableInSupportRequest
+    [Migration("20251206063002_InitialCreatePostgreSQL")]
+    partial class InitialCreatePostgreSQL
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -57,9 +57,19 @@ namespace MaiAmTinhThuong.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -70,6 +80,10 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<string>("FullName")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Gender")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
@@ -92,6 +106,9 @@ namespace MaiAmTinhThuong.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PhoneNumber2")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
@@ -108,6 +125,9 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -165,6 +185,71 @@ namespace MaiAmTinhThuong.Migrations
                     b.HasIndex("AuthorId");
 
                     b.ToTable("BlogPosts");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.BotRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MatchType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Response")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BotRules");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.ChungNhanQuyenGop", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("NgayCap")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NoiDung")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SoChungNhan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VinhDanhId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VinhDanhId");
+
+                    b.ToTable("ChungNhanQuyenGops");
                 });
 
             modelBuilder.Entity("MaiAmTinhThuong.Models.Comment", b =>
@@ -259,6 +344,46 @@ namespace MaiAmTinhThuong.Migrations
                     b.ToTable("MaiAms");
                 });
 
+            modelBuilder.Entity("MaiAmTinhThuong.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("MaiAmTinhThuong.Models.SupportRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -268,14 +393,13 @@ namespace MaiAmTinhThuong.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
 
                     b.Property<string>("CCCD")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
@@ -286,11 +410,10 @@ namespace MaiAmTinhThuong.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("HealthStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsApproved")
@@ -310,15 +433,16 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("datetime2");
@@ -361,14 +485,13 @@ namespace MaiAmTinhThuong.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Age")
                         .HasColumnType("int");
 
                     b.Property<string>("CCCD")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
@@ -379,7 +502,6 @@ namespace MaiAmTinhThuong.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsApproved")
@@ -390,7 +512,8 @@ namespace MaiAmTinhThuong.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -434,6 +557,77 @@ namespace MaiAmTinhThuong.Migrations
                     b.HasIndex("SupportTypeId");
 
                     b.ToTable("SupporterSupportTypes");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.TransactionHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("MaiAmId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SupporterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaiAmId");
+
+                    b.HasIndex("SupporterId");
+
+                    b.ToTable("TransactionHistories");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.VinhDanh", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("GhiChu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HoTen")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Loai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("NgayVinhDanh")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SoGioHoatDong")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("SoTienUngHo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VinhDanhs");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -598,6 +792,17 @@ namespace MaiAmTinhThuong.Migrations
                     b.Navigation("Author");
                 });
 
+            modelBuilder.Entity("MaiAmTinhThuong.Models.ChungNhanQuyenGop", b =>
+                {
+                    b.HasOne("MaiAmTinhThuong.Models.VinhDanh", "VinhDanh")
+                        .WithMany()
+                        .HasForeignKey("VinhDanhId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VinhDanh");
+                });
+
             modelBuilder.Entity("MaiAmTinhThuong.Models.Comment", b =>
                 {
                     b.HasOne("MaiAmTinhThuong.Models.ApplicationUser", "Author")
@@ -614,6 +819,15 @@ namespace MaiAmTinhThuong.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("BlogPost");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.Notification", b =>
+                {
+                    b.HasOne("MaiAmTinhThuong.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MaiAmTinhThuong.Models.SupportRequest", b =>
@@ -635,9 +849,11 @@ namespace MaiAmTinhThuong.Migrations
 
             modelBuilder.Entity("MaiAmTinhThuong.Models.Supporter", b =>
                 {
-                    b.HasOne("MaiAmTinhThuong.Models.MaiAm", null)
+                    b.HasOne("MaiAmTinhThuong.Models.MaiAm", "MaiAm")
                         .WithMany("Supporters")
                         .HasForeignKey("MaiAmId");
+
+                    b.Navigation("MaiAm");
                 });
 
             modelBuilder.Entity("MaiAmTinhThuong.Models.SupporterMaiAm", b =>
@@ -674,6 +890,23 @@ namespace MaiAmTinhThuong.Migrations
                         .IsRequired();
 
                     b.Navigation("SupportType");
+
+                    b.Navigation("Supporter");
+                });
+
+            modelBuilder.Entity("MaiAmTinhThuong.Models.TransactionHistory", b =>
+                {
+                    b.HasOne("MaiAmTinhThuong.Models.MaiAm", "MaiAm")
+                        .WithMany()
+                        .HasForeignKey("MaiAmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MaiAmTinhThuong.Models.Supporter", "Supporter")
+                        .WithMany()
+                        .HasForeignKey("SupporterId");
+
+                    b.Navigation("MaiAm");
 
                     b.Navigation("Supporter");
                 });
