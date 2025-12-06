@@ -45,9 +45,19 @@ namespace MaiAmTinhThuong.Services
                 message.Body = bodyBuilder.ToMessageBody();
 
                 using var client = new SmtpClient();
+                // Thêm timeout để tránh hang
+                client.Timeout = 10000; // 10 giây
+                
+                _logger.LogInformation($"Connecting to SMTP server: {smtpHost}:{smtpPort}");
                 await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+                
+                _logger.LogInformation("Authenticating with SMTP server...");
                 await client.AuthenticateAsync(smtpUser, smtpPassword);
+                
+                _logger.LogInformation($"Sending email to {toEmail}...");
                 await client.SendAsync(message);
+                
+                _logger.LogInformation("Disconnecting from SMTP server...");
                 await client.DisconnectAsync(true);
 
                 _logger.LogInformation($"Email sent successfully to {toEmail}");
@@ -147,3 +157,4 @@ namespace MaiAmTinhThuong.Services
         }
     }
 }
+

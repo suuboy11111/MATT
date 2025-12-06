@@ -82,30 +82,50 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     var verificationCode = _verificationCodeService.GenerateCode();
                     _verificationCodeService.StoreCode(user.Email!, verificationCode, user.Id);
+                    _logger.LogInformation($"Verification code generated and stored for {user.Email}");
 
-                    var emailSent = await _emailService.SendVerificationCodeAsync(user.Email!, verificationCode);
+                    // Gửi email với timeout
+                    _logger.LogInformation($"Attempting to send verification code email to {user.Email}...");
+                    
+                    // Sử dụng Task.Run để không block request quá lâu
+                    var emailTask = _emailService.SendVerificationCodeAsync(user.Email!, verificationCode);
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(15)); // Timeout 15 giây
+                    
+                    var completedTask = await Task.WhenAny(emailTask, timeoutTask);
+                    
+                    bool emailSent = false;
+                    if (completedTask == emailTask)
+                    {
+                        emailSent = await emailTask;
+                        _logger.LogInformation($"Email send result: {emailSent}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Email sending timeout for {user.Email}");
+                        emailSent = false;
+                    }
+
                     if (emailSent)
                     {
                         TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác nhận (có thể trong thư mục Spam).";
                         TempData["Email"] = user.Email; // Lưu email để chuyển sang trang verify
+                        _logger.LogInformation($"Registration successful for {user.Email}, redirecting to VerifyCode");
                         return RedirectToAction("VerifyCode", new { email = user.Email });
                     }
                     else
                     {
-                        TempData["Error"] = "Đăng ký thành công! Tuy nhiên, không thể gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
-                        _logger.LogWarning($"Failed to send verification code to {user.Email}");
-                        // Xóa user nếu không gửi được email
-                        await _userManager.DeleteAsync(user);
-                        return View(model);
+                        // Vẫn cho phép user tiếp tục, họ có thể yêu cầu gửi lại mã
+                        TempData["Warning"] = "Đăng ký thành công! Tuy nhiên, không thể gửi email xác nhận ngay bây giờ. Bạn có thể yêu cầu gửi lại mã xác nhận.";
+                        _logger.LogWarning($"Failed to send verification code to {user.Email}, but allowing user to continue");
+                        return RedirectToAction("VerifyCode", new { email = user.Email });
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error sending verification code during registration");
-                    TempData["Error"] = "Đăng ký thành công! Tuy nhiên, có lỗi khi gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
-                    // Xóa user nếu có lỗi
-                    await _userManager.DeleteAsync(user);
-                    return View(model);
+                    // Vẫn cho phép user tiếp tục, họ có thể yêu cầu gửi lại mã
+                    TempData["Warning"] = "Đăng ký thành công! Tuy nhiên, có lỗi khi gửi email xác nhận. Bạn có thể yêu cầu gửi lại mã xác nhận.";
+                    return RedirectToAction("VerifyCode", new { email = user.Email });
                 }
             }
 
