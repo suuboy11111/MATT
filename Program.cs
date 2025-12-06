@@ -312,6 +312,17 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             
             // QUAN TRỌNG: Không set StateDataFormat = null vì sẽ dùng default
             // Default format sẽ dùng Data Protection để mã hóa state
+            options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
+            {
+                OnRemoteFailure = context =>
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(context.Failure, "❌ Google OAuth remote failure: {Message}", context.Failure?.Message);
+                    context.Response.Redirect("/Account/Login");
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                }
+            };
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -435,6 +446,20 @@ app.UseRouting();
 // 1. Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
 // 2. Authentication phải được gọi TRƯỚC Authorization
 app.UseSession();
+
+// Log nhanh cookies khi callback để kiểm tra correlation/external cookie có quay lại hay không
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/Account/GoogleCallback"))
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var cookies = string.Join(", ", context.Request.Cookies.Keys);
+        logger.LogInformation("🔎 OAuth callback cookies: {Cookies}", cookies);
+        logger.LogInformation("🔎 Correlation cookie present: {HasCorr}", context.Request.Cookies.ContainsKey(".MaiAmTinhThuong.OAuth.Correlation"));
+        logger.LogInformation("🔎 External cookie present: {HasExternal}", context.Request.Cookies.ContainsKey(".AspNetCore.External"));
+    }
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
