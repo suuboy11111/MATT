@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace MaiAmTinhThuong.Models
 {
@@ -12,7 +12,7 @@ namespace MaiAmTinhThuong.Models
         public string Loai { get; set; }//NHT or TNV
         public decimal? SoTienUngHo { get; set; } // nếu là nhà hảo tâm
         public int? SoGioHoatDong { get; set; } // nếu là tình nguyện viên
-        public DateTime NgayVinhDanh { get; set; } = DateTime.Now;
+        public DateTime NgayVinhDanh { get; set; } = DateTime.UtcNow;
         public string GhiChu { get; set; }
     }
 

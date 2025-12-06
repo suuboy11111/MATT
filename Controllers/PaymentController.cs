@@ -78,7 +78,7 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     MaiAmId = request.MaiAmId ?? 1, // Mặc định mái ấm đầu tiên nếu không chọn
                     Amount = request.Amount,
-                    TransactionDate = DateTime.Now,
+                    TransactionDate = DateTime.UtcNow,
                     Status = "Pending",
                     Description = $"Ủng hộ tài chính - {request.DonorName} - OrderCode: {orderCode}"
                 };

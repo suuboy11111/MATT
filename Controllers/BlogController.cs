@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
@@ -115,7 +115,7 @@ namespace MaiAmTinhThuong.Controllers
             {
                 BlogPostId = blogPostId,
                 Content = content.Trim(),
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 AuthorId = user.Id
             };
 
@@ -174,7 +174,7 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     Title = model.Title,
                     Content = model.Content,
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = DateTime.UtcNow,
                     AuthorId = user.Id,
                     IsApproved = false
                 };

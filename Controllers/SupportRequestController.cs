@@ -1,4 +1,4 @@
-﻿using MaiAmTinhThuong.Data;
+using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Http;
@@ -93,8 +93,8 @@ public class SupportRequestController : Controller
         if (ModelState.IsValid)
         {
             // Cập nhật các trường khác và lưu vào cơ sở dữ liệu
-            model.CreatedDate = DateTime.Now;
-            model.UpdatedDate = DateTime.Now;
+            model.CreatedDate = DateTime.UtcNow;
+            model.UpdatedDate = DateTime.UtcNow;
             model.IsApproved = false;
 
             // Lưu hồ sơ người cần hỗ trợ vào cơ sở dữ liệu

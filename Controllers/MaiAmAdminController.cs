@@ -1,4 +1,4 @@
-﻿using MaiAmTinhThuong.Data;
+using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,8 +40,8 @@ namespace MaiAmTinhThuong.Controllers.Admin
         {
             if (ModelState.IsValid)
             {
-                maiAm.CreatedDate = System.DateTime.Now;
-                maiAm.UpdatedDate = System.DateTime.Now;
+                maiAm.CreatedDate = System.DateTime.UtcNow;
+                maiAm.UpdatedDate = System.DateTime.UtcNow;
                 _context.Add(maiAm);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Manage));
@@ -71,7 +71,7 @@ namespace MaiAmTinhThuong.Controllers.Admin
             {
                 try
                 {
-                    maiAm.UpdatedDate = System.DateTime.Now;
+                    maiAm.UpdatedDate = System.DateTime.UtcNow;
                     _context.Update(maiAm);
                     await _context.SaveChangesAsync();
                 }
@@ -275,8 +275,8 @@ namespace MaiAmTinhThuong.Controllers.Admin
                 !string.IsNullOrWhiteSpace(model.PhoneNumber) &&
                 !string.IsNullOrWhiteSpace(model.Reason)))
             {
-                model.CreatedDate = DateTime.Now;
-                model.UpdatedDate = DateTime.Now;
+                model.CreatedDate = DateTime.UtcNow;
+                model.UpdatedDate = DateTime.UtcNow;
                 model.IsApproved = true;
                 _context.Add(model);
                 await _context.SaveChangesAsync();
@@ -392,7 +392,7 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     !string.IsNullOrWhiteSpace(model.PhoneNumber) &&
                     !string.IsNullOrWhiteSpace(model.Reason)))
                 {
-                    model.UpdatedDate = DateTime.Now;
+                    model.UpdatedDate = DateTime.UtcNow;
                     _context.Update(model);
                     await _context.SaveChangesAsync();
                     return RedirectToAction(nameof(ManageProfiles), new { id = model.MaiAmId });

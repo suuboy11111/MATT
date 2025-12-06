@@ -47,8 +47,8 @@ namespace MaiAmTinhThuong.Services
 
         public async Task<SupportRequest> CreateAsync(SupportRequest supportRequest)
         {
-            supportRequest.CreatedDate = DateTime.Now;
-            supportRequest.UpdatedDate = DateTime.Now;
+            supportRequest.CreatedDate = DateTime.UtcNow;
+            supportRequest.UpdatedDate = DateTime.UtcNow;
             supportRequest.IsApproved = false;
 
             _context.SupportRequests.Add(supportRequest);
@@ -58,7 +58,7 @@ namespace MaiAmTinhThuong.Services
 
         public async Task<SupportRequest> UpdateAsync(SupportRequest supportRequest)
         {
-            supportRequest.UpdatedDate = DateTime.Now;
+            supportRequest.UpdatedDate = DateTime.UtcNow;
             _context.SupportRequests.Update(supportRequest);
             await _context.SaveChangesAsync();
             return supportRequest;
@@ -82,7 +82,7 @@ namespace MaiAmTinhThuong.Services
                 return false;
 
             supportRequest.IsApproved = true;
-            supportRequest.UpdatedDate = DateTime.Now;
+            supportRequest.UpdatedDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }

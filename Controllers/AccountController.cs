@@ -62,8 +62,8 @@ namespace MaiAmTinhThuong.Controllers
                 Role = model.Role,
                 ProfilePicture = "/images/default1-avatar.png",
                 Gender = model.Gender?.ToString(),
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 EmailConfirmed = false // Chưa xác nhận email
             };
 
@@ -272,7 +272,7 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     user.PhoneNumber2 = model.PhoneNumber;
                 }
-                user.UpdatedAt = DateTime.Now;
+                user.UpdatedAt = DateTime.UtcNow;
 
                 // Thay đổi mật khẩu nếu có
                 if (!string.IsNullOrEmpty(model.CurrentPassword) && !string.IsNullOrEmpty(model.NewPassword))
@@ -470,8 +470,8 @@ namespace MaiAmTinhThuong.Controllers
                         FullName = name ?? "Người dùng Google",
                         ProfilePicture = picture ?? "/images/default1-avatar.png",
                         EmailConfirmed = true, // Google đã xác nhận email
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
                         Role = "NguoiHoTro" // Mặc định
                     };
 

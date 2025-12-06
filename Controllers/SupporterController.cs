@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using System.IO;
 using System;
 using MaiAmTinhThuong.Data;
@@ -119,8 +119,8 @@ public class SupporterController : Controller
         // Kiểm tra ModelState sau khi đã xử lý file
         if (ModelState.IsValid)
         {
-            model.CreatedDate = DateTime.Now;
-            model.UpdatedDate = DateTime.Now;
+            model.CreatedDate = DateTime.UtcNow;
+            model.UpdatedDate = DateTime.UtcNow;
             model.IsApproved = false;
 
             _context.Supporters.Add(model);

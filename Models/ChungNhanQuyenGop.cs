@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,7 +16,7 @@ namespace MaiAmTinhThuong.Models
         public VinhDanh VinhDanh { get; set; }
 
         [Required]
-        public DateTime NgayCap { get; set; } = DateTime.Now;
+        public DateTime NgayCap { get; set; } = DateTime.UtcNow;
 
         [Required]
         public string SoChungNhan { get; set; } // Ví dụ: CN-2025-001

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Models.ViewModels;
@@ -108,7 +108,7 @@ namespace MaiAmTinhThuong.Controllers
                     Name = model.Name,
                     Email = model.Email,
                     Message = model.Message,
-                    SubmittedAt = DateTime.Now
+                    SubmittedAt = DateTime.UtcNow
                 };
 
                 _context.ContactResponses.Add(contactResponse);

@@ -378,8 +378,8 @@ _ = Task.Run(async () =>
                 ProfilePicture = "/images/default1-avatar.png",
                 Role = "Admin",
                 EmailConfirmed = true,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             var result = await userManager.CreateAsync(user, adminPassword);
             if (result.Succeeded)

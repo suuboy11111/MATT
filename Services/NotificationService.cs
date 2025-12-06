@@ -18,7 +18,7 @@ namespace MaiAmTinhThuong.Services
 
         public async Task<Notification> CreateAsync(Notification notification)
         {
-            notification.CreatedAt = DateTime.Now;
+            notification.CreatedAt = DateTime.UtcNow;
             notification.IsRead = false;
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
