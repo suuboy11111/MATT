@@ -1,4 +1,4 @@
-using MaiAmTinhThuong.Data;
+﻿using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -251,6 +251,16 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
+});
+
+// Đảm bảo external cookie (Identity.External) cho OAuth callback được gửi cross-site
+builder.Services.ConfigureExternalCookie(options =>
+{
+    options.Cookie.Name = ".AspNetCore.External";
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.Path = "/";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
 });
 
 // Google OAuth
