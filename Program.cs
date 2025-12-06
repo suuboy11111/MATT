@@ -2,6 +2,7 @@ using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -23,13 +24,9 @@ builder.Services.AddControllersWithViews();
 // Cấu hình Data Protection (QUAN TRỌNG cho OAuth state encryption)
 // OAuth state được mã hóa bằng Data Protection keys
 // Lưu ý: Keys phải giống nhau giữa request đi (GoogleLogin) và request về (GoogleCallback)
+// QUAN TRỌNG: Railway có thể có multiple instances, mỗi instance có keys khác nhau
+// → Phải persist keys vào database để tất cả instances dùng chung keys
 var dataProtectionBuilder = builder.Services.AddDataProtection();
-
-// QUAN TRỌNG: Không persist keys vào file system vì Railway có thể có multiple instances
-// Mỗi instance sẽ có keys khác nhau → OAuth state sẽ fail
-// Giải pháp: Dùng in-memory keys (OK vì OAuth state chỉ cần trong một request cycle)
-// Nếu cần persist, phải dùng shared storage (database hoặc Redis)
-Console.WriteLine("ℹ️ Using in-memory Data Protection keys (OK for OAuth state in single request cycle)");
 
 // Cấu hình Session (QUAN TRỌNG cho OAuth state)
 // Lưu ý: OAuth state được lưu trong correlation cookie, không phải session
@@ -194,6 +191,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
+// QUAN TRỌNG: Persist Data Protection keys vào database
+// Điều này đảm bảo tất cả instances trên Railway dùng chung keys
+// → OAuth state sẽ được mã hóa/giải mã đúng giữa các instances
+dataProtectionBuilder.PersistKeysToDbContext<ApplicationDbContext>();
+Console.WriteLine("✅ Data Protection keys will be persisted to database (shared across all instances)");
 
 // Cấu hình cookie cho authentication (QUAN TRỌNG cho OAuth)
 builder.Services.ConfigureApplicationCookie(options =>

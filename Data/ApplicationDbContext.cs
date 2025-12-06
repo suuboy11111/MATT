@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MaiAmTinhThuong.Models;
 
 namespace MaiAmTinhThuong.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IDataProtectionKeyContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -30,6 +31,9 @@ namespace MaiAmTinhThuong.Data
         public DbSet<BlogPost> BlogPosts { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Like> Likes { get; set; }
+        
+        // Data Protection Keys (cho OAuth state encryption)
+        public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
 
         // Cấu hình mối quan hệ giữa BlogPost và ApplicationUser
         protected override void OnModelCreating(ModelBuilder builder)
