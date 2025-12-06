@@ -144,21 +144,29 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Đăng ký PayOSClient
-builder.Services.AddSingleton<PayOSClient>(serviceProvider =>
+// Đăng ký PayOSClient (optional - chỉ đăng ký nếu có config)
+var payOSClientId = builder.Configuration["PayOS:ClientId"];
+var payOSApiKey = builder.Configuration["PayOS:ApiKey"];
+var payOSChecksumKey = builder.Configuration["PayOS:ChecksumKey"];
+
+if (!string.IsNullOrEmpty(payOSClientId) && 
+    !string.IsNullOrEmpty(payOSApiKey) && 
+    !string.IsNullOrEmpty(payOSChecksumKey))
 {
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var clientId = configuration["PayOS:ClientId"];
-    var apiKey = configuration["PayOS:ApiKey"];
-    var checksumKey = configuration["PayOS:ChecksumKey"];
-
-    if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
+    builder.Services.AddSingleton<PayOSClient>(serviceProvider =>
     {
-        throw new InvalidOperationException("PayOS configuration is missing. Please check appsettings.json");
-    }
-
-    return new PayOSClient(clientId, apiKey, checksumKey);
-});
+        return new PayOSClient(payOSClientId, payOSApiKey, payOSChecksumKey);
+    });
+    Console.WriteLine("✅ PayOS client configured");
+}
+else
+{
+    Console.WriteLine("⚠️ PayOS configuration not found. Payment features will be disabled.");
+    Console.WriteLine("💡 To enable PayOS, add these environment variables:");
+    Console.WriteLine("   - PayOS__ClientId");
+    Console.WriteLine("   - PayOS__ApiKey");
+    Console.WriteLine("   - PayOS__ChecksumKey");
+}
 
 
 var app = builder.Build();
@@ -180,17 +188,14 @@ app.UseSession(); // Thêm session middleware
 app.UseAuthentication(); // Thêm dòng này để login hoạt động
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// Tự động chạy migration TRƯỚC KHI app start - với retry logic
+// QUAN TRỌNG: Migration phải hoàn thành trước khi app nhận request
+Console.WriteLine("🔄 Starting database migration...");
 
-// Tự động chạy migration khi khởi động (Production) - với retry logic
-_ = Task.Run(async () =>
+// Helper method để chạy migration đồng bộ
+static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, TimeSpan initialDelay)
 {
-    await Task.Delay(TimeSpan.FromSeconds(5)); // Đợi 5 giây để database sẵn sàng
-    
-    var maxRetries = 5;
-    var delay = TimeSpan.FromSeconds(2);
+    var delay = initialDelay;
     
     for (int attempt = 1; attempt <= maxRetries; attempt++)
     {
@@ -200,7 +205,7 @@ _ = Task.Run(async () =>
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
             
-            logger.LogInformation($"Attempting database connection (attempt {attempt}/{maxRetries})...");
+            logger.LogInformation($"🔄 Attempting database migration (attempt {attempt}/{maxRetries})...");
             
             // Kiểm tra và thêm các cột mới nếu chưa có
             var connection = db.Database.GetDbConnection();
@@ -379,14 +384,14 @@ _ = Task.Run(async () =>
             try
             {
                 db.Database.Migrate();
-                logger.LogInformation("Database migration completed successfully.");
-                break; // Thành công, thoát khỏi retry loop
+                logger.LogInformation("✅ Database migration completed successfully.");
+                return true; // Thành công
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
             {
                 // Bỏ qua warning về pending changes - đã xử lý thủ công ở trên
-                logger.LogWarning("Skipping pending model changes warning - columns already added manually.");
-                break; // Thành công, thoát khỏi retry loop
+                logger.LogWarning("⚠️ Skipping pending model changes warning - columns already added manually.");
+                return true; // Thành công
             }
         }
         catch (Exception ex)
@@ -396,17 +401,36 @@ _ = Task.Run(async () =>
             
             if (attempt < maxRetries)
             {
-                errorLogger.LogWarning(ex, "Database connection failed (attempt {Attempt}/{MaxRetries}). Retrying in {Delay} seconds...", attempt, maxRetries, delay.TotalSeconds);
+                errorLogger.LogWarning(ex, "❌ Database migration failed (attempt {Attempt}/{MaxRetries}). Retrying in {Delay} seconds...", attempt, maxRetries, delay.TotalSeconds);
                 await Task.Delay(delay);
                 delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2); // Exponential backoff
             }
             else
             {
-                errorLogger.LogError(ex, "Failed to connect to database after {MaxRetries} attempts. Application will continue but database operations may fail.", maxRetries);
+                errorLogger.LogError(ex, "❌ Failed to migrate database after {MaxRetries} attempts. Application will start but database operations may fail.", maxRetries);
+                return false; // Thất bại nhưng không throw exception
             }
         }
     }
-});
+    
+    return false; // Nếu đến đây nghĩa là thất bại
+}
+
+// Chạy migration đồng bộ (blocking)
+var migrationSuccess = RunMigrationAsync(app, maxRetries: 10, initialDelay: TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();
+
+if (migrationSuccess)
+{
+    Console.WriteLine("✅ Database migration completed. Starting application...");
+}
+else
+{
+    Console.WriteLine("⚠️ Database migration failed but application will continue...");
+}
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // Seed data - chạy trong background để không block startup
 _ = Task.Run(async () =>
