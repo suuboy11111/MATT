@@ -3,6 +3,7 @@ using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -299,6 +300,15 @@ else
 
 
 var app = builder.Build();
+
+// QUAN TRỌNG: Configure Forwarded Headers để detect HTTPS đúng cách
+// Railway sử dụng reverse proxy, cần forward headers để biết request thực sự là HTTPS
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    // Trust Railway proxy
+    RequireHeaderSymmetry = false
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

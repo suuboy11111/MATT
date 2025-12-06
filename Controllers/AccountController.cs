@@ -520,15 +520,32 @@ namespace MaiAmTinhThuong.Controllers
         {
             try
             {
-                _logger.LogInformation($"GoogleCallback called. ReturnUrl: {returnUrl}");
-                _logger.LogInformation($"Session ID: {HttpContext.Session.Id}");
-                _logger.LogInformation($"Request Cookies: {string.Join(", ", Request.Cookies.Keys)}");
+                _logger.LogInformation($"🔙 GoogleCallback called. ReturnUrl: {returnUrl}");
+                _logger.LogInformation($"   - Request.Scheme: {Request.Scheme}");
+                _logger.LogInformation($"   - Request.IsHttps: {Request.IsHttps}");
+                _logger.LogInformation($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
+                _logger.LogInformation($"   - Session ID: {HttpContext.Session.Id}");
+                _logger.LogInformation($"   - Session Available: {HttpContext.Session.IsAvailable}");
+                _logger.LogInformation($"   - Request Cookies: {string.Join(", ", Request.Cookies.Keys)}");
+                
+                // Log correlation cookie specifically
+                var correlationCookie = Request.Cookies[".MaiAmTinhThuong.OAuth.Correlation"];
+                if (string.IsNullOrEmpty(correlationCookie))
+                {
+                    _logger.LogWarning("⚠️ Correlation cookie is MISSING! This will cause OAuth state validation to fail.");
+                }
+                else
+                {
+                    _logger.LogInformation($"✅ Correlation cookie found: {correlationCookie.Substring(0, Math.Min(50, correlationCookie.Length))}...");
+                }
                 
                 var info = await _signInManager.GetExternalLoginInfoAsync();
                 if (info == null)
                 {
-                    _logger.LogWarning("Failed to get external login info from Google. This usually means OAuth state was missing or invalid.");
-                    _logger.LogWarning($"Session available: {HttpContext.Session.IsAvailable}, Session ID: {HttpContext.Session.Id}");
+                    _logger.LogError("❌ Failed to get external login info from Google. OAuth state was missing or invalid.");
+                    _logger.LogError($"   - Session available: {HttpContext.Session.IsAvailable}");
+                    _logger.LogError($"   - Session ID: {HttpContext.Session.Id}");
+                    _logger.LogError($"   - Correlation cookie present: {!string.IsNullOrEmpty(correlationCookie)}");
                     TempData["Error"] = "Không thể lấy thông tin từ Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                     return RedirectToAction("Login");
                 }
