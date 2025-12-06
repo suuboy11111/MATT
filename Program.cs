@@ -1,4 +1,4 @@
-﻿using MaiAmTinhThuong.Data;
+using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Identity;
@@ -30,14 +30,32 @@ builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
 
 // Hỗ trợ cả SQL Server và PostgreSQL
+// Railway cung cấp DATABASE_URL, ưu tiên sử dụng nó
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Nếu có DATABASE_URL từ Railway, convert sang format Npgsql
+if (!string.IsNullOrEmpty(databaseUrl) && databaseUrl.Contains("postgresql://"))
+{
+    // Railway DATABASE_URL format: postgresql://user:password@host:port/database
+    // Convert sang Npgsql format: Host=host;Port=port;Database=database;Username=user;Password=password
+    var uri = new Uri(databaseUrl);
+    var host = uri.Host;
+    var port = uri.Port;
+    var database = uri.AbsolutePath.TrimStart('/');
+    var username = uri.UserInfo.Split(':')[0];
+    var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
+    
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+
 if (!string.IsNullOrEmpty(connectionString) && 
     (connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) || 
      connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
-     connectionString.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase)))
+     connectionString.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase) ||
+     connectionString.Contains("postgresql://", StringComparison.OrdinalIgnoreCase)))
 {
     // Sử dụng PostgreSQL (cho Railway, Render, etc.)
-    // Cần thêm package: dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -352,5 +370,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+
+// Configure port for Railway (Railway sets PORT environment variable)
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    app.Urls.Add($"http://0.0.0.0:{port}");
+}
 
 app.Run();
