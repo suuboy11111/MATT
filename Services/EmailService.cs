@@ -18,56 +18,87 @@ namespace MaiAmTinhThuong.Services
 
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
-            try
+            var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+            var smtpUser = _configuration["Email:SmtpUser"];
+            var smtpPassword = _configuration["Email:SmtpPassword"];
+            var fromEmail = _configuration["Email:FromEmail"] ?? smtpUser;
+            var fromName = _configuration["Email:FromName"] ?? "Mái Ấm Tình Thương";
+
+            if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPassword))
             {
-                var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-                var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
-                var smtpUser = _configuration["Email:SmtpUser"];
-                var smtpPassword = _configuration["Email:SmtpPassword"];
-                var fromEmail = _configuration["Email:FromEmail"] ?? smtpUser;
-                var fromName = _configuration["Email:FromName"] ?? "Mái Ấm Tình Thương";
-
-                if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPassword))
-                {
-                    _logger.LogWarning("Email configuration not found. Email sending disabled.");
-                    return false;
-                }
-
-                var message = new MimeMessage();
-                message.From.Add(new MailboxAddress(fromName, fromEmail));
-                message.To.Add(new MailboxAddress("", toEmail));
-                message.Subject = subject;
-
-                var bodyBuilder = new BodyBuilder
-                {
-                    HtmlBody = body
-                };
-                message.Body = bodyBuilder.ToMessageBody();
-
-                using var client = new SmtpClient();
-                // Thêm timeout để tránh hang
-                client.Timeout = 10000; // 10 giây
-                
-                _logger.LogInformation($"Connecting to SMTP server: {smtpHost}:{smtpPort}");
-                await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
-                
-                _logger.LogInformation("Authenticating with SMTP server...");
-                await client.AuthenticateAsync(smtpUser, smtpPassword);
-                
-                _logger.LogInformation($"Sending email to {toEmail}...");
-                await client.SendAsync(message);
-                
-                _logger.LogInformation("Disconnecting from SMTP server...");
-                await client.DisconnectAsync(true);
-
-                _logger.LogInformation($"Email sent successfully to {toEmail}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to send email to {toEmail}: {ex.Message}");
+                _logger.LogWarning("Email configuration not found. Email sending disabled.");
                 return false;
             }
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, fromEmail));
+            message.To.Add(new MailboxAddress("", toEmail));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = body
+            };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Thử cả port 587 (StartTLS) và 465 (SSL) nếu port 587 fail
+            var portsToTry = new[] { (smtpPort, SecureSocketOptions.StartTls) };
+            
+            // Nếu đang dùng port 587, thử thêm port 465 với SSL
+            if (smtpPort == 587)
+            {
+                portsToTry = new[] 
+                { 
+                    (587, SecureSocketOptions.StartTls),
+                    (465, SecureSocketOptions.SslOnConnect)
+                };
+            }
+
+            Exception? lastException = null;
+
+            foreach (var (port, secureOption) in portsToTry)
+            {
+                try
+                {
+                    using var client = new SmtpClient();
+                    // Tăng timeout lên 30 giây
+                    client.Timeout = 30000;
+                    
+                    _logger.LogInformation($"Attempting to connect to SMTP server: {smtpHost}:{port} with {secureOption}");
+                    
+                    // Thử kết nối với timeout
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                    await client.ConnectAsync(smtpHost, port, secureOption, cts.Token);
+                    
+                    _logger.LogInformation("Connected successfully. Authenticating...");
+                    await client.AuthenticateAsync(smtpUser, smtpPassword, cts.Token);
+                    
+                    _logger.LogInformation($"Sending email to {toEmail}...");
+                    await client.SendAsync(message, cts.Token);
+                    
+                    _logger.LogInformation("Disconnecting from SMTP server...");
+                    await client.DisconnectAsync(true, cts.Token);
+
+                    _logger.LogInformation($"Email sent successfully to {toEmail} via {smtpHost}:{port}");
+                    return true;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning($"Connection timeout to {smtpHost}:{port}");
+                    lastException = new TimeoutException($"Connection to {smtpHost}:{port} timed out");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to send via {smtpHost}:{port} - {ex.Message}");
+                    lastException = ex;
+                    // Tiếp tục thử port tiếp theo nếu có
+                }
+            }
+
+            // Nếu tất cả đều fail
+            _logger.LogError(lastException, $"Failed to send email to {toEmail} after trying all methods");
+            return false;
         }
 
         public async Task<bool> SendVerificationEmailAsync(string toEmail, string confirmationLink)
