@@ -197,6 +197,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // Điều này đảm bảo tất cả instances trên Railway dùng chung keys
 // → OAuth state sẽ được mã hóa/giải mã đúng giữa các instances
 dataProtectionBuilder.PersistKeysToDbContext<ApplicationDbContext>();
+
+// QUAN TRỌNG: Set application name để đảm bảo keys được isolate đúng
+dataProtectionBuilder.SetApplicationName("MaiAmTinhThuong");
+
+// QUAN TRỌNG: Set default key lifetime (keys sẽ expire sau 90 ngày)
+dataProtectionBuilder.SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
 Console.WriteLine("✅ Data Protection keys will be persisted to database (shared across all instances)");
 
 // Cấu hình cookie cho authentication (QUAN TRỌNG cho OAuth)
@@ -236,13 +243,14 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             
             // QUAN TRỌNG: Cấu hình correlation cookie (OAuth state được lưu trong cookie này)
             // Cookie này phải được gửi đi và nhận về giữa app và Google
+            // Vấn đề: Railway có thể có multiple instances, cookie phải được set đúng để hoạt động
             options.CorrelationCookie.HttpOnly = true;
             options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
             options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
             options.CorrelationCookie.Domain = null; // Không set domain để cookie hoạt động với subdomain
+            options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(10); // Set timeout đủ dài cho OAuth flow
             
             // QUAN TRỌNG: Detect production dựa trên hostname (Railway có thể không set ASPNETCORE_ENVIRONMENT)
-            // Nếu hostname chứa "railway.app" hoặc không phải localhost → Production
             var isProduction = !builder.Environment.IsDevelopment() || 
                                Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null ||
                                Environment.GetEnvironmentVariable("PORT") != null; // Railway set PORT
@@ -250,10 +258,10 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             if (isProduction)
             {
                 // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth cross-site redirect)
-                // Lưu ý: Browser có thể block SameSite=None nếu không có Secure=true
+                // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always");
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min");
             }
             else
             {
@@ -262,6 +270,9 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
                 Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest");
             }
+            
+            // QUAN TRỌNG: Không set StateDataFormat = null vì sẽ dùng default
+            // Default format sẽ dùng Data Protection để mã hóa state
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -303,11 +314,15 @@ var app = builder.Build();
 
 // QUAN TRỌNG: Configure Forwarded Headers để detect HTTPS đúng cách
 // Railway sử dụng reverse proxy, cần forward headers để biết request thực sự là HTTPS
+// PHẢI được gọi TRƯỚC UseHttpsRedirection
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    // Trust Railway proxy
-    RequireHeaderSymmetry = false
+    // Trust Railway proxy (không cần verify symmetry)
+    RequireHeaderSymmetry = false,
+    // Trust all proxies (Railway internal network)
+    KnownNetworks = { },
+    KnownProxies = { }
 });
 
 // Configure the HTTP request pipeline.
