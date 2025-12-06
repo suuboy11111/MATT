@@ -240,21 +240,27 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
             options.CorrelationCookie.Domain = null; // Không set domain để cookie hoạt động với subdomain
             
-            if (builder.Environment.IsDevelopment())
-            {
-                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
-            }
-            else
+            // QUAN TRỌNG: Detect production dựa trên hostname (Railway có thể không set ASPNETCORE_ENVIRONMENT)
+            // Nếu hostname chứa "railway.app" hoặc không phải localhost → Production
+            var isProduction = !builder.Environment.IsDevelopment() || 
+                               Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null ||
+                               Environment.GetEnvironmentVariable("PORT") != null; // Railway set PORT
+            
+            if (isProduction)
             {
                 // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth cross-site redirect)
                 // Lưu ý: Browser có thể block SameSite=None nếu không có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always");
             }
-            
-            // Thêm logging để debug
-            Console.WriteLine($"✅ Google OAuth Correlation Cookie: SameSite={options.CorrelationCookie.SameSite}, Secure={options.CorrelationCookie.SecurePolicy}");
+            else
+            {
+                // Development: SameSite=Lax và Secure=SameAsRequest
+                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest");
+            }
         });
     Console.WriteLine("✅ Google OAuth configured");
 }

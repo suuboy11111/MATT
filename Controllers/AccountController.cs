@@ -462,37 +462,19 @@ namespace MaiAmTinhThuong.Controllers
         {
             try
             {
-                // Đảm bảo sử dụng https trong production (Railway sử dụng reverse proxy)
-                var scheme = "https"; // Mặc định dùng https cho production
+                // QUAN TRỌNG: Luôn dùng https cho production (Railway)
+                // Railway sử dụng reverse proxy, Request.Scheme có thể là http
+                // Nhưng redirect URI PHẢI là https để Google OAuth hoạt động
+                var scheme = "https"; // Mặc định dùng https
                 
-                // Trong development, dùng scheme từ request
-                if (_environment.IsDevelopment())
+                // Chỉ dùng http trong development local
+                if (_environment.IsDevelopment() && Request.Host.Host == "localhost")
                 {
                     scheme = Request.Scheme;
                 }
-                else
-                {
-                    // Production: Kiểm tra X-Forwarded-Proto header (Railway set header này)
-                    if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
-                    {
-                        var forwardedProto = Request.Headers["X-Forwarded-Proto"].ToString();
-                        if (!string.IsNullOrEmpty(forwardedProto))
-                        {
-                            scheme = forwardedProto;
-                        }
-                    }
-                    // Nếu không có header hoặc header rỗng, dùng https (đã set mặc định)
-                }
-                
-                // Đảm bảo luôn dùng https trong production
-                if (!_environment.IsDevelopment() && scheme != "https")
-                {
-                    _logger.LogWarning($"Forcing https scheme. Original scheme: {scheme}, Request.Scheme: {Request.Scheme}");
-                    scheme = "https";
-                }
                 
                 var redirectUrl = Url.Action("GoogleCallback", "Account", null, scheme);
-                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl} (scheme: {scheme}, Request.Scheme: {Request.Scheme}, X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()})");
+                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl} (scheme: {scheme}, Request.Scheme: {Request.Scheme}, X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}, IsDevelopment: {_environment.IsDevelopment()}, Host: {Request.Host})");
                 
                 var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
                 _logger.LogInformation($"OAuth properties created. Redirecting to Google...");
