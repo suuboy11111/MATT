@@ -1,6 +1,7 @@
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,11 +19,41 @@ builder.Services.AddHttpClient<GeminiService>(client =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Cấu hình Data Protection (quan trọng cho OAuth state encryption)
+// Railway: Keys sẽ được lưu trong memory (mất khi restart nhưng OK cho OAuth state)
+// OAuth state chỉ cần tồn tại trong một request cycle
+var dataProtectionBuilder = builder.Services.AddDataProtection();
+
+// Trong production, có thể persist keys nếu cần (nhưng OAuth state không cần)
+if (!builder.Environment.IsDevelopment())
+{
+    // Railway: /tmp sẽ bị xóa khi container restart, nhưng OAuth state chỉ cần trong một request
+    // Nếu cần persist keys lâu dài, có thể dùng database hoặc external storage
+    try
+    {
+        var keysDir = new System.IO.DirectoryInfo("/tmp/keys");
+        if (!keysDir.Exists)
+        {
+            keysDir.Create();
+        }
+        dataProtectionBuilder.PersistKeysToFileSystem(keysDir);
+    }
+    catch
+    {
+        // Nếu không thể tạo directory, dùng in-memory (OK cho OAuth)
+        Console.WriteLine("⚠️ Could not persist Data Protection keys. Using in-memory (OK for OAuth state).");
+    }
+}
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax; // Cho phép OAuth redirect
+    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest; // Secure trong HTTPS
+    options.Cookie.Name = ".MaiAmTinhThuong.Session"; // Tên cookie rõ ràng
 });
 
 // Register custom services
@@ -176,6 +207,10 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.ClientSecret = googleClientSecret;
             options.CallbackPath = "/Account/GoogleCallback";
             options.SaveTokens = true;
+            // Cấu hình cookie cho OAuth
+            options.CorrelationCookie.HttpOnly = true;
+            options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+            options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -227,7 +262,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession(); // Thêm session middleware
+// QUAN TRỌNG: Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
+app.UseSession();
 
 app.UseAuthentication(); // Thêm dòng này để login hoạt động
 app.UseAuthorization();
