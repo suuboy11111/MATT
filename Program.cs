@@ -212,16 +212,34 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
             {
                 db.Database.Migrate();
                 logger.LogInformation("✅ Database migration completed successfully.");
+                
+                // Kiểm tra xem AspNetUsers đã được tạo chưa
+                var checkConnection = db.Database.GetDbConnection();
+                await checkConnection.OpenAsync();
+                using var checkCommand = checkConnection.CreateCommand();
+                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'AspNetUsers'";
+                var tableExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+                await checkConnection.CloseAsync();
+                
+                if (!tableExists)
+                {
+                    logger.LogWarning("⚠️ AspNetUsers table not found after migration. This might be a fresh database.");
+                    // Tiếp tục để thử lại
+                    throw new Exception("AspNetUsers table not created by migration");
+                }
+                
                 return true; // Thành công
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
             {
-                // Bỏ qua warning về pending changes
-                logger.LogWarning("⚠️ Skipping pending model changes warning.");
+                // Có pending changes - cần tạo migration mới hoặc apply
+                logger.LogWarning("⚠️ Pending model changes detected. This might require a new migration.");
+                // Không return, tiếp tục thử lại
             }
             catch (Exception migrateEx)
             {
-                logger.LogWarning(migrateEx, "⚠️ Migration failed, will try to add columns manually if needed.");
+                logger.LogWarning(migrateEx, "⚠️ Migration failed, will retry...");
+                // Không return, tiếp tục thử lại
             }
             
             // Sau khi migration chạy, kiểm tra và thêm các cột mới nếu chưa có
@@ -307,11 +325,12 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
                     END $$;";
                 await command.ExecuteNonQueryAsync();
             
-            // Tạo bảng Notifications nếu chưa có (PostgreSQL)
+            // Tạo bảng Notifications nếu chưa có (PostgreSQL) - CHỈ nếu AspNetUsers đã tồn tại
             command.CommandText = @"
                 DO $$ 
                 BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Notifications') THEN
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Notifications') THEN
                         CREATE TABLE ""Notifications"" (
                             ""Id"" SERIAL PRIMARY KEY,
                             ""Title"" varchar(200) NOT NULL,
@@ -380,9 +399,10 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
                 END";
             await command.ExecuteNonQueryAsync();
             
-            // Tạo bảng Notifications nếu chưa có (SQL Server)
+            // Tạo bảng Notifications nếu chưa có (SQL Server) - CHỈ nếu AspNetUsers đã tồn tại
             command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+                IF EXISTS (SELECT * FROM sys.tables WHERE name = 'AspNetUsers')
+                   AND NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
                 BEGIN
                     CREATE TABLE [dbo].[Notifications] (
                         [Id] int IDENTITY(1,1) NOT NULL,
