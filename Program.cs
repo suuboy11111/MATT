@@ -32,38 +32,86 @@ builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
 // Hỗ trợ cả SQL Server và PostgreSQL
 // Railway cung cấp DATABASE_URL, ưu tiên sử dụng nó
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Nếu có DATABASE_URL từ Railway, convert sang format Npgsql
-if (!string.IsNullOrEmpty(databaseUrl) && databaseUrl.Contains("postgresql://"))
+string? connectionString = null;
+bool usePostgreSQL = false;
+
+// Ưu tiên DATABASE_URL từ Railway
+if (!string.IsNullOrEmpty(databaseUrl))
 {
-    // Railway DATABASE_URL format: postgresql://user:password@host:port/database
-    // Convert sang Npgsql format: Host=host;Port=port;Database=database;Username=user;Password=password
-    var uri = new Uri(databaseUrl);
-    var host = uri.Host;
-    var dbPort = uri.Port;
-    var database = uri.AbsolutePath.TrimStart('/');
-    var username = uri.UserInfo.Split(':')[0];
-    var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
+    Console.WriteLine($"DATABASE_URL found: {databaseUrl.Substring(0, Math.Min(50, databaseUrl.Length))}...");
     
-    connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+    if (databaseUrl.Contains("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        // Railway DATABASE_URL format: postgresql://user:password@host:port/database
+        // Convert sang Npgsql format: Host=host;Port=port;Database=database;Username=user;Password=password
+        try
+        {
+            var uri = new Uri(databaseUrl);
+            var host = uri.Host;
+            var dbPort = uri.Port;
+            var database = uri.AbsolutePath.TrimStart('/');
+            var username = uri.UserInfo.Split(':')[0];
+            var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
+            
+            connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+            usePostgreSQL = true;
+            Console.WriteLine($"PostgreSQL connection configured: Host={host}, Database={database}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}");
+        }
+    }
 }
 
-if (!string.IsNullOrEmpty(connectionString) && 
-    (connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) || 
-     connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
-     connectionString.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase) ||
-     connectionString.Contains("postgresql://", StringComparison.OrdinalIgnoreCase)))
+// Nếu không có DATABASE_URL, thử đọc từ config (chỉ cho local development)
+if (string.IsNullOrEmpty(connectionString))
 {
-    // Sử dụng PostgreSQL (cho Railway, Render, etc.)
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    
+    // Chỉ dùng SQL Server nếu không phải production và connection string có chứa SQL Server indicators
+    if (!string.IsNullOrEmpty(connectionString) && 
+        !connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) &&
+        !connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+    {
+        // Chỉ dùng SQL Server nếu đang ở local development
+        if (builder.Environment.IsDevelopment())
+        {
+            usePostgreSQL = false;
+            Console.WriteLine("Using SQL Server for local development");
+        }
+        else
+        {
+            // Production nhưng không có DATABASE_URL -> lỗi
+            throw new InvalidOperationException("DATABASE_URL environment variable is required for production deployment. Please set DATABASE_URL in Railway environment variables.");
+        }
+    }
+    else if (!string.IsNullOrEmpty(connectionString) && 
+             (connectionString.Contains("postgres", StringComparison.OrdinalIgnoreCase) || 
+              connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase)))
+    {
+        usePostgreSQL = true;
+        Console.WriteLine("PostgreSQL connection from config");
+    }
+}
+
+// Configure database
+if (usePostgreSQL && !string.IsNullOrEmpty(connectionString))
+{
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
+    Console.WriteLine("PostgreSQL database configured");
+}
+else if (!usePostgreSQL && !string.IsNullOrEmpty(connectionString))
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString));
+    Console.WriteLine("SQL Server database configured");
 }
 else
 {
-    // Sử dụng SQL Server (mặc định cho local)
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(connectionString ?? "Server=localhost;Database=HoTroNguoiCaoTuoiDB;Trusted_Connection=True;TrustServerCertificate=True;"));
+    throw new InvalidOperationException("No valid database connection string found. Please set DATABASE_URL environment variable.");
 }
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
