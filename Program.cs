@@ -210,36 +210,70 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
             // QUAN TRỌNG: Chạy migration TRƯỚC để tạo các bảng cơ bản (AspNetUsers, etc.)
             try
             {
-                db.Database.Migrate();
+                // Kiểm tra xem có pending migrations không
+                var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    logger.LogInformation($"📦 Found {pendingMigrations.Count()} pending migration(s). Applying...");
+                    foreach (var migration in pendingMigrations)
+                    {
+                        logger.LogInformation($"   - {migration}");
+                    }
+                }
+                else
+                {
+                    logger.LogInformation("✅ No pending migrations found.");
+                }
+                
+                // Apply migrations
+                await db.Database.MigrateAsync();
                 logger.LogInformation("✅ Database migration completed successfully.");
                 
-                // Kiểm tra xem AspNetUsers đã được tạo chưa
+                // Kiểm tra xem các bảng quan trọng đã được tạo chưa
                 var checkConnection = db.Database.GetDbConnection();
                 await checkConnection.OpenAsync();
                 using var checkCommand = checkConnection.CreateCommand();
+                
+                // Kiểm tra AspNetUsers
                 checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'AspNetUsers'";
-                var tableExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+                var aspNetUsersExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+                
+                // Kiểm tra MaiAms
+                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'MaiAms'";
+                var maiAmsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+                
+                // Kiểm tra BlogPosts
+                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'BlogPosts'";
+                var blogPostsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+                
                 await checkConnection.CloseAsync();
                 
-                if (!tableExists)
+                if (!aspNetUsersExists)
                 {
-                    logger.LogWarning("⚠️ AspNetUsers table not found after migration. This might be a fresh database.");
-                    // Tiếp tục để thử lại
+                    logger.LogWarning("⚠️ AspNetUsers table not found after migration.");
                     throw new Exception("AspNetUsers table not created by migration");
                 }
                 
+                if (!maiAmsExists)
+                {
+                    logger.LogWarning("⚠️ MaiAms table not found after migration.");
+                    throw new Exception("MaiAms table not created by migration");
+                }
+                
+                if (!blogPostsExists)
+                {
+                    logger.LogWarning("⚠️ BlogPosts table not found after migration.");
+                    throw new Exception("BlogPosts table not created by migration");
+                }
+                
+                logger.LogInformation("✅ All required tables exist: AspNetUsers, MaiAms, BlogPosts");
                 return true; // Thành công
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
-            {
-                // Có pending changes - cần tạo migration mới hoặc apply
-                logger.LogWarning("⚠️ Pending model changes detected. This might require a new migration.");
-                // Không return, tiếp tục thử lại
             }
             catch (Exception migrateEx)
             {
                 logger.LogWarning(migrateEx, "⚠️ Migration failed, will retry...");
                 // Không return, tiếp tục thử lại
+                throw; // Re-throw để retry loop xử lý
             }
             
             // Sau khi migration chạy, kiểm tra và thêm các cột mới nếu chưa có
