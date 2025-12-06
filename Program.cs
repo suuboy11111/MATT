@@ -30,13 +30,24 @@ builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
 
 // Hỗ trợ cả SQL Server và PostgreSQL
-// Railway cung cấp DATABASE_URL, ưu tiên sử dụng nó
+// Railway cung cấp DATABASE_URL (internal) hoặc DATABASE_PUBLIC_URL (public), ưu tiên sử dụng internal
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var databasePublicUrl = Environment.GetEnvironmentVariable("DATABASE_PUBLIC_URL");
 
 string? connectionString = null;
 bool usePostgreSQL = false;
 
-// Ưu tiên DATABASE_URL từ Railway
+// Ưu tiên DATABASE_URL (internal) từ Railway
+if (string.IsNullOrEmpty(databaseUrl))
+{
+    // Nếu không có DATABASE_URL, thử dùng DATABASE_PUBLIC_URL (fallback)
+    databaseUrl = databasePublicUrl;
+    if (!string.IsNullOrEmpty(databaseUrl))
+    {
+        Console.WriteLine("⚠️ Using DATABASE_PUBLIC_URL (fallback). Consider using DATABASE_URL for better performance.");
+    }
+}
+
 if (!string.IsNullOrEmpty(databaseUrl))
 {
     Console.WriteLine($"DATABASE_URL found: {databaseUrl.Substring(0, Math.Min(50, databaseUrl.Length))}...");
@@ -56,16 +67,24 @@ if (!string.IsNullOrEmpty(databaseUrl))
             
             connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
             usePostgreSQL = true;
-            Console.WriteLine($"PostgreSQL connection configured: Host={host}, Database={database}");
+            Console.WriteLine($"✅ PostgreSQL connection configured: Host={host}, Database={database}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error parsing DATABASE_URL: {ex.Message}");
+            Console.WriteLine($"❌ Error parsing DATABASE_URL: {ex.Message}");
         }
     }
+    else
+    {
+        Console.WriteLine($"⚠️ DATABASE_URL found but doesn't contain 'postgresql://'. Value: {databaseUrl.Substring(0, Math.Min(100, databaseUrl.Length))}...");
+    }
+}
+else
+{
+    Console.WriteLine("❌ DATABASE_URL and DATABASE_PUBLIC_URL are both empty or not set.");
 }
 
-// Nếu không có DATABASE_URL, thử đọc từ config (chỉ cho local development)
+// Nếu không có DATABASE_URL hoặc DATABASE_PUBLIC_URL, thử đọc từ config (chỉ cho local development)
 if (string.IsNullOrEmpty(connectionString))
 {
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -83,8 +102,12 @@ if (string.IsNullOrEmpty(connectionString))
         }
         else
         {
-            // Production nhưng không có DATABASE_URL -> lỗi
-            throw new InvalidOperationException("DATABASE_URL environment variable is required for production deployment. Please set DATABASE_URL in Railway environment variables.");
+            // Production nhưng không có DATABASE_URL hoặc DATABASE_PUBLIC_URL -> lỗi
+            Console.WriteLine("❌ Production environment detected but no DATABASE_URL or DATABASE_PUBLIC_URL found.");
+            Console.WriteLine("💡 Please set DATABASE_URL in Railway Variables tab:");
+            Console.WriteLine("   Name: DATABASE_URL");
+            Console.WriteLine("   Value: ${{Postgres.DATABASE_URL}}");
+            throw new InvalidOperationException("DATABASE_URL or DATABASE_PUBLIC_URL environment variable is required for production deployment. Please set DATABASE_URL in Railway environment variables using ${{Postgres.DATABASE_URL}}.");
         }
     }
     else if (!string.IsNullOrEmpty(connectionString) && 
