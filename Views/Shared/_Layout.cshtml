@@ -345,7 +345,7 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
     <!-- Rule-based Chatbot -->
-    <div id="geminiChat" style="position: fixed; bottom: 20px; right: 20px; width: 360px; z-index: 9999; font-family: var(--font-primary);">
+    <div id="geminiChat" style="position: fixed; bottom: 20px; right: 20px; width: 360px; max-width: calc(100% - 40px); z-index: 9999; font-family: var(--font-primary);">
 
         <!-- Header -->
         <div id="chatHeader" style="background: var(--primary-gradient); color: white; padding: 16px; cursor: pointer; border-radius: var(--radius-xl) var(--radius-xl) 0 0; font-weight: 600; text-align: center; box-shadow: var(--shadow-lg);">
@@ -353,7 +353,7 @@
         </div>
 
         <!-- Body -->
-        <div id="chatBody" style="display: none; background: var(--white); border: none; border-radius: 0 0 var(--radius-xl) var(--radius-xl); max-height: 400px; overflow-y: auto; box-shadow: var(--shadow-xl);">
+        <div id="chatBody" style="display: none; background: var(--white); border: none; border-radius: 0 0 var(--radius-xl) var(--radius-xl); max-height: 400px; overflow-y: auto; box-shadow: var(--shadow-xl); max-width: 100%;">
 
             <div id="chatMessages" style="padding: 16px; height: 320px; overflow-y: auto; background: var(--gray-50);"></div>
 
