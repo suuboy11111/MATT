@@ -24,26 +24,15 @@ builder.Services.AddControllersWithViews();
 
 // QUAN TRỌNG: Cấu hình Cookie Policy để đảm bảo tất cả cookies được set đúng SameSite
 // Điều này ảnh hưởng đến correlation cookie của OAuth
-// LƯU Ý: Cookie Policy có thể can thiệp vào correlation cookie, nên cần cẩn thận
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
     
-    // QUAN TRỌNG: Không can thiệp vào correlation cookie đã được set bởi authentication middleware
-    // Correlation cookie đã được cấu hình đầy đủ trong AddGoogle options
+    // Đảm bảo SameSite=None cookies luôn có Secure=true
     options.OnAppendCookie = cookieContext =>
     {
-        // BỎ QUA correlation cookie - để authentication middleware tự xử lý
-        if (cookieContext.CookieName == ".MaiAmTinhThuong.OAuth.Correlation")
-        {
-            // Không làm gì cả - để authentication middleware tự xử lý cookie này
-            return;
-        }
-        
-        // Chỉ set Secure cho các cookies khác nếu có SameSite=None và chưa có Secure được set
-        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None && 
-            cookieContext.CookieOptions.Secure == false)
+        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
         {
             cookieContext.CookieOptions.Secure = true;
         }
@@ -52,12 +41,6 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     // Đảm bảo SameSite=None cookies được check khi check policy
     options.OnDeleteCookie = cookieContext =>
     {
-        // BỎ QUA correlation cookie khi delete
-        if (cookieContext.CookieName == ".MaiAmTinhThuong.OAuth.Correlation")
-        {
-            return;
-        }
-        
         if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
         {
             cookieContext.CookieOptions.Secure = true;
@@ -304,13 +287,9 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                
-                // QUAN TRỌNG: Không set Domain trong production
-                // Nếu set domain, cookie chỉ hoạt động với domain đó
-                // Để null để cookie hoạt động với exact domain (matt-production.up.railway.app)
                 options.CorrelationCookie.Domain = null;
                 
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true, Domain=null");
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true");
             }
             else
             {
@@ -318,70 +297,11 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
                 options.CorrelationCookie.Domain = null;
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest, IsEssential=true, Domain=null");
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest, IsEssential=true");
             }
             
             // QUAN TRỌNG: Không set StateDataFormat = null vì sẽ dùng default
             // Default format sẽ dùng Data Protection để mã hóa state
-            
-            // QUAN TRỌNG: Thêm Events để log và debug OAuth flow
-            options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
-            {
-                OnRedirectToAuthorizationEndpoint = context =>
-                {
-                    // Log khi redirect đến Google
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation($"🔐 Redirecting to Google OAuth...");
-                    logger.LogInformation($"   - Redirect URI: {context.RedirectUri}");
-                    logger.LogInformation($"   - Request.Scheme: {context.HttpContext.Request.Scheme}");
-                    logger.LogInformation($"   - Request.IsHttps: {context.HttpContext.Request.IsHttps}");
-                    logger.LogInformation($"   - Host: {context.HttpContext.Request.Host}");
-                    logger.LogInformation($"   - X-Forwarded-Proto: {context.HttpContext.Request.Headers["X-Forwarded-Proto"].ToString()}");
-                    
-                    // QUAN TRỌNG: Đảm bảo response headers có Set-Cookie cho correlation cookie
-                    // Cookie sẽ được set bởi authentication middleware, nhưng log để debug
-                    var setCookieHeaders = context.HttpContext.Response.Headers["Set-Cookie"];
-                    var hasCorrelationCookie = setCookieHeaders.Any(h => h?.Contains(".MaiAmTinhThuong.OAuth.Correlation") == true);
-                    if (hasCorrelationCookie)
-                    {
-                        logger.LogInformation($"✅ Correlation cookie will be set in response");
-                    }
-                    else
-                    {
-                        logger.LogWarning("⚠️ Correlation cookie NOT found in Set-Cookie headers before redirect!");
-                        logger.LogWarning("   This may cause 'oauth state was missing or invalid' error on callback.");
-                    }
-                    
-                    return System.Threading.Tasks.Task.CompletedTask;
-                },
-                OnCreatingTicket = context =>
-                {
-                    // Log khi nhận callback từ Google
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogInformation($"🔙 Receiving callback from Google OAuth...");
-                    logger.LogInformation($"   - Request.Scheme: {context.HttpContext.Request.Scheme}");
-                    logger.LogInformation($"   - Request.IsHttps: {context.HttpContext.Request.IsHttps}");
-                    logger.LogInformation($"   - X-Forwarded-Proto: {context.HttpContext.Request.Headers["X-Forwarded-Proto"].ToString()}");
-                    
-                    // Kiểm tra correlation cookie trong callback
-                    var correlationCookie = context.HttpContext.Request.Cookies[".MaiAmTinhThuong.OAuth.Correlation"];
-                    if (!string.IsNullOrEmpty(correlationCookie))
-                    {
-                        logger.LogInformation($"✅ Correlation cookie found in callback: {correlationCookie.Substring(0, Math.Min(50, correlationCookie.Length))}...");
-                    }
-                    else
-                    {
-                        logger.LogError("❌ Correlation cookie MISSING in callback! This will cause OAuth state validation to fail.");
-                        logger.LogError("   Possible causes:");
-                        logger.LogError("   1. Browser blocked the cookie (check browser settings)");
-                        logger.LogError("   2. Cookie SameSite policy issue");
-                        logger.LogError("   3. Cookie domain mismatch");
-                        logger.LogError("   4. Cookie not set correctly before redirect");
-                    }
-                    
-                    return System.Threading.Tasks.Task.CompletedTask;
-                }
-            };
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -505,35 +425,6 @@ app.UseRouting();
 // 1. Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
 // 2. Authentication phải được gọi TRƯỚC Authorization
 app.UseSession();
-
-// QUAN TRỌNG: Middleware để log correlation cookie cho OAuth debugging
-// PHẢI được gọi TRƯỚC UseAuthentication để có thể log cookie
-app.Use(async (context, next) =>
-{
-    // Chỉ log cho OAuth callback path
-    if (context.Request.Path.StartsWithSegments("/Account/GoogleCallback"))
-    {
-        var correlationCookie = context.Request.Cookies[".MaiAmTinhThuong.OAuth.Correlation"];
-        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-        
-        logger.LogInformation($"🍪 OAuth Callback - Correlation Cookie Check:");
-        logger.LogInformation($"   - Cookie present: {!string.IsNullOrEmpty(correlationCookie)}");
-        logger.LogInformation($"   - Cookie length: {correlationCookie?.Length ?? 0}");
-        logger.LogInformation($"   - Request.Scheme: {context.Request.Scheme}");
-        logger.LogInformation($"   - Request.IsHttps: {context.Request.IsHttps}");
-        logger.LogInformation($"   - X-Forwarded-Proto: {context.Request.Headers["X-Forwarded-Proto"].ToString()}");
-        logger.LogInformation($"   - Host: {context.Request.Host}");
-        logger.LogInformation($"   - All cookies: {string.Join(", ", context.Request.Cookies.Keys)}");
-        
-        if (string.IsNullOrEmpty(correlationCookie))
-        {
-            logger.LogWarning("⚠️ Correlation cookie is MISSING in callback request!");
-            logger.LogWarning("   This will cause 'oauth state was missing or invalid' error.");
-        }
-    }
-    
-    await next();
-});
 
 app.UseAuthentication();
 app.UseAuthorization();
