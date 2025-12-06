@@ -281,7 +281,6 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             // Cookie này phải được gửi đi và nhận về giữa app và Google
             // Vấn đề: Railway có thể có multiple instances, cookie phải được set đúng để hoạt động
             options.CorrelationCookie.HttpOnly = true;
-            options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
             options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
             options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(10); // Set timeout đủ dài cho OAuth flow
             options.CorrelationCookie.IsEssential = true; // Đánh dấu cookie là essential để không bị block bởi cookie policy
@@ -455,7 +454,9 @@ app.Use(async (context, next) =>
         var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
         var cookies = string.Join(", ", context.Request.Cookies.Keys);
         logger.LogInformation("🔎 OAuth callback cookies: {Cookies}", cookies);
-        logger.LogInformation("🔎 Correlation cookie present: {HasCorr}", context.Request.Cookies.ContainsKey(".MaiAmTinhThuong.OAuth.Correlation"));
+        logger.LogInformation("🔎 Correlation cookie present (prefix check): {HasCorr}",
+            context.Request.Cookies.Keys.Any(k => k.StartsWith(".AspNetCore.Correlation", StringComparison.OrdinalIgnoreCase) ||
+                                                  k.StartsWith(".MaiAmTinhThuong.OAuth.Correlation", StringComparison.OrdinalIgnoreCase)));
         logger.LogInformation("🔎 External cookie present: {HasExternal}", context.Request.Cookies.ContainsKey(".AspNetCore.External"));
     }
     await next();
