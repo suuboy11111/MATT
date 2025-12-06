@@ -175,6 +175,7 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.ClientId = googleClientId;
             options.ClientSecret = googleClientSecret;
             options.CallbackPath = "/Account/GoogleCallback";
+            options.SaveTokens = true;
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -184,6 +185,7 @@ else
     Console.WriteLine("💡 To enable Google OAuth, add these environment variables:");
     Console.WriteLine("   - Authentication__Google__ClientId");
     Console.WriteLine("   - Authentication__Google__ClientSecret");
+    Console.WriteLine("💡 Note: App will still work without Google OAuth. Users can register/login with email.");
 }
 
 // Đăng ký PayOSClient (optional - chỉ đăng ký nếu có config)

@@ -121,16 +121,19 @@
                         <i class="fas fa-user-plus me-2"></i>Đăng ký
                     </button>
 
-                    <!-- Divider -->
-                    <div class="divider">
-                        <span>hoặc</span>
-                    </div>
+                    <!-- Google Login (chỉ hiển thị nếu đã cấu hình) -->
+                    @if (ViewBag.GoogleOAuthEnabled == true)
+                    {
+                        <!-- Divider -->
+                        <div class="divider">
+                            <span>hoặc</span>
+                        </div>
 
-                    <!-- Google Login -->
-                    <a asp-action="GoogleLogin" class="btn btn-google w-100 mb-3">
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon" />
-                        Đăng ký với Google
-                    </a>
+                        <a asp-action="GoogleLogin" class="btn btn-google w-100 mb-3">
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon" />
+                            Đăng ký với Google
+                        </a>
+                    }
 
                     <!-- Links -->
                     <div class="text-center">

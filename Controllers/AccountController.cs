@@ -1,8 +1,11 @@
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Models.ViewModels;
 using MaiAmTinhThuong.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Text.Encodings.Web;
 
 namespace MaiAmTinhThuong.Controllers
@@ -14,23 +17,34 @@ namespace MaiAmTinhThuong.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly EmailService _emailService;
         private readonly ILogger<AccountController> _logger;
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
         public AccountController(UserManager<ApplicationUser> userManager,
                                  SignInManager<ApplicationUser> signInManager,
                                  RoleManager<IdentityRole> roleManager,
                                  EmailService emailService,
-                                 ILogger<AccountController> logger)
+                                 ILogger<AccountController> logger,
+                                 IConfiguration configuration,
+                                 IWebHostEnvironment environment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _emailService = emailService;
             _logger = logger;
+            _configuration = configuration;
+            _environment = environment;
         }
 
         // GET: /Account/Register
         public IActionResult Register()
         {
+            // Kiểm tra Google OAuth có được cấu hình không
+            var googleClientId = _configuration["Authentication:Google:ClientId"];
+            var googleClientSecret = _configuration["Authentication:Google:ClientSecret"];
+            ViewBag.GoogleOAuthEnabled = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
+            
             return View();
         }
 
@@ -91,6 +105,11 @@ namespace MaiAmTinhThuong.Controllers
         // GET: /Account/Login
         public IActionResult Login()
         {
+            // Kiểm tra Google OAuth có được cấu hình không
+            var googleClientId = _configuration["Authentication:Google:ClientId"];
+            var googleClientSecret = _configuration["Authentication:Google:ClientSecret"];
+            ViewBag.GoogleOAuthEnabled = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
+            
             return View();
         }
 
@@ -385,68 +404,115 @@ namespace MaiAmTinhThuong.Controllers
         [HttpGet]
         public IActionResult GoogleLogin()
         {
-            var redirectUrl = Url.Action("GoogleCallback", "Account");
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
-            return Challenge(properties, "Google");
+            try
+            {
+                // Đảm bảo sử dụng https trong production (Railway sử dụng reverse proxy)
+                var scheme = Request.Scheme;
+                // Kiểm tra X-Forwarded-Proto header (Railway set header này)
+                if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                {
+                    scheme = Request.Headers["X-Forwarded-Proto"].ToString();
+                }
+                // Hoặc nếu không phải development, luôn dùng https
+                else if (!_environment.IsDevelopment())
+                {
+                    scheme = "https";
+                }
+                
+                var redirectUrl = Url.Action("GoogleCallback", "Account", null, scheme);
+                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl}");
+                
+                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+                return Challenge(properties, "Google");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initiating Google login");
+                TempData["Error"] = "Google OAuth chưa được cấu hình. Vui lòng đăng nhập bằng email và mật khẩu.";
+                return RedirectToAction("Login");
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> GoogleCallback(string? returnUrl = null)
         {
-            var info = await _signInManager.GetExternalLoginInfoAsync();
-            if (info == null)
+            try
             {
-                TempData["Error"] = "Không thể lấy thông tin từ Google.";
-                return RedirectToAction("Login");
-            }
-
-            var email = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-            var name = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
-            var picture = info.Principal.FindFirst("picture")?.Value ?? "";
-
-            if (string.IsNullOrEmpty(email))
-            {
-                TempData["Error"] = "Không thể lấy email từ Google.";
-                return RedirectToAction("Login");
-            }
-
-            // Tìm user đã tồn tại
-            var user = await _userManager.FindByEmailAsync(email);
-            
-            if (user == null)
-            {
-                // Tạo user mới
-                user = new ApplicationUser
+                var info = await _signInManager.GetExternalLoginInfoAsync();
+                if (info == null)
                 {
-                    UserName = email,
-                    Email = email,
-                    FullName = name ?? "Người dùng Google",
-                    ProfilePicture = picture ?? "/images/default1-avatar.png",
-                    EmailConfirmed = true, // Google đã xác nhận email
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    Role = "NguoiHoTro" // Mặc định
-                };
-
-                var result = await _userManager.CreateAsync(user);
-                if (!result.Succeeded)
-                {
-                    TempData["Error"] = "Không thể tạo tài khoản. " + string.Join(", ", result.Errors.Select(e => e.Description));
+                    _logger.LogWarning("Failed to get external login info from Google");
+                    TempData["Error"] = "Không thể lấy thông tin từ Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                     return RedirectToAction("Login");
                 }
-            }
 
-            // Thêm external login nếu chưa có
-            var addLoginResult = await _userManager.AddLoginAsync(user, info);
-            if (!addLoginResult.Succeeded && !addLoginResult.Errors.Any(e => e.Code == "LoginAlreadyAssociated"))
+                var email = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+                var name = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+                var picture = info.Principal.FindFirst("picture")?.Value ?? "";
+
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Email not found in Google claims");
+                    TempData["Error"] = "Không thể lấy email từ Google.";
+                    return RedirectToAction("Login");
+                }
+
+                // Tìm user đã tồn tại
+                var user = await _userManager.FindByEmailAsync(email);
+                
+                if (user == null)
+                {
+                    // Tạo user mới
+                    user = new ApplicationUser
+                    {
+                        UserName = email,
+                        Email = email,
+                        FullName = name ?? "Người dùng Google",
+                        ProfilePicture = picture ?? "/images/default1-avatar.png",
+                        EmailConfirmed = true, // Google đã xác nhận email
+                        CreatedAt = DateTime.Now,
+                        UpdatedAt = DateTime.Now,
+                        Role = "NguoiHoTro" // Mặc định
+                    };
+
+                    var result = await _userManager.CreateAsync(user);
+                    if (!result.Succeeded)
+                    {
+                        _logger.LogError("Failed to create user from Google: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+                        TempData["Error"] = "Không thể tạo tài khoản. " + string.Join(", ", result.Errors.Select(e => e.Description));
+                        return RedirectToAction("Login");
+                    }
+                    
+                    // Tạo role nếu chưa có
+                    if (!await _roleManager.RoleExistsAsync("NguoiHoTro"))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole("NguoiHoTro"));
+                    }
+                    
+                    // Gán role cho user
+                    await _userManager.AddToRoleAsync(user, "NguoiHoTro");
+                }
+
+                // Thêm external login nếu chưa có
+                var addLoginResult = await _userManager.AddLoginAsync(user, info);
+                if (!addLoginResult.Succeeded && !addLoginResult.Errors.Any(e => e.Code == "LoginAlreadyAssociated"))
+                {
+                    _logger.LogError("Failed to add external login: {Errors}", string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
+                    TempData["Error"] = "Không thể liên kết tài khoản Google.";
+                    return RedirectToAction("Login");
+                }
+
+                // Đăng nhập
+                await _signInManager.SignInAsync(user, isPersistent: false);
+                _logger.LogInformation($"User {user.Email} logged in via Google");
+                return RedirectToLocal(returnUrl);
+            }
+            catch (Exception ex)
             {
-                TempData["Error"] = "Không thể liên kết tài khoản Google.";
+                _logger.LogError(ex, "Error in GoogleCallback");
+                TempData["Error"] = "Có lỗi xảy ra khi đăng nhập bằng Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                 return RedirectToAction("Login");
             }
-
-            // Đăng nhập
-            await _signInManager.SignInAsync(user, isPersistent: false);
-            return RedirectToLocal(returnUrl);
         }
     }
 }

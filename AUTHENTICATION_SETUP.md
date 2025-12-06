@@ -40,20 +40,46 @@ Email__FromName=Mái Ấm Tình Thương
 2. Tạo project mới hoặc chọn project có sẵn
 3. APIs & Services → Credentials
 4. Create Credentials → OAuth client ID
-5. Application type: Web application
-6. Authorized redirect URIs:
-   - Development: `https://localhost:5001/Account/GoogleCallback`
-   - Production: `https://your-domain.com/Account/GoogleCallback`
-7. Copy Client ID và Client Secret
+5. Application type: **Web application**
+6. **Authorized redirect URIs** (QUAN TRỌNG - phải khớp chính xác):
+   - **Development (local):** `https://localhost:5001/Account/GoogleCallback` hoặc `http://localhost:5000/Account/GoogleCallback`
+   - **Production (Railway):** `https://your-domain.up.railway.app/Account/GoogleCallback`
+     - Thay `your-domain` bằng domain thực tế của bạn trên Railway
+     - Ví dụ: `https://matt-production.up.railway.app/Account/GoogleCallback`
+7. Copy **Client ID** và **Client Secret**
+
+### ⚠️ Lưu ý quan trọng về Redirect URI:
+
+- Redirect URI phải khớp **CHÍNH XÁC** với URL trong Google Cloud Console
+- Phải có `https://` (không phải `http://`) cho production
+- Phải có đầy đủ path `/Account/GoogleCallback` (không có trailing slash `/`)
+- Nếu bạn thay đổi domain trên Railway, phải cập nhật lại trong Google Cloud Console
 
 ### Bước 2: Cấu hình trong Railway/Environment Variables
 
-Thêm các biến môi trường sau:
+Thêm các biến môi trường sau trong Railway:
 
 ```
-Authentication__Google__ClientId=your-google-client-id
-Authentication__Google__ClientSecret=your-google-client-secret
+Authentication__Google__ClientId=your-google-client-id-here
+Authentication__Google__ClientSecret=your-google-client-secret-here
 ```
+
+### Bước 3: Kiểm tra Redirect URI
+
+Sau khi deploy, kiểm tra logs để xem redirect URI thực tế:
+- Trong Railway logs, tìm dòng: `Google OAuth redirect URI: https://...`
+- Đảm bảo URI này khớp với URI đã cấu hình trong Google Cloud Console
+
+### 🔧 Xử lý lỗi `redirect_uri_mismatch`:
+
+Nếu gặp lỗi này:
+1. Kiểm tra domain trên Railway (ví dụ: `matt-production.up.railway.app`)
+2. Vào Google Cloud Console → Credentials → OAuth 2.0 Client IDs
+3. Click vào OAuth client của bạn
+4. Thêm redirect URI: `https://your-domain.up.railway.app/Account/GoogleCallback`
+5. Click **Save**
+6. Đợi vài phút để Google cập nhật
+7. Thử đăng nhập lại bằng Google
 
 ## 👤 Tài khoản Admin
 
@@ -111,8 +137,20 @@ ADMIN_PASSWORD=YourSecurePassword123!
 - Kiểm tra redirect URI đã đúng domain chưa
 - Kiểm tra Client ID và Client Secret đã đúng chưa
 - Kiểm tra Google OAuth consent screen đã cấu hình chưa
+- **QUAN TRỌNG:** Kiểm tra OAuth consent screen → Test users (nếu app ở chế độ Testing)
+- Kiểm tra Authorized JavaScript origins (optional nhưng nên có)
+- Đợi 5-10 phút sau khi cấu hình để Google cập nhật
 
 ### Admin account không tạo được
 - Kiểm tra database connection
 - Kiểm tra logs để xem lỗi cụ thể
 - Đảm bảo migration đã chạy thành công
+- Kiểm tra DATABASE_URL và DATABASE_PUBLIC_URL trong Railway
+
+## 📋 Checklist chi tiết
+
+Xem file `GOOGLE_OAUTH_CHECKLIST.md` để có checklist đầy đủ về:
+- Các bước cấu hình
+- Điểm cần kiểm tra
+- Cách test từng tính năng
+- Troubleshooting chi tiết
