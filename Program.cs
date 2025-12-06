@@ -20,29 +20,29 @@ builder.Services.AddHttpClient<GeminiService>(client =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Cấu hình Data Protection (quan trọng cho OAuth state encryption)
-// Railway: Keys sẽ được lưu trong memory (mất khi restart nhưng OK cho OAuth state)
-// OAuth state chỉ cần tồn tại trong một request cycle
+// Cấu hình Data Protection (QUAN TRỌNG cho OAuth state encryption)
+// OAuth state được mã hóa bằng Data Protection keys
 var dataProtectionBuilder = builder.Services.AddDataProtection();
 
-// Trong production, có thể persist keys nếu cần (nhưng OAuth state không cần)
+// Persist keys để đảm bảo OAuth state được mã hóa/giải mã đúng
 if (!builder.Environment.IsDevelopment())
 {
-    // Railway: /tmp sẽ bị xóa khi container restart, nhưng OAuth state chỉ cần trong một request
-    // Nếu cần persist keys lâu dài, có thể dùng database hoặc external storage
     try
     {
-        var keysDir = new System.IO.DirectoryInfo("/tmp/keys");
+        // Railway: Dùng /tmp để persist keys (sẽ mất khi container restart nhưng OK)
+        // OAuth state chỉ cần tồn tại trong một request cycle (từ login đến callback)
+        var keysDir = new System.IO.DirectoryInfo("/tmp/dataprotection-keys");
         if (!keysDir.Exists)
         {
             keysDir.Create();
         }
         dataProtectionBuilder.PersistKeysToFileSystem(keysDir);
+        Console.WriteLine("✅ Data Protection keys will be persisted to /tmp/dataprotection-keys");
     }
-    catch
+    catch (Exception ex)
     {
-        // Nếu không thể tạo directory, dùng in-memory (OK cho OAuth)
-        Console.WriteLine("⚠️ Could not persist Data Protection keys. Using in-memory (OK for OAuth state).");
+        // Nếu không thể persist, dùng in-memory (vẫn OK cho OAuth trong một request cycle)
+        Console.WriteLine($"⚠️ Could not persist Data Protection keys: {ex.Message}. Using in-memory (OK for OAuth state).");
     }
 }
 
@@ -51,9 +51,19 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax; // Cho phép OAuth redirect
-    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest; // Secure trong HTTPS
-    options.Cookie.Name = ".MaiAmTinhThuong.Session"; // Tên cookie rõ ràng
+    // QUAN TRỌNG: OAuth cần SameSite=None với Secure=true trong production
+    if (builder.Environment.IsDevelopment())
+    {
+        options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+    }
+    else
+    {
+        // Production: SameSite=None và Secure=true (bắt buộc cho OAuth)
+        options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always; // Luôn Secure trong production
+    }
+    options.Cookie.Name = ".MaiAmTinhThuong.Session";
 });
 
 // Register custom services
@@ -194,6 +204,27 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// Cấu hình cookie cho authentication (QUAN TRỌNG cho OAuth)
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    if (builder.Environment.IsDevelopment())
+    {
+        options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+    }
+    else
+    {
+        // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth)
+        options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+    }
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.SlidingExpiration = true;
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+});
+
 // Google OAuth
 var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
 var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
@@ -207,10 +238,20 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.ClientSecret = googleClientSecret;
             options.CallbackPath = "/Account/GoogleCallback";
             options.SaveTokens = true;
-            // Cấu hình cookie cho OAuth
+            // Cấu hình cookie cho OAuth (QUAN TRỌNG: OAuth state được lưu trong correlation cookie)
             options.CorrelationCookie.HttpOnly = true;
-            options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-            options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+            if (builder.Environment.IsDevelopment())
+            {
+                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+            }
+            else
+            {
+                // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth)
+                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+            }
+            options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
@@ -262,10 +303,12 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// QUAN TRỌNG: Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
+// QUAN TRỌNG: Middleware order cho OAuth
+// 1. Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
+// 2. Authentication phải được gọi TRƯỚC Authorization
 app.UseSession();
 
-app.UseAuthentication(); // Thêm dòng này để login hoạt động
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Tự động chạy migration TRƯỚC KHI app start - với retry logic
