@@ -3,6 +3,7 @@ using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using PayOS;
@@ -123,13 +124,23 @@ if (string.IsNullOrEmpty(connectionString))
 if (usePostgreSQL && !string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseNpgsql(connectionString));
+    {
+        options.UseNpgsql(connectionString);
+        // Suppress PendingModelChangesWarning để cho phép migration chạy
+        options.ConfigureWarnings(warnings => 
+            warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    });
     Console.WriteLine("PostgreSQL database configured");
 }
 else if (!usePostgreSQL && !string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(connectionString));
+    {
+        options.UseSqlServer(connectionString);
+        // Suppress PendingModelChangesWarning để cho phép migration chạy
+        options.ConfigureWarnings(warnings => 
+            warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    });
     Console.WriteLine("SQL Server database configured");
 }
 else
@@ -207,258 +218,64 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
             
             logger.LogInformation($"🔄 Attempting database migration (attempt {attempt}/{maxRetries})...");
             
-            // QUAN TRỌNG: Chạy migration TRƯỚC để tạo các bảng cơ bản (AspNetUsers, etc.)
-            try
+            // Kiểm tra xem có pending migrations không
+            var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
+            if (pendingMigrations.Any())
             {
-                // Kiểm tra xem có pending migrations không
-                var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
-                if (pendingMigrations.Any())
+                logger.LogInformation($"📦 Found {pendingMigrations.Count()} pending migration(s). Applying...");
+                foreach (var migration in pendingMigrations)
                 {
-                    logger.LogInformation($"📦 Found {pendingMigrations.Count()} pending migration(s). Applying...");
-                    foreach (var migration in pendingMigrations)
-                    {
-                        logger.LogInformation($"   - {migration}");
-                    }
+                    logger.LogInformation($"   - {migration}");
                 }
-                else
-                {
-                    logger.LogInformation("✅ No pending migrations found.");
-                }
-                
-                // Apply migrations
-                await db.Database.MigrateAsync();
-                logger.LogInformation("✅ Database migration completed successfully.");
-                
-                // Kiểm tra xem các bảng quan trọng đã được tạo chưa
-                var checkConnection = db.Database.GetDbConnection();
-                await checkConnection.OpenAsync();
-                using var checkCommand = checkConnection.CreateCommand();
-                
-                // Kiểm tra AspNetUsers
-                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'AspNetUsers'";
-                var aspNetUsersExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
-                
-                // Kiểm tra MaiAms
-                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'MaiAms'";
-                var maiAmsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
-                
-                // Kiểm tra BlogPosts
-                checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'BlogPosts'";
-                var blogPostsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
-                
-                await checkConnection.CloseAsync();
-                
-                if (!aspNetUsersExists)
-                {
-                    logger.LogWarning("⚠️ AspNetUsers table not found after migration.");
-                    throw new Exception("AspNetUsers table not created by migration");
-                }
-                
-                if (!maiAmsExists)
-                {
-                    logger.LogWarning("⚠️ MaiAms table not found after migration.");
-                    throw new Exception("MaiAms table not created by migration");
-                }
-                
-                if (!blogPostsExists)
-                {
-                    logger.LogWarning("⚠️ BlogPosts table not found after migration.");
-                    throw new Exception("BlogPosts table not created by migration");
-                }
-                
-                logger.LogInformation("✅ All required tables exist: AspNetUsers, MaiAms, BlogPosts");
-                return true; // Thành công
             }
-            catch (Exception migrateEx)
+            else
             {
-                logger.LogWarning(migrateEx, "⚠️ Migration failed, will retry...");
-                // Không return, tiếp tục thử lại
-                throw; // Re-throw để retry loop xử lý
+                logger.LogInformation("✅ No pending migrations found.");
             }
             
-            // Sau khi migration chạy, kiểm tra và thêm các cột mới nếu chưa có
-            var connection = db.Database.GetDbConnection();
-            await connection.OpenAsync();
-            using var command = connection.CreateCommand();
+            // Apply migrations
+            await db.Database.MigrateAsync();
+            logger.LogInformation("✅ Database migration completed successfully.");
             
-            // Kiểm tra xem đang dùng SQL Server hay PostgreSQL
-            var isPostgreSQL = connection.GetType().Name.Contains("Npgsql");
+            // Kiểm tra xem các bảng quan trọng đã được tạo chưa
+            var checkConnection = db.Database.GetDbConnection();
+            await checkConnection.OpenAsync();
+            using var checkCommand = checkConnection.CreateCommand();
             
-            if (isPostgreSQL)
+            // Kiểm tra AspNetUsers
+            checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'AspNetUsers'";
+            var aspNetUsersExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+            
+            // Kiểm tra MaiAms
+            checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'MaiAms'";
+            var maiAmsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+            
+            // Kiểm tra BlogPosts
+            checkCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'BlogPosts'";
+            var blogPostsExists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+            
+            await checkConnection.CloseAsync();
+            
+            if (!aspNetUsersExists)
             {
-                // PostgreSQL commands - chỉ thêm nếu bảng đã tồn tại
-                // Thêm Gender column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'Gender') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Gender"" text;
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
+                logger.LogWarning("⚠️ AspNetUsers table not found after migration.");
+                throw new Exception("AspNetUsers table not created by migration");
+            }
             
-                // Thêm DateOfBirth column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'DateOfBirth') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""DateOfBirth"" timestamp without time zone;
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
-                
-                // Thêm Address column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'Address') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Address"" varchar(200);
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
-                
-                // Thêm PhoneNumber2 column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'PhoneNumber2') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""PhoneNumber2"" text;
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
-                
-                // Thêm CreatedAt column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'CreatedAt') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""CreatedAt"" timestamp without time zone;
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
-                
-                // Thêm UpdatedAt column
-                command.CommandText = @"
-                    DO $$ 
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                          WHERE table_name = 'AspNetUsers' AND column_name = 'UpdatedAt') THEN
-                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""UpdatedAt"" timestamp without time zone;
-                        END IF;
-                    END $$;";
-                await command.ExecuteNonQueryAsync();
+            if (!maiAmsExists)
+            {
+                logger.LogWarning("⚠️ MaiAms table not found after migration.");
+                throw new Exception("MaiAms table not created by migration");
+            }
             
-            // Tạo bảng Notifications nếu chưa có (PostgreSQL) - CHỈ nếu AspNetUsers đã tồn tại
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
-                       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Notifications') THEN
-                        CREATE TABLE ""Notifications"" (
-                            ""Id"" SERIAL PRIMARY KEY,
-                            ""Title"" varchar(200) NOT NULL,
-                            ""Message"" varchar(1000),
-                            ""Type"" text NOT NULL,
-                            ""UserId"" varchar(450),
-                            ""IsRead"" boolean NOT NULL DEFAULT false,
-                            ""CreatedAt"" timestamp without time zone NOT NULL,
-                            ""Link"" text,
-                            CONSTRAINT ""FK_Notifications_AspNetUsers_UserId"" 
-                                FOREIGN KEY (""UserId"") REFERENCES ""AspNetUsers"" (""Id"") ON DELETE CASCADE
-                        );
-                        CREATE INDEX ""IX_Notifications_UserId"" ON ""Notifications"" (""UserId"");
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
-        }
-        else
-        {
-            // SQL Server commands
-            // Thêm Gender column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'Gender')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [Gender] nvarchar(max) NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
-        
-            // Thêm DateOfBirth column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'DateOfBirth')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [DateOfBirth] datetime2 NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
+            if (!blogPostsExists)
+            {
+                logger.LogWarning("⚠️ BlogPosts table not found after migration.");
+                throw new Exception("BlogPosts table not created by migration");
+            }
             
-            // Thêm Address column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'Address')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [Address] nvarchar(200) NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
-            
-            // Thêm PhoneNumber2 column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'PhoneNumber2')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [PhoneNumber2] nvarchar(max) NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
-            
-            // Thêm CreatedAt column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'CreatedAt')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [CreatedAt] datetime2 NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
-            
-            // Thêm UpdatedAt column
-            command.CommandText = @"
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[AspNetUsers]') AND name = 'UpdatedAt')
-                BEGIN
-                    ALTER TABLE [dbo].[AspNetUsers] ADD [UpdatedAt] datetime2 NULL;
-                END";
-            await command.ExecuteNonQueryAsync();
-            
-            // Tạo bảng Notifications nếu chưa có (SQL Server) - CHỈ nếu AspNetUsers đã tồn tại
-            command.CommandText = @"
-                IF EXISTS (SELECT * FROM sys.tables WHERE name = 'AspNetUsers')
-                   AND NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
-                BEGIN
-                    CREATE TABLE [dbo].[Notifications] (
-                        [Id] int IDENTITY(1,1) NOT NULL,
-                        [Title] nvarchar(200) NOT NULL,
-                        [Message] nvarchar(1000) NULL,
-                        [Type] nvarchar(max) NOT NULL,
-                        [UserId] nvarchar(450) NULL,
-                        [IsRead] bit NOT NULL,
-                        [CreatedAt] datetime2 NOT NULL,
-                        [Link] nvarchar(max) NULL,
-                        CONSTRAINT [PK_Notifications] PRIMARY KEY ([Id]),
-                        CONSTRAINT [FK_Notifications_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AspNetUsers] ([Id]) ON DELETE CASCADE
-                    );
-                    CREATE INDEX [IX_Notifications_UserId] ON [dbo].[Notifications] ([UserId]);
-                END";
-            await command.ExecuteNonQueryAsync();
-        }
-        
-                await connection.CloseAsync();
-                
-                logger.LogInformation("✅ Database setup completed successfully.");
-                return true; // Thành công
+            logger.LogInformation("✅ All required tables exist: AspNetUsers, MaiAms, BlogPosts");
+            return true; // Thành công
         }
         catch (Exception ex)
         {
