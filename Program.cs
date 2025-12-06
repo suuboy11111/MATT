@@ -207,82 +207,105 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
             
             logger.LogInformation($"🔄 Attempting database migration (attempt {attempt}/{maxRetries})...");
             
-            // Kiểm tra và thêm các cột mới nếu chưa có
+            // QUAN TRỌNG: Chạy migration TRƯỚC để tạo các bảng cơ bản (AspNetUsers, etc.)
+            try
+            {
+                db.Database.Migrate();
+                logger.LogInformation("✅ Database migration completed successfully.");
+                return true; // Thành công
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
+            {
+                // Bỏ qua warning về pending changes
+                logger.LogWarning("⚠️ Skipping pending model changes warning.");
+            }
+            catch (Exception migrateEx)
+            {
+                logger.LogWarning(migrateEx, "⚠️ Migration failed, will try to add columns manually if needed.");
+            }
+            
+            // Sau khi migration chạy, kiểm tra và thêm các cột mới nếu chưa có
             var connection = db.Database.GetDbConnection();
             await connection.OpenAsync();
-        using var command = connection.CreateCommand();
-        
-        // Kiểm tra xem đang dùng SQL Server hay PostgreSQL
-        var isPostgreSQL = connection.GetType().Name.Contains("Npgsql");
-        
-        if (isPostgreSQL)
-        {
-            // PostgreSQL commands
-            // Thêm Gender column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'Gender') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Gender"" text;
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
+            using var command = connection.CreateCommand();
             
-            // Thêm DateOfBirth column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'DateOfBirth') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""DateOfBirth"" timestamp without time zone;
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
+            // Kiểm tra xem đang dùng SQL Server hay PostgreSQL
+            var isPostgreSQL = connection.GetType().Name.Contains("Npgsql");
             
-            // Thêm Address column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'Address') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Address"" varchar(200);
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
+            if (isPostgreSQL)
+            {
+                // PostgreSQL commands - chỉ thêm nếu bảng đã tồn tại
+                // Thêm Gender column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'Gender') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Gender"" text;
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
             
-            // Thêm PhoneNumber2 column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'PhoneNumber2') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""PhoneNumber2"" text;
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
-            
-            // Thêm CreatedAt column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'CreatedAt') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""CreatedAt"" timestamp without time zone;
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
-            
-            // Thêm UpdatedAt column
-            command.CommandText = @"
-                DO $$ 
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                   WHERE table_name = 'AspNetUsers' AND column_name = 'UpdatedAt') THEN
-                        ALTER TABLE ""AspNetUsers"" ADD COLUMN ""UpdatedAt"" timestamp without time zone;
-                    END IF;
-                END $$;";
-            await command.ExecuteNonQueryAsync();
+                // Thêm DateOfBirth column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'DateOfBirth') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""DateOfBirth"" timestamp without time zone;
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
+                
+                // Thêm Address column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'Address') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""Address"" varchar(200);
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
+                
+                // Thêm PhoneNumber2 column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'PhoneNumber2') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""PhoneNumber2"" text;
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
+                
+                // Thêm CreatedAt column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'CreatedAt') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""CreatedAt"" timestamp without time zone;
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
+                
+                // Thêm UpdatedAt column
+                command.CommandText = @"
+                    DO $$ 
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetUsers')
+                           AND NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                          WHERE table_name = 'AspNetUsers' AND column_name = 'UpdatedAt') THEN
+                            ALTER TABLE ""AspNetUsers"" ADD COLUMN ""UpdatedAt"" timestamp without time zone;
+                        END IF;
+                    END $$;";
+                await command.ExecuteNonQueryAsync();
             
             // Tạo bảng Notifications nếu chưa có (PostgreSQL)
             command.CommandText = @"
@@ -378,21 +401,10 @@ static async Task<bool> RunMigrationAsync(WebApplication app, int maxRetries, Ti
             await command.ExecuteNonQueryAsync();
         }
         
-            await connection.CloseAsync();
-            
-            // Chạy migration tự động - bỏ qua warning về pending changes
-            try
-            {
-                db.Database.Migrate();
-                logger.LogInformation("✅ Database migration completed successfully.");
+                await connection.CloseAsync();
+                
+                logger.LogInformation("✅ Database setup completed successfully.");
                 return true; // Thành công
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
-            {
-                // Bỏ qua warning về pending changes - đã xử lý thủ công ở trên
-                logger.LogWarning("⚠️ Skipping pending model changes warning - columns already added manually.");
-                return true; // Thành công
-            }
         }
         catch (Exception ex)
         {
