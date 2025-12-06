@@ -277,6 +277,8 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
             options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(10); // Set timeout đủ dài cho OAuth flow
             options.CorrelationCookie.IsEssential = true; // Đánh dấu cookie là essential để không bị block bởi cookie policy
+            // Đặt tên cố định để tránh trùng/ghi đè
+            options.CorrelationCookie.Name = ".AspNetCore.Correlation.Google";
             
             // QUAN TRỌNG: Detect production dựa trên hostname (Railway có thể không set ASPNETCORE_ENVIRONMENT)
             var isProduction = !builder.Environment.IsDevelopment() || 
