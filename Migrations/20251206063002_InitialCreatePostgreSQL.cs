@@ -526,13 +526,6 @@ namespace MaiAmTinhThuong.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                table: "AspNetRoles",
-                column: "NormalizedName",
-                unique: true,
-                filter: "\"NormalizedName\" IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
                 table: "AspNetUserClaims",
                 column: "UserId");
@@ -552,12 +545,16 @@ namespace MaiAmTinhThuong.Migrations
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
 
-            migrationBuilder.CreateIndex(
-                name: "UserNameIndex",
-                table: "AspNetUsers",
-                column: "NormalizedUserName",
-                unique: true,
-                filter: "\"NormalizedUserName\" IS NOT NULL");
+            // Tạo index với filter clause bằng SQL thủ công cho PostgreSQL
+            migrationBuilder.Sql(@"
+                CREATE UNIQUE INDEX ""RoleNameIndex"" ON ""AspNetRoles"" (""NormalizedName"") 
+                WHERE ""NormalizedName"" IS NOT NULL;
+            ");
+            
+            migrationBuilder.Sql(@"
+                CREATE UNIQUE INDEX ""UserNameIndex"" ON ""AspNetUsers"" (""NormalizedUserName"") 
+                WHERE ""NormalizedUserName"" IS NOT NULL;
+            ");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BlogPosts_AuthorId",
