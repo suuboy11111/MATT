@@ -904,15 +904,21 @@ a.btn-outline-primary::before {
     .hero-title {
         font-size: 2rem !important;
         line-height: 1.3 !important;
+        padding: 0 1rem;
     }
     
     .hero-subtitle {
         font-size: 1.1rem !important;
+        padding: 0 1rem;
     }
     
     .btn-hero {
         padding: 0.75rem 2rem !important;
         font-size: 0.95rem !important;
+    }
+    
+    .hero-slide {
+        background-attachment: scroll !important;
     }
     
     .carousel-item img {
@@ -991,6 +997,10 @@ a.btn-outline-primary::before {
     .btn-hero {
         padding: 0.625rem 1.5rem !important;
         font-size: 0.9rem !important;
+    }
+    
+    .hero-slide {
+        background-attachment: scroll !important;
     }
     
     .carousel-item img {
