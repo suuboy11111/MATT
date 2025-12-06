@@ -18,15 +18,6 @@ builder.Services.AddHttpClient<GeminiService>(client =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-// Configure ForwardedHeaders để nhận diện đúng scheme từ reverse proxy (Railway)
-builder.Services.Configure<Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
-                               Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto | 
-                               Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost;
-    options.RequireHeaderSymmetry = false;
-});
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -223,9 +214,6 @@ else
 
 
 var app = builder.Build();
-
-// Configure ForwardedHeaders middleware để nhận diện đúng scheme từ reverse proxy (Railway)
-app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
