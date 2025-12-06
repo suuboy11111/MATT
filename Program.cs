@@ -41,12 +41,12 @@ if (!string.IsNullOrEmpty(databaseUrl) && databaseUrl.Contains("postgresql://"))
     // Convert sang Npgsql format: Host=host;Port=port;Database=database;Username=user;Password=password
     var uri = new Uri(databaseUrl);
     var host = uri.Host;
-    var port = uri.Port;
+    var dbPort = uri.Port;
     var database = uri.AbsolutePath.TrimStart('/');
     var username = uri.UserInfo.Split(':')[0];
     var password = uri.UserInfo.Split(':').Length > 1 ? uri.UserInfo.Split(':')[1] : "";
     
-    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+    connectionString = $"Host={host};Port={dbPort};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
 }
 
 if (!string.IsNullOrEmpty(connectionString) && 
