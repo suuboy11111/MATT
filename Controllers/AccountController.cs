@@ -539,6 +539,20 @@ namespace MaiAmTinhThuong.Controllers
                     _logger.LogInformation($"✅ Correlation cookie found: {correlationCookie.Substring(0, Math.Min(50, correlationCookie.Length))}...");
                 }
                 
+                // QUAN TRỌNG: Kiểm tra correlation cookie trước khi gọi GetExternalLoginInfoAsync
+                // Nếu cookie không có, OAuth state sẽ không được validate
+                if (string.IsNullOrEmpty(correlationCookie))
+                {
+                    _logger.LogError("❌ Correlation cookie is MISSING! Cannot validate OAuth state.");
+                    _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
+                    _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
+                    _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
+                    _logger.LogError($"   - Host: {Request.Host}");
+                    _logger.LogError($"   - All cookies: {string.Join(", ", Request.Cookies.Keys)}");
+                    TempData["Error"] = "Không thể xác thực phiên đăng nhập. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
+                    return RedirectToAction("Login");
+                }
+                
                 var info = await _signInManager.GetExternalLoginInfoAsync();
                 if (info == null)
                 {
@@ -546,6 +560,23 @@ namespace MaiAmTinhThuong.Controllers
                     _logger.LogError($"   - Session available: {HttpContext.Session.IsAvailable}");
                     _logger.LogError($"   - Session ID: {HttpContext.Session.Id}");
                     _logger.LogError($"   - Correlation cookie present: {!string.IsNullOrEmpty(correlationCookie)}");
+                    _logger.LogError($"   - Correlation cookie length: {correlationCookie?.Length ?? 0}");
+                    _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
+                    _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
+                    _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
+                    _logger.LogError($"   - Query string: {Request.QueryString}");
+                    
+                    // Log tất cả cookies để debug
+                    _logger.LogError($"   - All cookies: {string.Join(", ", Request.Cookies.Keys)}");
+                    foreach (var cookie in Request.Cookies)
+                    {
+                        if (cookie.Key.Contains("OAuth", StringComparison.OrdinalIgnoreCase) || 
+                            cookie.Key.Contains("Correlation", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogError($"   - Cookie {cookie.Key}: {cookie.Value?.Substring(0, Math.Min(100, cookie.Value?.Length ?? 0))}...");
+                        }
+                    }
+                    
                     TempData["Error"] = "Không thể lấy thông tin từ Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                     return RedirectToAction("Login");
                 }
@@ -613,7 +644,29 @@ namespace MaiAmTinhThuong.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GoogleCallback");
+                _logger.LogError(ex, "❌ Error in GoogleCallback: {Message}", ex.Message);
+                _logger.LogError($"   - Exception type: {ex.GetType().Name}");
+                _logger.LogError($"   - Stack trace: {ex.StackTrace}");
+                
+                // Log thêm thông tin về request
+                _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
+                _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
+                _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
+                _logger.LogError($"   - Host: {Request.Host}");
+                _logger.LogError($"   - Query string: {Request.QueryString}");
+                
+                // Kiểm tra nếu là lỗi về OAuth state
+                if (ex.Message.Contains("oauth state", StringComparison.OrdinalIgnoreCase) ||
+                    ex.Message.Contains("correlation", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogError("   - This appears to be an OAuth state validation error.");
+                    _logger.LogError("   - Possible causes:");
+                    _logger.LogError("     1. Correlation cookie not set correctly");
+                    _logger.LogError("     2. Data Protection keys not synchronized");
+                    _logger.LogError("     3. Cookie SameSite/Secure settings incorrect");
+                    _logger.LogError("     4. Request scheme not HTTPS in production");
+                }
+                
                 TempData["Error"] = "Có lỗi xảy ra khi đăng nhập bằng Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                 return RedirectToAction("Login");
             }

@@ -29,12 +29,21 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
     
-    // Đảm bảo SameSite=None cookies luôn có Secure=true
+    // QUAN TRỌNG: Không override cookies đã được set bởi authentication middleware
+    // Chỉ áp dụng cho cookies chưa có SameSite được set
     options.OnAppendCookie = cookieContext =>
     {
-        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
+        // Chỉ set Secure nếu cookie có SameSite=None và chưa có Secure được set
+        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None && 
+            cookieContext.CookieOptions.Secure == false)
         {
             cookieContext.CookieOptions.Secure = true;
+        }
+        
+        // Đảm bảo correlation cookie luôn có IsEssential=true
+        if (cookieContext.CookieName == ".MaiAmTinhThuong.OAuth.Correlation")
+        {
+            cookieContext.CookieOptions.IsEssential = true;
         }
     };
     
@@ -273,8 +282,11 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.CorrelationCookie.HttpOnly = true;
             options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
             options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
-            options.CorrelationCookie.Domain = null; // Không set domain để cookie hoạt động với subdomain
+            // QUAN TRỌNG: Không set Domain để cookie hoạt động với tất cả subdomains
+            // Nếu set domain, cookie chỉ hoạt động với domain đó, không hoạt động với subdomain
+            options.CorrelationCookie.Domain = null;
             options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(10); // Set timeout đủ dài cho OAuth flow
+            options.CorrelationCookie.IsEssential = true; // Đánh dấu cookie là essential để không bị block bởi cookie policy
             
             // QUAN TRỌNG: Detect production dựa trên hostname (Railway có thể không set ASPNETCORE_ENVIRONMENT)
             var isProduction = !builder.Environment.IsDevelopment() || 
@@ -287,14 +299,14 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min");
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true");
             }
             else
             {
                 // Development: SameSite=Lax và Secure=SameAsRequest
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest");
+                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest, IsEssential=true");
             }
             
             // QUAN TRỌNG: Không set StateDataFormat = null vì sẽ dùng default
@@ -379,6 +391,13 @@ app.Use(async (context, next) =>
         else if (host.Contains("railway.app"))
         {
             context.Request.Scheme = "https";
+        }
+        
+        // QUAN TRỌNG: Đảm bảo IsHttps được set đúng
+        // Một số middleware dựa vào IsHttps thay vì Scheme
+        if (context.Request.Scheme == "https")
+        {
+            context.Request.IsHttps = true;
         }
         
         // Log để debug
@@ -521,6 +540,36 @@ var migrationSuccess = RunMigrationAsync(app, maxRetries: 10, initialDelay: Time
 if (migrationSuccess)
 {
     Console.WriteLine("✅ Database migration completed. Starting application...");
+    
+    // QUAN TRỌNG: Đảm bảo Data Protection keys được tạo trong database
+    // Keys sẽ được tạo tự động khi lần đầu sử dụng, nhưng trigger ngay để đảm bảo
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var dataProtectionProvider = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        // Tạo một protector để trigger việc tạo keys
+        var protector = dataProtectionProvider.CreateProtector("MaiAmTinhThuong.OAuth");
+        var testData = "test";
+        var protectedData = protector.Protect(testData);
+        var unprotectedData = protector.Unprotect(protectedData);
+        
+        if (unprotectedData == testData)
+        {
+            logger.LogInformation("✅ Data Protection keys verified and ready for OAuth");
+        }
+        else
+        {
+            logger.LogWarning("⚠️ Data Protection keys test failed, but continuing...");
+        }
+    }
+    catch (Exception ex)
+    {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "⚠️ Could not verify Data Protection keys, but continuing. Keys will be created on first use.");
+    }
 }
 else
 {
