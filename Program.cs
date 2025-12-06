@@ -225,7 +225,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 dataProtectionBuilder.PersistKeysToDbContext<ApplicationDbContext>();
 
 // QUAN TRỌNG: Set application name để đảm bảo keys được isolate đúng
-dataProtectionBuilder.SetApplicationName("MaiAmTinhThuong");
+// Đổi application name mới để tránh reuse key cũ (tránh lỗi state)
+dataProtectionBuilder.SetApplicationName("MaiAmTinhThuongProd");
 
 // QUAN TRỌNG: Set default key lifetime (keys sẽ expire sau 90 ngày)
 dataProtectionBuilder.SetDefaultKeyLifetime(TimeSpan.FromDays(90));
