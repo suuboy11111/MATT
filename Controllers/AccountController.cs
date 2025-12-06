@@ -495,6 +495,8 @@ namespace MaiAmTinhThuong.Controllers
                 _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl} (scheme: {scheme}, Request.Scheme: {Request.Scheme}, X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()})");
                 
                 var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+                _logger.LogInformation($"OAuth properties created. Redirecting to Google...");
+                
                 return Challenge(properties, "Google");
             }
             catch (Exception ex)
@@ -510,10 +512,15 @@ namespace MaiAmTinhThuong.Controllers
         {
             try
             {
+                _logger.LogInformation($"GoogleCallback called. ReturnUrl: {returnUrl}");
+                _logger.LogInformation($"Session ID: {HttpContext.Session.Id}");
+                _logger.LogInformation($"Request Cookies: {string.Join(", ", Request.Cookies.Keys)}");
+                
                 var info = await _signInManager.GetExternalLoginInfoAsync();
                 if (info == null)
                 {
-                    _logger.LogWarning("Failed to get external login info from Google");
+                    _logger.LogWarning("Failed to get external login info from Google. This usually means OAuth state was missing or invalid.");
+                    _logger.LogWarning($"Session available: {HttpContext.Session.IsAvailable}, Session ID: {HttpContext.Session.Id}");
                     TempData["Error"] = "Không thể lấy thông tin từ Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
                     return RedirectToAction("Login");
                 }

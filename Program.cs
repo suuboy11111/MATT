@@ -22,29 +22,19 @@ builder.Services.AddControllersWithViews();
 
 // Cấu hình Data Protection (QUAN TRỌNG cho OAuth state encryption)
 // OAuth state được mã hóa bằng Data Protection keys
+// Lưu ý: Keys phải giống nhau giữa request đi (GoogleLogin) và request về (GoogleCallback)
 var dataProtectionBuilder = builder.Services.AddDataProtection();
 
-// Persist keys để đảm bảo OAuth state được mã hóa/giải mã đúng
-if (!builder.Environment.IsDevelopment())
-{
-    try
-    {
-        // Railway: Dùng /tmp để persist keys (sẽ mất khi container restart nhưng OK)
-        // OAuth state chỉ cần tồn tại trong một request cycle (từ login đến callback)
-        var keysDir = new System.IO.DirectoryInfo("/tmp/dataprotection-keys");
-        if (!keysDir.Exists)
-        {
-            keysDir.Create();
-        }
-        dataProtectionBuilder.PersistKeysToFileSystem(keysDir);
-        Console.WriteLine("✅ Data Protection keys will be persisted to /tmp/dataprotection-keys");
-    }
-    catch (Exception ex)
-    {
-        // Nếu không thể persist, dùng in-memory (vẫn OK cho OAuth trong một request cycle)
-        Console.WriteLine($"⚠️ Could not persist Data Protection keys: {ex.Message}. Using in-memory (OK for OAuth state).");
-    }
-}
+// QUAN TRỌNG: Không persist keys vào file system vì Railway có thể có multiple instances
+// Mỗi instance sẽ có keys khác nhau → OAuth state sẽ fail
+// Giải pháp: Dùng in-memory keys (OK vì OAuth state chỉ cần trong một request cycle)
+// Nếu cần persist, phải dùng shared storage (database hoặc Redis)
+Console.WriteLine("ℹ️ Using in-memory Data Protection keys (OK for OAuth state in single request cycle)");
+
+// Cấu hình Session (QUAN TRỌNG cho OAuth state)
+// Lưu ý: OAuth state được lưu trong correlation cookie, không phải session
+// Nhưng session vẫn cần cho các tính năng khác
+builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
 {
@@ -61,9 +51,10 @@ builder.Services.AddSession(options =>
     {
         // Production: SameSite=None và Secure=true (bắt buộc cho OAuth)
         options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
-        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always; // Luôn Secure trong production
+        options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
     }
     options.Cookie.Name = ".MaiAmTinhThuong.Session";
+    options.Cookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
 });
 
 // Register custom services
@@ -238,8 +229,14 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.ClientSecret = googleClientSecret;
             options.CallbackPath = "/Account/GoogleCallback";
             options.SaveTokens = true;
-            // Cấu hình cookie cho OAuth (QUAN TRỌNG: OAuth state được lưu trong correlation cookie)
+            
+            // QUAN TRỌNG: Cấu hình correlation cookie (OAuth state được lưu trong cookie này)
+            // Cookie này phải được gửi đi và nhận về giữa app và Google
             options.CorrelationCookie.HttpOnly = true;
+            options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
+            options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
+            options.CorrelationCookie.Domain = null; // Không set domain để cookie hoạt động với subdomain
+            
             if (builder.Environment.IsDevelopment())
             {
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
@@ -247,11 +244,14 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             }
             else
             {
-                // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth)
+                // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth cross-site redirect)
+                // Lưu ý: Browser có thể block SameSite=None nếu không có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
             }
-            options.CorrelationCookie.Name = ".MaiAmTinhThuong.OAuth.Correlation";
+            
+            // Thêm logging để debug
+            Console.WriteLine($"✅ Google OAuth Correlation Cookie: SameSite={options.CorrelationCookie.SameSite}, Secure={options.CorrelationCookie.SecurePolicy}");
         });
     Console.WriteLine("✅ Google OAuth configured");
 }
