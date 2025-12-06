@@ -465,19 +465,45 @@ namespace MaiAmTinhThuong.Controllers
                 // QUAN TRỌNG: Luôn dùng https cho production (Railway)
                 // Railway sử dụng reverse proxy, Request.Scheme có thể là http
                 // Nhưng redirect URI PHẢI là https để Google OAuth hoạt động
-                var scheme = "https"; // Mặc định dùng https
+                // Google chỉ chấp nhận HTTPS cho production domains
                 
-                // Chỉ dùng http trong development local
-                if (_environment.IsDevelopment() && Request.Host.Host == "localhost")
+                string scheme;
+                string host = Request.Host.Host ?? "";
+                
+                // Detect production: Railway domain hoặc có PORT env var
+                bool isProduction = host.Contains("railway.app") || 
+                                   host.Contains("railway.app") ||
+                                   Environment.GetEnvironmentVariable("PORT") != null ||
+                                   !_environment.IsDevelopment();
+                
+                if (isProduction)
                 {
+                    // Production: LUÔN dùng https
+                    scheme = "https";
+                }
+                else
+                {
+                    // Development local: dùng scheme từ request
                     scheme = Request.Scheme;
                 }
                 
                 var redirectUrl = Url.Action("GoogleCallback", "Account", null, scheme);
-                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl} (scheme: {scheme}, Request.Scheme: {Request.Scheme}, X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}, IsDevelopment: {_environment.IsDevelopment()}, Host: {Request.Host})");
+                _logger.LogInformation($"🔐 Google OAuth redirect URI: {redirectUrl}");
+                _logger.LogInformation($"   - Scheme: {scheme} (Request.Scheme: {Request.Scheme})");
+                _logger.LogInformation($"   - Host: {host}");
+                _logger.LogInformation($"   - IsProduction: {isProduction}");
+                _logger.LogInformation($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
+                
+                // QUAN TRỌNG: Validate redirect URL format
+                if (!redirectUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && isProduction)
+                {
+                    _logger.LogError($"❌ ERROR: Redirect URI must be HTTPS in production! Got: {redirectUrl}");
+                    TempData["Error"] = "Lỗi cấu hình OAuth. Vui lòng liên hệ quản trị viên.";
+                    return RedirectToAction("Login");
+                }
                 
                 var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
-                _logger.LogInformation($"OAuth properties created. Redirecting to Google...");
+                _logger.LogInformation($"✅ OAuth properties created. Redirecting to Google...");
                 
                 return Challenge(properties, "Google");
             }
