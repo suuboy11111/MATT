@@ -22,14 +22,12 @@ builder.Services.AddHttpClient<GeminiService>(client =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// QUAN TRỌNG: Cấu hình Cookie Policy để đảm bảo tất cả cookies được set đúng SameSite
-// Điều này ảnh hưởng đến correlation cookie của OAuth
+// Cấu hình Cookie Policy
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
-    // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
 
-    // Chỉ đảm bảo Secure cho cookie SameSite=None, không can thiệp correlation/external
+    // Đảm bảo Secure cho cookie SameSite=None
     options.OnAppendCookie = cookieContext =>
     {
         if (cookieContext.CookieOptions.SameSite == SameSiteMode.None &&
@@ -40,16 +38,12 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     };
 });
 
-// Cấu hình Data Protection (QUAN TRỌNG cho OAuth state encryption)
-// OAuth state được mã hóa bằng Data Protection keys
-// Lưu ý: Keys phải giống nhau giữa request đi (GoogleLogin) và request về (GoogleCallback)
-// QUAN TRỌNG: Railway có thể có multiple instances, mỗi instance có keys khác nhau
+// Cấu hình Data Protection
+// Railway có thể có multiple instances, mỗi instance có keys khác nhau
 // → Phải persist keys vào database để tất cả instances dùng chung keys
 var dataProtectionBuilder = builder.Services.AddDataProtection();
 
-// Cấu hình Session (QUAN TRỌNG cho OAuth state)
-// Lưu ý: OAuth state được lưu trong correlation cookie, không phải session
-// Nhưng session vẫn cần cho các tính năng khác
+// Cấu hình Session
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -57,7 +51,6 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    // QUAN TRỌNG: OAuth cần SameSite=None với Secure=true trong production
     if (builder.Environment.IsDevelopment())
     {
         options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
@@ -65,12 +58,12 @@ builder.Services.AddSession(options =>
     }
     else
     {
-        // Production: SameSite=None và Secure=true (bắt buộc cho OAuth)
+        // Production: SameSite=None và Secure=true
         options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
         options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
     }
     options.Cookie.Name = ".MaiAmTinhThuong.Session";
-    options.Cookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
+    options.Cookie.Path = "/";
 });
 
 // Register custom services
@@ -78,6 +71,8 @@ builder.Services.AddScoped<MaiAmTinhThuong.Services.SupportRequestService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.EmailService>();
+builder.Services.AddScoped<MaiAmTinhThuong.Services.VerificationCodeService>();
+builder.Services.AddMemoryCache(); // Cần cho VerificationCodeService
 
 // Hỗ trợ cả SQL Server và PostgreSQL
 // Railway cung cấp DATABASE_URL (internal) hoặc DATABASE_PUBLIC_URL (public), ưu tiên sử dụng internal
@@ -199,8 +194,8 @@ else
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.SignIn.RequireConfirmedAccount = false; // Không yêu cầu xác nhận khi đăng nhập (chỉ cần email đã được xác nhận từ lúc đăng ký)
-    options.SignIn.RequireConfirmedEmail = false; // Tắt yêu cầu xác nhận email tự động, sẽ kiểm tra thủ công trong Register
+    options.SignIn.RequireConfirmedAccount = true;
+    options.SignIn.RequireConfirmedEmail = true;
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
@@ -211,21 +206,19 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// QUAN TRỌNG: Persist Data Protection keys vào database
+// Persist Data Protection keys vào database
 // Điều này đảm bảo tất cả instances trên Railway dùng chung keys
-// → OAuth state sẽ được mã hóa/giải mã đúng giữa các instances
 dataProtectionBuilder.PersistKeysToDbContext<ApplicationDbContext>();
 
-// QUAN TRỌNG: Set application name để đảm bảo keys được isolate đúng
-// Đổi application name mới để tránh reuse key cũ (tránh lỗi state)
+// Set application name để đảm bảo keys được isolate đúng
 dataProtectionBuilder.SetApplicationName("MaiAmTinhThuongProd");
 
-// QUAN TRỌNG: Set default key lifetime (keys sẽ expire sau 90 ngày)
+// Set default key lifetime (keys sẽ expire sau 90 ngày)
 dataProtectionBuilder.SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
 Console.WriteLine("✅ Data Protection keys will be persisted to database (shared across all instances)");
 
-// Cấu hình cookie cho authentication (QUAN TRỌNG cho OAuth)
+// Cấu hình cookie cho authentication
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
@@ -236,7 +229,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     }
     else
     {
-        // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth)
+        // Production: SameSite=None và Secure=true
         options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
         options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
     }
@@ -246,88 +239,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Account/Logout";
 });
 
-// Đảm bảo external cookie (Identity.External) cho OAuth callback được gửi cross-site
-builder.Services.ConfigureExternalCookie(options =>
-{
-    options.Cookie.Name = ".AspNetCore.External";
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.Path = "/";
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
-});
-
-// Google OAuth
-var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
-var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-
-if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
-{
-    builder.Services.AddAuthentication()
-        .AddGoogle(options =>
-        {
-            options.ClientId = googleClientId;
-            options.ClientSecret = googleClientSecret;
-            options.CallbackPath = "/Account/GoogleCallback";
-            options.SaveTokens = true;
-            
-            // QUAN TRỌNG: Cấu hình correlation cookie (OAuth state được lưu trong cookie này)
-            // Cookie này phải được gửi đi và nhận về giữa app và Google
-            // Vấn đề: Railway có thể có multiple instances, cookie phải được set đúng để hoạt động
-            options.CorrelationCookie.HttpOnly = true;
-            options.CorrelationCookie.Path = "/"; // Đảm bảo cookie được gửi cho tất cả paths
-            options.CorrelationCookie.MaxAge = TimeSpan.FromMinutes(10); // Set timeout đủ dài cho OAuth flow
-            options.CorrelationCookie.IsEssential = true; // Đánh dấu cookie là essential để không bị block bởi cookie policy
-            // Đặt tên cố định để tránh trùng/ghi đè
-            options.CorrelationCookie.Name = ".AspNetCore.Correlation.Google";
-            
-            // QUAN TRỌNG: Detect production dựa trên hostname (Railway có thể không set ASPNETCORE_ENVIRONMENT)
-            var isProduction = !builder.Environment.IsDevelopment() || 
-                               Environment.GetEnvironmentVariable("RAILWAY_ENVIRONMENT") != null ||
-                               Environment.GetEnvironmentVariable("PORT") != null; // Railway set PORT
-            
-            if (isProduction)
-            {
-                // Production: SameSite=None và Secure=true (BẮT BUỘC cho OAuth cross-site redirect)
-                // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
-                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
-                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true");
-            }
-            else
-            {
-                // Development: SameSite=Lax và Secure=SameAsRequest
-                options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-                options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
-                options.CorrelationCookie.Domain = null;
-                Console.WriteLine($"✅ Google OAuth Correlation Cookie (Development): SameSite=Lax, Secure=SameAsRequest, IsEssential=true");
-            }
-            
-            // QUAN TRỌNG: Không set StateDataFormat = null vì sẽ dùng default
-            // Default format sẽ dùng Data Protection để mã hóa state
-            options.Events = new Microsoft.AspNetCore.Authentication.OAuth.OAuthEvents
-            {
-                OnRemoteFailure = context =>
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(context.Failure, "❌ Google OAuth remote failure: {Message}", context.Failure?.Message);
-            logger.LogError("🔎 RemoteFailure QueryString: {Query}", context.Request.QueryString.Value);
-                    context.Response.Redirect("/Account/Login");
-                    context.HandleResponse();
-                    return Task.CompletedTask;
-                }
-            };
-        });
-    Console.WriteLine("✅ Google OAuth configured");
-}
-else
-{
-    Console.WriteLine("⚠️ Google OAuth configuration not found. Google login will be disabled.");
-    Console.WriteLine("💡 To enable Google OAuth, add these environment variables:");
-    Console.WriteLine("   - Authentication__Google__ClientId");
-    Console.WriteLine("   - Authentication__Google__ClientSecret");
-    Console.WriteLine("💡 Note: App will still work without Google OAuth. Users can register/login with email.");
-}
+// Google OAuth đã được loại bỏ: chỉ dùng đăng nhập bằng email/mật khẩu với mã xác nhận
 
 // Đăng ký PayOSClient (optional - chỉ đăng ký nếu có config)
 var payOSClientId = builder.Configuration["PayOS:ClientId"];
@@ -356,7 +268,7 @@ else
 
 var app = builder.Build();
 
-// QUAN TRỌNG: Configure Forwarded Headers để detect HTTPS đúng cách
+// Configure Forwarded Headers để detect HTTPS đúng cách
 // Railway sử dụng reverse proxy, cần forward headers để biết request thực sự là HTTPS
 // PHẢI được gọi TRƯỚC tất cả middleware khác
 app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -369,9 +281,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     KnownProxies = { }
 });
 
-// QUAN TRỌNG: Middleware để force HTTPS scheme trong production
+// Middleware để force HTTPS scheme trong production
 // PHẢI được gọi SAU UseForwardedHeaders nhưng TRƯỚC UseCookiePolicy và UseSession
-// Đảm bảo Request.Scheme = https trước khi OAuth middleware chạy
 app.Use(async (context, next) =>
 {
     // Chỉ force HTTPS trong production (Railway)
@@ -426,38 +337,16 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// QUAN TRỌNG: Cookie Policy middleware phải được gọi TRƯỚC UseRouting
-// Để đảm bảo cookie policy được áp dụng cho tất cả requests
-// LƯU Ý: Cookie Policy có thể can thiệp vào correlation cookie
-// Nên đảm bảo correlation cookie đã được set IsEssential=true
-// QUAN TRỌNG: Cookie Policy được gọi SAU UseForwardedHeaders và force HTTPS middleware
-// để đảm bảo Request.Scheme = https trước khi cookie policy chạy
+// Cookie Policy middleware phải được gọi TRƯỚC UseRouting
+// Cookie Policy được gọi SAU UseForwardedHeaders và force HTTPS middleware
 app.UseCookiePolicy();
 
 app.UseRouting();
 
-// QUAN TRỌNG: Middleware order cho OAuth
-// 1. Session phải được gọi TRƯỚC Authentication để OAuth state được lưu
+// Middleware order
+// 1. Session phải được gọi TRƯỚC Authentication
 // 2. Authentication phải được gọi TRƯỚC Authorization
 app.UseSession();
-
-// Log nhanh cookies khi callback để kiểm tra correlation/external cookie có quay lại hay không
-app.Use(async (context, next) =>
-{
-    if (context.Request.Path.StartsWithSegments("/Account/GoogleCallback"))
-    {
-        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-        var cookies = string.Join(", ", context.Request.Cookies.Keys);
-        var corrKey = context.Request.Cookies.Keys.FirstOrDefault(k => k.StartsWith(".AspNetCore.Correlation", StringComparison.OrdinalIgnoreCase));
-        var corrVal = string.IsNullOrEmpty(corrKey) ? "" : context.Request.Cookies[corrKey];
-        logger.LogInformation("🔎 OAuth callback cookies: {Cookies}", cookies);
-        logger.LogInformation("🔎 Correlation cookie present (prefix check): {HasCorr}", !string.IsNullOrEmpty(corrKey));
-        logger.LogInformation("🔎 Correlation cookie value (trim): {CorrVal}", string.IsNullOrEmpty(corrVal) ? "" : corrVal.Substring(0, Math.Min(50, corrVal.Length)));
-        logger.LogInformation("🔎 External cookie present: {HasExternal}", context.Request.Cookies.ContainsKey(".AspNetCore.External"));
-        logger.LogInformation("🔎 Callback QueryString: {Query}", context.Request.QueryString.Value);
-    }
-    await next();
-});
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -577,20 +466,20 @@ if (migrationSuccess)
         var dataProtectionProvider = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         
-        // Tạo một protector để trigger việc tạo keys
-        var protector = dataProtectionProvider.CreateProtector("MaiAmTinhThuong.OAuth");
-        var testData = "test";
-        var protectedData = protector.Protect(testData);
-        var unprotectedData = protector.Unprotect(protectedData);
-        
-        if (unprotectedData == testData)
-        {
-            logger.LogInformation("✅ Data Protection keys verified and ready for OAuth");
-        }
-        else
-        {
-            logger.LogWarning("⚠️ Data Protection keys test failed, but continuing...");
-        }
+            // Tạo một protector để trigger việc tạo keys
+            var protector = dataProtectionProvider.CreateProtector("MaiAmTinhThuong");
+            var testData = "test";
+            var protectedData = protector.Protect(testData);
+            var unprotectedData = protector.Unprotect(protectedData);
+            
+            if (unprotectedData == testData)
+            {
+                logger.LogInformation("✅ Data Protection keys verified and ready");
+            }
+            else
+            {
+                logger.LogWarning("⚠️ Data Protection keys test failed, but continuing...");
+            }
     }
     catch (Exception ex)
     {

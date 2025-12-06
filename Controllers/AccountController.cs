@@ -16,6 +16,7 @@ namespace MaiAmTinhThuong.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly EmailService _emailService;
+        private readonly VerificationCodeService _verificationCodeService;
         private readonly ILogger<AccountController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
@@ -24,6 +25,7 @@ namespace MaiAmTinhThuong.Controllers
                                  SignInManager<ApplicationUser> signInManager,
                                  RoleManager<IdentityRole> roleManager,
                                  EmailService emailService,
+                                 VerificationCodeService verificationCodeService,
                                  ILogger<AccountController> logger,
                                  IConfiguration configuration,
                                  IWebHostEnvironment environment)
@@ -32,6 +34,7 @@ namespace MaiAmTinhThuong.Controllers
             _signInManager = signInManager;
             _roleManager = roleManager;
             _emailService = emailService;
+            _verificationCodeService = verificationCodeService;
             _logger = logger;
             _configuration = configuration;
             _environment = environment;
@@ -40,11 +43,6 @@ namespace MaiAmTinhThuong.Controllers
         // GET: /Account/Register
         public IActionResult Register()
         {
-            // Kiểm tra Google OAuth có được cấu hình không
-            var googleClientId = _configuration["Authentication:Google:ClientId"];
-            var googleClientSecret = _configuration["Authentication:Google:ClientSecret"];
-            ViewBag.GoogleOAuthEnabled = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
-            
             return View();
         }
 
@@ -79,46 +77,36 @@ namespace MaiAmTinhThuong.Controllers
                 // Gán role cho user
                 await _userManager.AddToRoleAsync(user, model.Role);
 
-                // Gửi email xác nhận
+                // Tạo và gửi mã xác nhận
                 try
                 {
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var scheme = Request.Scheme;
-                    // Đảm bảo sử dụng https trong production
-                    if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
-                    {
-                        scheme = Request.Headers["X-Forwarded-Proto"].ToString();
-                    }
-                    else if (!_environment.IsDevelopment())
-                    {
-                        scheme = "https";
-                    }
-                    
-                    var confirmationLink = Url.Action("ConfirmEmail", "Account", 
-                        new { userId = user.Id, token = token }, 
-                        scheme);
+                    var verificationCode = _verificationCodeService.GenerateCode();
+                    _verificationCodeService.StoreCode(user.Email!, verificationCode, user.Id);
 
-                    if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+                    var emailSent = await _emailService.SendVerificationCodeAsync(user.Email!, verificationCode);
+                    if (emailSent)
                     {
-                        var emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
-                        if (emailSent)
-                        {
-                            TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản (có thể trong thư mục Spam).";
-                        }
-                        else
-                        {
-                            TempData["Message"] = "Đăng ký thành công! Tuy nhiên, không thể gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
-                            _logger.LogWarning($"Failed to send verification email to {user.Email}");
-                        }
+                        TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác nhận (có thể trong thư mục Spam).";
+                        TempData["Email"] = user.Email; // Lưu email để chuyển sang trang verify
+                        return RedirectToAction("VerifyCode", new { email = user.Email });
+                    }
+                    else
+                    {
+                        TempData["Error"] = "Đăng ký thành công! Tuy nhiên, không thể gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
+                        _logger.LogWarning($"Failed to send verification code to {user.Email}");
+                        // Xóa user nếu không gửi được email
+                        await _userManager.DeleteAsync(user);
+                        return View(model);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error sending verification email during registration");
-                    TempData["Message"] = "Đăng ký thành công! Tuy nhiên, có lỗi khi gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
+                    _logger.LogError(ex, "Error sending verification code during registration");
+                    TempData["Error"] = "Đăng ký thành công! Tuy nhiên, có lỗi khi gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
+                    // Xóa user nếu có lỗi
+                    await _userManager.DeleteAsync(user);
+                    return View(model);
                 }
-
-                return RedirectToAction("Login");
             }
 
             foreach (var error in result.Errors)
@@ -132,11 +120,6 @@ namespace MaiAmTinhThuong.Controllers
         // GET: /Account/Login
         public IActionResult Login()
         {
-            // Kiểm tra Google OAuth có được cấu hình không
-            var googleClientId = _configuration["Authentication:Google:ClientId"];
-            var googleClientSecret = _configuration["Authentication:Google:ClientSecret"];
-            ViewBag.GoogleOAuthEnabled = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
-            
             return View();
         }
 
@@ -153,11 +136,11 @@ namespace MaiAmTinhThuong.Controllers
                 return View(model);
             }
 
-            // Kiểm tra email đã được xác nhận chưa (chỉ cần kiểm tra, không yêu cầu xác nhận lại)
+            // Kiểm tra email đã được xác nhận chưa
             if (!await _userManager.IsEmailConfirmedAsync(user))
             {
-                ModelState.AddModelError("", "Email chưa được xác nhận. Vui lòng kiểm tra email đã nhận khi đăng ký và click vào link xác nhận.");
-                // Hiển thị nút gửi lại email xác nhận
+                ModelState.AddModelError("", "Email chưa được xác nhận. Vui lòng kiểm tra email và nhập mã xác nhận 6 số đã được gửi đến email của bạn.");
+                // Hiển thị nút chuyển đến trang verify code
                 ViewBag.ShowResendEmail = true;
                 ViewBag.UserEmail = model.Email;
                 return View(model);
@@ -394,9 +377,76 @@ namespace MaiAmTinhThuong.Controllers
             return RedirectToAction("Login");
         }
 
-        // Resend confirmation email
+        // Resend confirmation email (giữ lại để tương thích với Login view)
         [HttpPost]
         public async Task<IActionResult> ResendConfirmationEmail([FromBody] Dictionary<string, string>? request)
+        {
+            // Chuyển hướng sang ResendVerificationCode
+            return await ResendVerificationCode(request);
+        }
+
+        // GET: /Account/VerifyCode
+        [HttpGet]
+        public IActionResult VerifyCode(string? email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                TempData["Error"] = "Email không hợp lệ.";
+                return RedirectToAction("Register");
+            }
+
+            ViewBag.Email = email;
+            return View();
+        }
+
+        // POST: /Account/VerifyCode
+        [HttpPost]
+        public async Task<IActionResult> VerifyCode(string email, string code)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(code))
+            {
+                ModelState.AddModelError("", "Vui lòng nhập đầy đủ email và mã xác nhận.");
+                ViewBag.Email = email;
+                return View();
+            }
+
+            // Xác thực mã
+            var cacheEntry = _verificationCodeService.VerifyCode(email, code);
+            if (cacheEntry == null)
+            {
+                ModelState.AddModelError("", "Mã xác nhận không đúng hoặc đã hết hạn. Vui lòng thử lại.");
+                ViewBag.Email = email;
+                return View();
+            }
+
+            // Tìm user
+            var user = await _userManager.FindByIdAsync(cacheEntry.UserId);
+            if (user == null)
+            {
+                ModelState.AddModelError("", "Không tìm thấy tài khoản. Vui lòng đăng ký lại.");
+                return RedirectToAction("Register");
+            }
+
+            // Xác nhận email
+            user.EmailConfirmed = true;
+            var updateResult = await _userManager.UpdateAsync(user);
+            
+            if (updateResult.Succeeded)
+            {
+                TempData["Message"] = "Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay bây giờ.";
+                return RedirectToAction("Login");
+            }
+            else
+            {
+                ModelState.AddModelError("", "Có lỗi xảy ra khi xác nhận email. Vui lòng thử lại.");
+                ViewBag.Email = email;
+                return View();
+            }
+        }
+
+        // POST: /Account/ResendVerificationCode
+        [HttpPost]
+        public async Task<IActionResult> ResendVerificationCode([FromBody] Dictionary<string, string>? request)
         {
             var email = request?.GetValueOrDefault("email");
             if (string.IsNullOrEmpty(email))
@@ -417,32 +467,20 @@ namespace MaiAmTinhThuong.Controllers
 
             try
             {
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var scheme = Request.Scheme;
-                // Đảm bảo sử dụng https trong production
-                if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
-                {
-                    scheme = Request.Headers["X-Forwarded-Proto"].ToString();
-                }
-                else if (!_environment.IsDevelopment())
-                {
-                    scheme = "https";
-                }
-                
-                var confirmationLink = Url.Action("ConfirmEmail", "Account",
-                    new { userId = user.Id, token = token },
-                    scheme);
+                // Xóa mã cũ nếu có
+                _verificationCodeService.RemoveCode(email);
 
-                bool emailSent = false;
-                if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
-                {
-                    emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
-                    _logger.LogInformation($"Resend confirmation email to {user.Email}: {emailSent}");
-                }
-                
+                // Tạo mã mới
+                var verificationCode = _verificationCodeService.GenerateCode();
+                _verificationCodeService.StoreCode(email, verificationCode, user.Id);
+
+                // Gửi email
+                var emailSent = await _emailService.SendVerificationCodeAsync(email, verificationCode);
+                _logger.LogInformation($"Resend verification code to {email}: {emailSent}");
+
                 if (emailSent)
                 {
-                    return Json(new { success = true, message = "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư (có thể trong thư mục Spam)." });
+                    return Json(new { success = true, message = "Mã xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư (có thể trong thư mục Spam)." });
                 }
                 else
                 {
@@ -451,224 +489,8 @@ namespace MaiAmTinhThuong.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error resending confirmation email");
+                _logger.LogError(ex, "Error resending verification code");
                 return Json(new { success = false, message = "Có lỗi xảy ra khi gửi email. Vui lòng thử lại sau." });
-            }
-        }
-
-        // Google OAuth
-        [HttpGet]
-        public IActionResult GoogleLogin()
-        {
-            try
-            {
-                // QUAN TRỌNG: Luôn dùng https cho production (Railway)
-                // Railway sử dụng reverse proxy, Request.Scheme có thể là http
-                // Nhưng redirect URI PHẢI là https để Google OAuth hoạt động
-                // Google chỉ chấp nhận HTTPS cho production domains
-                
-                string scheme;
-                string host = Request.Host.Host ?? "";
-                
-                // Detect production: Railway domain hoặc có PORT env var
-                bool isProduction = host.Contains("railway.app") || 
-                                   host.Contains("railway.app") ||
-                                   Environment.GetEnvironmentVariable("PORT") != null ||
-                                   !_environment.IsDevelopment();
-                
-                if (isProduction)
-                {
-                    // Production: LUÔN dùng https
-                    scheme = "https";
-                }
-                else
-                {
-                    // Development local: dùng scheme từ request
-                    scheme = Request.Scheme;
-                }
-                
-                var redirectUrl = Url.Action("GoogleCallback", "Account", null, scheme);
-                _logger.LogInformation($"🔐 Google OAuth redirect URI: {redirectUrl}");
-                _logger.LogInformation($"   - Scheme: {scheme} (Request.Scheme: {Request.Scheme})");
-                _logger.LogInformation($"   - Host: {host}");
-                _logger.LogInformation($"   - IsProduction: {isProduction}");
-                _logger.LogInformation($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
-                
-                // QUAN TRỌNG: Validate redirect URL format
-                if (!redirectUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) && isProduction)
-                {
-                    _logger.LogError($"❌ ERROR: Redirect URI must be HTTPS in production! Got: {redirectUrl}");
-                    TempData["Error"] = "Lỗi cấu hình OAuth. Vui lòng liên hệ quản trị viên.";
-                    return RedirectToAction("Login");
-                }
-                
-                var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
-                _logger.LogInformation($"✅ OAuth properties created. Redirecting to Google...");
-                
-                return Challenge(properties, "Google");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error initiating Google login");
-                TempData["Error"] = "Google OAuth chưa được cấu hình. Vui lòng đăng nhập bằng email và mật khẩu.";
-                return RedirectToAction("Login");
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GoogleCallback(string? returnUrl = null)
-        {
-            try
-            {
-                _logger.LogInformation($"🔙 GoogleCallback called. ReturnUrl: {returnUrl}");
-                _logger.LogInformation($"   - Request.Scheme: {Request.Scheme}");
-                _logger.LogInformation($"   - Request.IsHttps: {Request.IsHttps}");
-                _logger.LogInformation($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
-                _logger.LogInformation($"   - Session ID: {HttpContext.Session.Id}");
-                _logger.LogInformation($"   - Session Available: {HttpContext.Session.IsAvailable}");
-                _logger.LogInformation($"   - Request Cookies: {string.Join(", ", Request.Cookies.Keys)}");
-                
-                // Log correlation cookie specifically
-                var correlationCookie = Request.Cookies[".MaiAmTinhThuong.OAuth.Correlation"];
-                if (string.IsNullOrEmpty(correlationCookie))
-                {
-                    _logger.LogWarning("⚠️ Correlation cookie is MISSING! This will cause OAuth state validation to fail.");
-                }
-                else
-                {
-                    _logger.LogInformation($"✅ Correlation cookie found: {correlationCookie.Substring(0, Math.Min(50, correlationCookie.Length))}...");
-                }
-                
-                // QUAN TRỌNG: Kiểm tra correlation cookie trước khi gọi GetExternalLoginInfoAsync
-                // Nếu cookie không có, OAuth state sẽ không được validate
-                if (string.IsNullOrEmpty(correlationCookie))
-                {
-                    _logger.LogError("❌ Correlation cookie is MISSING! Cannot validate OAuth state.");
-                    _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
-                    _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
-                    _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
-                    _logger.LogError($"   - Host: {Request.Host}");
-                    _logger.LogError($"   - All cookies: {string.Join(", ", Request.Cookies.Keys)}");
-                    TempData["Error"] = "Không thể xác thực phiên đăng nhập. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
-                    return RedirectToAction("Login");
-                }
-                
-                var info = await _signInManager.GetExternalLoginInfoAsync();
-                if (info == null)
-                {
-                    _logger.LogError("❌ Failed to get external login info from Google. OAuth state was missing or invalid.");
-                    _logger.LogError($"   - Session available: {HttpContext.Session.IsAvailable}");
-                    _logger.LogError($"   - Session ID: {HttpContext.Session.Id}");
-                    _logger.LogError($"   - Correlation cookie present: {!string.IsNullOrEmpty(correlationCookie)}");
-                    _logger.LogError($"   - Correlation cookie length: {correlationCookie?.Length ?? 0}");
-                    _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
-                    _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
-                    _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
-                    _logger.LogError($"   - Query string: {Request.QueryString}");
-                    
-                    // Log tất cả cookies để debug
-                    _logger.LogError($"   - All cookies: {string.Join(", ", Request.Cookies.Keys)}");
-                    foreach (var cookie in Request.Cookies)
-                    {
-                        if (cookie.Key.Contains("OAuth", StringComparison.OrdinalIgnoreCase) || 
-                            cookie.Key.Contains("Correlation", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _logger.LogError($"   - Cookie {cookie.Key}: {cookie.Value?.Substring(0, Math.Min(100, cookie.Value?.Length ?? 0))}...");
-                        }
-                    }
-                    
-                    TempData["Error"] = "Không thể lấy thông tin từ Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
-                    return RedirectToAction("Login");
-                }
-
-                var email = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
-                var name = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
-                var picture = info.Principal.FindFirst("picture")?.Value ?? "";
-
-                if (string.IsNullOrEmpty(email))
-                {
-                    _logger.LogWarning("Email not found in Google claims");
-                    TempData["Error"] = "Không thể lấy email từ Google.";
-                    return RedirectToAction("Login");
-                }
-
-                // Tìm user đã tồn tại
-                var user = await _userManager.FindByEmailAsync(email);
-                
-                if (user == null)
-                {
-                    // Tạo user mới
-                    user = new ApplicationUser
-                    {
-                        UserName = email,
-                        Email = email,
-                        FullName = name ?? "Người dùng Google",
-                        ProfilePicture = picture ?? "/images/default1-avatar.png",
-                        EmailConfirmed = true, // Google đã xác nhận email
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
-                        Role = "NguoiHoTro" // Mặc định
-                    };
-
-                    var result = await _userManager.CreateAsync(user);
-                    if (!result.Succeeded)
-                    {
-                        _logger.LogError("Failed to create user from Google: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
-                        TempData["Error"] = "Không thể tạo tài khoản. " + string.Join(", ", result.Errors.Select(e => e.Description));
-                        return RedirectToAction("Login");
-                    }
-                    
-                    // Tạo role nếu chưa có
-                    if (!await _roleManager.RoleExistsAsync("NguoiHoTro"))
-                    {
-                        await _roleManager.CreateAsync(new IdentityRole("NguoiHoTro"));
-                    }
-                    
-                    // Gán role cho user
-                    await _userManager.AddToRoleAsync(user, "NguoiHoTro");
-                }
-
-                // Thêm external login nếu chưa có
-                var addLoginResult = await _userManager.AddLoginAsync(user, info);
-                if (!addLoginResult.Succeeded && !addLoginResult.Errors.Any(e => e.Code == "LoginAlreadyAssociated"))
-                {
-                    _logger.LogError("Failed to add external login: {Errors}", string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
-                    TempData["Error"] = "Không thể liên kết tài khoản Google.";
-                    return RedirectToAction("Login");
-                }
-
-                // Đăng nhập
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                _logger.LogInformation($"User {user.Email} logged in via Google");
-                return RedirectToLocal(returnUrl);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error in GoogleCallback: {Message}", ex.Message);
-                _logger.LogError($"   - Exception type: {ex.GetType().Name}");
-                _logger.LogError($"   - Stack trace: {ex.StackTrace}");
-                
-                // Log thêm thông tin về request
-                _logger.LogError($"   - Request.Scheme: {Request.Scheme}");
-                _logger.LogError($"   - Request.IsHttps: {Request.IsHttps}");
-                _logger.LogError($"   - X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()}");
-                _logger.LogError($"   - Host: {Request.Host}");
-                _logger.LogError($"   - Query string: {Request.QueryString}");
-                
-                // Kiểm tra nếu là lỗi về OAuth state
-                if (ex.Message.Contains("oauth state", StringComparison.OrdinalIgnoreCase) ||
-                    ex.Message.Contains("correlation", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogError("   - This appears to be an OAuth state validation error.");
-                    _logger.LogError("   - Possible causes:");
-                    _logger.LogError("     1. Correlation cookie not set correctly");
-                    _logger.LogError("     2. Data Protection keys not synchronized");
-                    _logger.LogError("     3. Cookie SameSite/Secure settings incorrect");
-                    _logger.LogError("     4. Request scheme not HTTPS in production");
-                }
-                
-                TempData["Error"] = "Có lỗi xảy ra khi đăng nhập bằng Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.";
-                return RedirectToAction("Login");
             }
         }
     }

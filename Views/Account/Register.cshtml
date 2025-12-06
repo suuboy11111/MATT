@@ -121,20 +121,6 @@
                         <i class="fas fa-user-plus me-2"></i>Đăng ký
                     </button>
 
-                    <!-- Google Login (chỉ hiển thị nếu đã cấu hình) -->
-                    @if (ViewBag.GoogleOAuthEnabled == true)
-                    {
-                        <!-- Divider -->
-                        <div class="divider">
-                            <span>hoặc</span>
-                        </div>
-
-                        <a asp-action="GoogleLogin" class="btn btn-google w-100 mb-3">
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon" />
-                            Đăng ký với Google
-                        </a>
-                    }
-
                     <!-- Links -->
                     <div class="text-center">
                         <a asp-action="Login" class="auth-link">Đã có tài khoản? Đăng nhập ngay</a>
@@ -210,56 +196,6 @@
         box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
     }
 
-    .btn-google {
-        background: white;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 0.875rem;
-        font-weight: 600;
-        color: #333;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        transition: all 0.3s ease;
-        text-decoration: none;
-    }
-
-    .btn-google:hover {
-        border-color: #4285f4;
-        background: #f8f9fa;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
-        color: #333;
-    }
-
-    .google-icon {
-        width: 20px;
-        height: 20px;
-    }
-
-    .divider {
-        text-align: center;
-        margin: 1.5rem 0;
-        position: relative;
-    }
-
-    .divider::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        width: 100%;
-        height: 1px;
-        background: #e0e0e0;
-    }
-
-    .divider span {
-        background: white;
-        padding: 0 1rem;
-        position: relative;
-        color: #666;
-    }
 
     .auth-link {
         color: #FF6B9D;

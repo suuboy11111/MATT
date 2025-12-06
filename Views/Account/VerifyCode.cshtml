@@ -1,7 +1,6 @@
-@model MaiAmTinhThuong.Models.ViewModels.LoginViewModel
-
 @{
-    ViewData["Title"] = "Đăng nhập";
+    ViewData["Title"] = "Xác nhận mã";
+    var email = ViewBag.Email as string ?? "";
 }
 
 <div class="container mt-5 mb-5">
@@ -10,10 +9,10 @@
             <div class="auth-card">
                 <div class="auth-header">
                     <h2 class="text-center mb-0">
-                        <span style="font-size: 2rem;">❤️</span>
-                        <span class="ms-2">Đăng nhập</span>
+                        <span style="font-size: 2rem;">✉️</span>
+                        <span class="ms-2">Xác nhận mã</span>
                     </h2>
-                    <p class="text-center text-muted mt-2">Chào mừng bạn trở lại!</p>
+                    <p class="text-center text-muted mt-2">Nhập mã xác nhận đã được gửi đến email của bạn</p>
                 </div>
 
                 @if (TempData["Message"] != null)
@@ -32,56 +31,48 @@
                     </div>
                 }
 
-                @if (ViewBag.ShowResendEmail == true && !string.IsNullOrEmpty(ViewBag.UserEmail as string))
-                {
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <strong>Email chưa được xác nhận!</strong>
-                        <p class="mb-2">Vui lòng kiểm tra email và nhập mã xác nhận 6 số đã được gửi đến email của bạn.</p>
-                        <a href="@Url.Action("VerifyCode", "Account", new { email = ViewBag.UserEmail })" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-key me-1"></i>Nhập mã xác nhận
-                        </a>
-                        <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="resendConfirmationEmail('@ViewBag.UserEmail')">
-                            <i class="fas fa-redo me-1"></i>Gửi lại mã
-                        </button>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
+                <div class="alert alert-info">
+                    <i class="fas fa-envelope me-2"></i>
+                    <strong>Email:</strong> @email
+                </div>
 
-                <form asp-action="Login" class="auth-form">
+                <form asp-action="VerifyCode" method="post" class="auth-form">
+                    <input type="hidden" name="email" value="@email" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                    <!-- Email -->
+                    <!-- Mã xác nhận -->
                     <div class="form-group">
-                        <label asp-for="Email" class="form-label">
-                            <i class="fas fa-envelope me-2"></i>Email
+                        <label for="code" class="form-label">
+                            <i class="fas fa-key me-2"></i>Mã xác nhận (6 số)
                         </label>
-                        <input asp-for="Email" class="form-control" placeholder="Nhập email của bạn" />
-                        <span asp-validation-for="Email" class="text-danger"></span>
+                        <input type="text" 
+                               id="code" 
+                               name="code" 
+                               class="form-control text-center" 
+                               placeholder="000000" 
+                               maxlength="6" 
+                               pattern="[0-9]{6}" 
+                               required 
+                               autocomplete="off"
+                               style="font-size: 1.5rem; letter-spacing: 0.5rem; font-weight: bold;" />
+                        <small class="form-text text-muted">Nhập mã 6 số đã được gửi đến email của bạn</small>
                     </div>
 
-                    <!-- Mật khẩu -->
-                    <div class="form-group">
-                        <label asp-for="Password" class="form-label">
-                            <i class="fas fa-lock me-2"></i>Mật khẩu
-                        </label>
-                        <input asp-for="Password" class="form-control" type="password" placeholder="Nhập mật khẩu" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                    </div>
-
-                    <!-- Ghi nhớ đăng nhập -->
-                    <div class="form-check mb-3">
-                        <input asp-for="RememberMe" class="form-check-input" id="RememberMe" />
-                        <label class="form-check-label" for="RememberMe">Ghi nhớ đăng nhập</label>
-                    </div>
-
-                    <!-- Nút Đăng nhập -->
+                    <!-- Nút Xác nhận -->
                     <button type="submit" class="btn btn-primary w-100 mb-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                        <i class="fas fa-check me-2"></i>Xác nhận
                     </button>
 
-                    <!-- Links -->
+                    <!-- Gửi lại mã -->
                     <div class="text-center">
-                        <a asp-action="Register" class="auth-link">Chưa có tài khoản? Đăng ký ngay</a>
+                        <button type="button" class="btn btn-link text-decoration-none" onclick="resendVerificationCode('@email')">
+                            <i class="fas fa-redo me-1"></i>Gửi lại mã xác nhận
+                        </button>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="text-center mt-3">
+                        <a asp-action="Login" class="auth-link">Quay lại đăng nhập</a>
                     </div>
                 </form>
             </div>
@@ -94,9 +85,27 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        async function resendConfirmationEmail(email) {
+        // Auto-focus vào ô nhập mã
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeInput = document.getElementById('code');
+            if (codeInput) {
+                codeInput.focus();
+            }
+        });
+
+        // Chỉ cho phép nhập số
+        document.getElementById('code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        async function resendVerificationCode(email) {
+            if (!email) {
+                alert('❌ Email không hợp lệ.');
+                return;
+            }
+
             try {
-                const response = await fetch('/Account/ResendConfirmationEmail', {
+                const response = await fetch('/Account/ResendVerificationCode', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -177,29 +186,6 @@
         box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
     }
 
-    .divider {
-        text-align: center;
-        margin: 1.5rem 0;
-        position: relative;
-    }
-
-    .divider::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        width: 100%;
-        height: 1px;
-        background: #e0e0e0;
-    }
-
-    .divider span {
-        background: white;
-        padding: 0 1rem;
-        position: relative;
-        color: #666;
-    }
-
     .auth-link {
         color: #FF6B9D;
         text-decoration: none;
@@ -216,4 +202,13 @@
         border-radius: 12px;
         border: none;
     }
+
+    .btn-link {
+        color: #FF6B9D;
+    }
+
+    .btn-link:hover {
+        color: #C44569;
+    }
 </style>
+
