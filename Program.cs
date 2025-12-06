@@ -253,7 +253,6 @@ builder.Services.ConfigureExternalCookie(options =>
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.Path = "/";
-    options.Cookie.Domain = "matt-production.up.railway.app";
     options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
 });
 
@@ -290,7 +289,6 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                options.CorrelationCookie.Domain = "matt-production.up.railway.app";
                 
                 Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true");
             }
