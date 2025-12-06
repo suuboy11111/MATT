@@ -22,6 +22,32 @@ builder.Services.AddHttpClient<GeminiService>(client =>
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// QUAN TRỌNG: Cấu hình Cookie Policy để đảm bảo tất cả cookies được set đúng SameSite
+// Điều này ảnh hưởng đến correlation cookie của OAuth
+builder.Services.Configure<Microsoft.AspNetCore.Http.CookiePolicyOptions>(options =>
+{
+    // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
+    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.Unspecified;
+    
+    // Đảm bảo SameSite=None cookies luôn có Secure=true
+    options.OnAppendCookie = cookieContext =>
+    {
+        if (cookieContext.CookieOptions.SameSite == Microsoft.AspNetCore.Http.SameSiteMode.None)
+        {
+            cookieContext.CookieOptions.Secure = true;
+        }
+    };
+    
+    // Đảm bảo SameSite=None cookies được check khi check policy
+    options.OnDeleteCookie = cookieContext =>
+    {
+        if (cookieContext.CookieOptions.SameSite == Microsoft.AspNetCore.Http.SameSiteMode.None)
+        {
+            cookieContext.CookieOptions.Secure = true;
+        }
+    };
+});
+
 // Cấu hình Data Protection (QUAN TRỌNG cho OAuth state encryption)
 // OAuth state được mã hóa bằng Data Protection keys
 // Lưu ý: Keys phải giống nhau giữa request đi (GoogleLogin) và request về (GoogleCallback)
@@ -314,7 +340,7 @@ var app = builder.Build();
 
 // QUAN TRỌNG: Configure Forwarded Headers để detect HTTPS đúng cách
 // Railway sử dụng reverse proxy, cần forward headers để biết request thực sự là HTTPS
-// PHẢI được gọi TRƯỚC UseHttpsRedirection
+// PHẢI được gọi TRƯỚC UseHttpsRedirection và UseCookiePolicy
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
@@ -323,6 +349,27 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     // Trust all proxies (Railway internal network)
     KnownNetworks = { },
     KnownProxies = { }
+});
+
+// QUAN TRỌNG: Middleware để force HTTPS scheme trong production
+// Đảm bảo Request.Scheme = https trước khi OAuth middleware chạy
+app.Use(async (context, next) =>
+{
+    // Chỉ force HTTPS trong production (Railway)
+    var isProduction = !app.Environment.IsDevelopment() || 
+                      Environment.GetEnvironmentVariable("PORT") != null;
+    
+    if (isProduction && context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+    {
+        var forwardedProto = context.Request.Headers["X-Forwarded-Proto"].ToString();
+        if (forwardedProto == "https" && context.Request.Scheme != "https")
+        {
+            // Force scheme thành https để cookies được set đúng
+            context.Request.Scheme = "https";
+        }
+    }
+    
+    await next();
 });
 
 // Configure the HTTP request pipeline.
@@ -334,6 +381,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// QUAN TRỌNG: Cookie Policy middleware phải được gọi TRƯỚC UseRouting
+// Để đảm bảo cookie policy được áp dụng cho tất cả requests
+app.UseCookiePolicy();
 
 app.UseRouting();
 
