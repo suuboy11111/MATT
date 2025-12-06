@@ -311,6 +311,7 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 {
                     var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
                     logger.LogError(context.Failure, "❌ Google OAuth remote failure: {Message}", context.Failure?.Message);
+            logger.LogError("🔎 RemoteFailure QueryString: {Query}", context.Request.QueryString.Value);
                     context.Response.Redirect("/Account/Login");
                     context.HandleResponse();
                     return Task.CompletedTask;
@@ -447,11 +448,13 @@ app.Use(async (context, next) =>
     {
         var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
         var cookies = string.Join(", ", context.Request.Cookies.Keys);
+        var corrKey = context.Request.Cookies.Keys.FirstOrDefault(k => k.StartsWith(".AspNetCore.Correlation", StringComparison.OrdinalIgnoreCase));
+        var corrVal = string.IsNullOrEmpty(corrKey) ? "" : context.Request.Cookies[corrKey];
         logger.LogInformation("🔎 OAuth callback cookies: {Cookies}", cookies);
-        logger.LogInformation("🔎 Correlation cookie present (prefix check): {HasCorr}",
-            context.Request.Cookies.Keys.Any(k => k.StartsWith(".AspNetCore.Correlation", StringComparison.OrdinalIgnoreCase) ||
-                                                  k.StartsWith(".MaiAmTinhThuong.OAuth.Correlation", StringComparison.OrdinalIgnoreCase)));
+        logger.LogInformation("🔎 Correlation cookie present (prefix check): {HasCorr}", !string.IsNullOrEmpty(corrKey));
+        logger.LogInformation("🔎 Correlation cookie value (trim): {CorrVal}", string.IsNullOrEmpty(corrVal) ? "" : corrVal.Substring(0, Math.Min(50, corrVal.Length)));
         logger.LogInformation("🔎 External cookie present: {HasExternal}", context.Request.Cookies.ContainsKey(".AspNetCore.External"));
+        logger.LogInformation("🔎 Callback QueryString: {Query}", context.Request.QueryString.Value);
     }
     await next();
 });
