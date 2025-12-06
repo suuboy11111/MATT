@@ -1,4 +1,4 @@
-﻿using MaiAmTinhThuong.Data;
+using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using MaiAmTinhThuong.Helpers;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MaiAmTinhThuong.Controllers
 {
@@ -386,24 +387,33 @@ namespace MaiAmTinhThuong.Controllers
         [HttpPost]
         public async Task<IActionResult> ApproveBlogPost(int id)
         {
-            var blogPost = await _context.BlogPosts
-                .Include(b => b.Author)
-                .FirstOrDefaultAsync(b => b.Id == id);
-            
-            if (blogPost != null && !blogPost.IsApproved)
+            try
             {
-                blogPost.IsApproved = true;  // Cập nhật trạng thái duyệt
-                _context.Update(blogPost);
-                await _context.SaveChangesAsync();
-
-                // Gửi thông báo cho tác giả bài viết
-                if (blogPost.AuthorId != null)
+                var blogPost = await _context.BlogPosts
+                    .Include(b => b.Author)
+                    .FirstOrDefaultAsync(b => b.Id == id);
+                
+                if (blogPost != null && !blogPost.IsApproved)
                 {
-                    var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
-                    await notificationService.NotifyBlogPostApprovedAsync(blogPost.AuthorId, blogPost.Title);
-                }
+                    blogPost.IsApproved = true;  // Cập nhật trạng thái duyệt
+                    _context.Update(blogPost);
+                    await _context.SaveChangesAsync();
 
-                TempData["Message"] = "Bài viết đã được duyệt!";
+                    // Gửi thông báo cho tác giả bài viết
+                    if (blogPost.AuthorId != null)
+                    {
+                        var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
+                        await notificationService.NotifyBlogPostApprovedAsync(blogPost.AuthorId, blogPost.Title);
+                    }
+
+                    TempData["Message"] = "Bài viết đã được duyệt!";
+                }
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
+                logger.LogError(ex, $"Error approving blog post {id}");
+                TempData["Error"] = "Có lỗi xảy ra khi duyệt bài viết. Vui lòng thử lại sau.";
             }
             return RedirectToAction("ManageBlogPosts");
         }

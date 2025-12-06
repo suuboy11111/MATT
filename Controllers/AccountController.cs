@@ -80,17 +80,44 @@ namespace MaiAmTinhThuong.Controllers
                 await _userManager.AddToRoleAsync(user, model.Role);
 
                 // Gửi email xác nhận
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = Url.Action("ConfirmEmail", "Account", 
-                    new { userId = user.Id, token = token }, 
-                    Request.Scheme);
-
-                if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+                try
                 {
-                    await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var scheme = Request.Scheme;
+                    // Đảm bảo sử dụng https trong production
+                    if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                    {
+                        scheme = Request.Headers["X-Forwarded-Proto"].ToString();
+                    }
+                    else if (!_environment.IsDevelopment())
+                    {
+                        scheme = "https";
+                    }
+                    
+                    var confirmationLink = Url.Action("ConfirmEmail", "Account", 
+                        new { userId = user.Id, token = token }, 
+                        scheme);
+
+                    if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+                    {
+                        var emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+                        if (emailSent)
+                        {
+                            TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản (có thể trong thư mục Spam).";
+                        }
+                        else
+                        {
+                            TempData["Message"] = "Đăng ký thành công! Tuy nhiên, không thể gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
+                            _logger.LogWarning($"Failed to send verification email to {user.Email}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending verification email during registration");
+                    TempData["Message"] = "Đăng ký thành công! Tuy nhiên, có lỗi khi gửi email xác nhận. Vui lòng liên hệ admin để được hỗ trợ.";
                 }
 
-                TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.";
                 return RedirectToAction("Login");
             }
 
@@ -289,18 +316,27 @@ namespace MaiAmTinhThuong.Controllers
                 }
 
                 // Cập nhật thông tin người dùng trong DB
-                var updateResult = await _userManager.UpdateAsync(user);
-                if (updateResult.Succeeded)
+                try
                 {
-                    TempData["Message"] = "Thông tin tài khoản đã được cập nhật thành công!";
-                    return RedirectToAction("Profile");
-                }
-                else
-                {
-                    foreach (var error in updateResult.Errors)
+                    var updateResult = await _userManager.UpdateAsync(user);
+                    if (updateResult.Succeeded)
                     {
-                        ModelState.AddModelError("", error.Description);
+                        TempData["Message"] = "Thông tin tài khoản đã được cập nhật thành công!";
+                        return RedirectToAction("Profile");
                     }
+                    else
+                    {
+                        foreach (var error in updateResult.Errors)
+                        {
+                            ModelState.AddModelError("", error.Description);
+                            _logger.LogWarning($"Failed to update user profile: {error.Description}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating user profile");
+                    ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.");
                 }
             }
 
@@ -379,24 +415,44 @@ namespace MaiAmTinhThuong.Controllers
                 return Json(new { success = false, message = "Email đã được xác nhận rồi." });
             }
 
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var confirmationLink = Url.Action("ConfirmEmail", "Account",
-                new { userId = user.Id, token = token },
-                Request.Scheme);
+            try
+            {
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var scheme = Request.Scheme;
+                // Đảm bảo sử dụng https trong production
+                if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                {
+                    scheme = Request.Headers["X-Forwarded-Proto"].ToString();
+                }
+                else if (!_environment.IsDevelopment())
+                {
+                    scheme = "https";
+                }
+                
+                var confirmationLink = Url.Action("ConfirmEmail", "Account",
+                    new { userId = user.Id, token = token },
+                    scheme);
 
-            bool emailSent = false;
-            if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
-            {
-                emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+                bool emailSent = false;
+                if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+                {
+                    emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+                    _logger.LogInformation($"Resend confirmation email to {user.Email}: {emailSent}");
+                }
+                
+                if (emailSent)
+                {
+                    return Json(new { success = true, message = "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư (có thể trong thư mục Spam)." });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Không thể gửi email. Vui lòng kiểm tra cấu hình email service hoặc thử lại sau." });
+                }
             }
-            
-            if (emailSent)
+            catch (Exception ex)
             {
-                return Json(new { success = true, message = "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư." });
-            }
-            else
-            {
-                return Json(new { success = false, message = "Không thể gửi email. Vui lòng thử lại sau." });
+                _logger.LogError(ex, "Error resending confirmation email");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi gửi email. Vui lòng thử lại sau." });
             }
         }
 

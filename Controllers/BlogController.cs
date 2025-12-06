@@ -170,13 +170,16 @@ namespace MaiAmTinhThuong.Controllers
                     return RedirectToAction("Login", "Account");
                 }
 
+                // Kiểm tra nếu user là Admin thì tự động approve
+                var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
                 var blogPost = new BlogPost
                 {
                     Title = model.Title,
                     Content = model.Content,
                     CreatedAt = DateTime.UtcNow,
                     AuthorId = user.Id,
-                    IsApproved = false
+                    IsApproved = isAdmin // Admin tự động được approve
                 };
 
                 if (image != null && image.Length > 0)
