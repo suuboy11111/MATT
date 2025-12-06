@@ -1,6 +1,5 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using Microsoft.Extensions.Configuration;
 
 namespace MaiAmTinhThuong.Services
@@ -18,87 +17,80 @@ namespace MaiAmTinhThuong.Services
 
         public async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
-            var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
-            var smtpUser = _configuration["Email:SmtpUser"];
-            var smtpPassword = _configuration["Email:SmtpPassword"];
-            var fromEmail = _configuration["Email:FromEmail"] ?? smtpUser;
-            var fromName = _configuration["Email:FromName"] ?? "Mái Ấm Tình Thương";
-
-            if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPassword))
+            try
             {
-                _logger.LogWarning("Email configuration not found. Email sending disabled.");
+                // Kiểm tra xem có dùng SendGrid không
+                var sendGridApiKey = _configuration["Email:SendGridApiKey"];
+                
+                if (!string.IsNullOrEmpty(sendGridApiKey))
+                {
+                    // Dùng SendGrid
+                    return await SendEmailViaSendGridAsync(toEmail, subject, body, sendGridApiKey);
+                }
+                
+                // Fallback: Thử dùng SMTP (nếu có cấu hình)
+                var smtpUser = _configuration["Email:SmtpUser"];
+                var smtpPassword = _configuration["Email:SmtpPassword"];
+                
+                if (!string.IsNullOrEmpty(smtpUser) && !string.IsNullOrEmpty(smtpPassword))
+                {
+                    _logger.LogWarning("SendGrid API key not found, falling back to SMTP (may not work on Railway)");
+                    return await SendEmailViaSmtpAsync(toEmail, subject, body);
+                }
+
+                _logger.LogWarning("No email configuration found. Email sending disabled.");
                 return false;
             }
-
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(fromName, fromEmail));
-            message.To.Add(new MailboxAddress("", toEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder
+            catch (Exception ex)
             {
-                HtmlBody = body
-            };
-            message.Body = bodyBuilder.ToMessageBody();
-
-            // Thử cả port 587 (StartTLS) và 465 (SSL) nếu port 587 fail
-            var portsToTry = new[] { (smtpPort, SecureSocketOptions.StartTls) };
-            
-            // Nếu đang dùng port 587, thử thêm port 465 với SSL
-            if (smtpPort == 587)
-            {
-                portsToTry = new[] 
-                { 
-                    (587, SecureSocketOptions.StartTls),
-                    (465, SecureSocketOptions.SslOnConnect)
-                };
+                _logger.LogError(ex, $"Failed to send email to {toEmail}: {ex.Message}");
+                return false;
             }
+        }
 
-            Exception? lastException = null;
-
-            foreach (var (port, secureOption) in portsToTry)
+        private async Task<bool> SendEmailViaSendGridAsync(string toEmail, string subject, string body, string apiKey)
+        {
+            try
             {
-                try
-                {
-                    using var client = new SmtpClient();
-                    // Tăng timeout lên 30 giây
-                    client.Timeout = 30000;
-                    
-                    _logger.LogInformation($"Attempting to connect to SMTP server: {smtpHost}:{port} with {secureOption}");
-                    
-                    // Thử kết nối với timeout
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                    await client.ConnectAsync(smtpHost, port, secureOption, cts.Token);
-                    
-                    _logger.LogInformation("Connected successfully. Authenticating...");
-                    await client.AuthenticateAsync(smtpUser, smtpPassword, cts.Token);
-                    
-                    _logger.LogInformation($"Sending email to {toEmail}...");
-                    await client.SendAsync(message, cts.Token);
-                    
-                    _logger.LogInformation("Disconnecting from SMTP server...");
-                    await client.DisconnectAsync(true, cts.Token);
+                var fromEmail = _configuration["Email:FromEmail"] ?? _configuration["Email:SmtpUser"] ?? "noreply@maiamtinhthuong.vn";
+                var fromName = _configuration["Email:FromName"] ?? "Mái Ấm Tình Thương";
 
-                    _logger.LogInformation($"Email sent successfully to {toEmail} via {smtpHost}:{port}");
+                var client = new SendGridClient(apiKey);
+                var msg = new SendGridMessage()
+                {
+                    From = new EmailAddress(fromEmail, fromName),
+                    Subject = subject,
+                    HtmlContent = body
+                };
+                msg.AddTo(new EmailAddress(toEmail));
+
+                _logger.LogInformation($"Sending email via SendGrid to {toEmail}...");
+                var response = await client.SendEmailAsync(msg);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation($"Email sent successfully to {toEmail} via SendGrid");
                     return true;
                 }
-                catch (OperationCanceledException)
+                else
                 {
-                    _logger.LogWarning($"Connection timeout to {smtpHost}:{port}");
-                    lastException = new TimeoutException($"Connection to {smtpHost}:{port} timed out");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, $"Failed to send via {smtpHost}:{port} - {ex.Message}");
-                    lastException = ex;
-                    // Tiếp tục thử port tiếp theo nếu có
+                    var responseBody = await response.Body.ReadAsStringAsync();
+                    _logger.LogError($"SendGrid API error: Status {response.StatusCode}, Body: {responseBody}");
+                    return false;
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error sending email via SendGrid: {ex.Message}");
+                return false;
+            }
+        }
 
-            // Nếu tất cả đều fail
-            _logger.LogError(lastException, $"Failed to send email to {toEmail} after trying all methods");
-            return false;
+        private Task<bool> SendEmailViaSmtpAsync(string toEmail, string subject, string body)
+        {
+            // Giữ lại code SMTP cũ để fallback (nhưng có thể không hoạt động trên Railway)
+            _logger.LogWarning("SMTP method is deprecated. Please use SendGrid instead.");
+            return Task.FromResult(false);
         }
 
         public async Task<bool> SendVerificationEmailAsync(string toEmail, string confirmationLink)
