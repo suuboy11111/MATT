@@ -215,6 +215,15 @@ else
 
 var app = builder.Build();
 
+// Configure ForwardedHeaders để nhận diện đúng scheme từ reverse proxy (Railway)
+app.UseForwardedHeaders(new Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto | 
+                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost,
+    RequireHeaderSymmetry = false
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

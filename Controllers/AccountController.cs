@@ -463,20 +463,36 @@ namespace MaiAmTinhThuong.Controllers
             try
             {
                 // Đảm bảo sử dụng https trong production (Railway sử dụng reverse proxy)
-                var scheme = Request.Scheme;
-                // Kiểm tra X-Forwarded-Proto header (Railway set header này)
-                if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                var scheme = "https"; // Mặc định dùng https cho production
+                
+                // Trong development, dùng scheme từ request
+                if (_environment.IsDevelopment())
                 {
-                    scheme = Request.Headers["X-Forwarded-Proto"].ToString();
+                    scheme = Request.Scheme;
                 }
-                // Hoặc nếu không phải development, luôn dùng https
-                else if (!_environment.IsDevelopment())
+                else
                 {
+                    // Production: Kiểm tra X-Forwarded-Proto header (Railway set header này)
+                    if (Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                    {
+                        var forwardedProto = Request.Headers["X-Forwarded-Proto"].ToString();
+                        if (!string.IsNullOrEmpty(forwardedProto))
+                        {
+                            scheme = forwardedProto;
+                        }
+                    }
+                    // Nếu không có header hoặc header rỗng, dùng https (đã set mặc định)
+                }
+                
+                // Đảm bảo luôn dùng https trong production
+                if (!_environment.IsDevelopment() && scheme != "https")
+                {
+                    _logger.LogWarning($"Forcing https scheme. Original scheme: {scheme}, Request.Scheme: {Request.Scheme}");
                     scheme = "https";
                 }
                 
                 var redirectUrl = Url.Action("GoogleCallback", "Account", null, scheme);
-                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl}");
+                _logger.LogInformation($"Google OAuth redirect URI: {redirectUrl} (scheme: {scheme}, Request.Scheme: {Request.Scheme}, X-Forwarded-Proto: {Request.Headers["X-Forwarded-Proto"].ToString()})");
                 
                 var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
                 return Challenge(properties, "Google");
