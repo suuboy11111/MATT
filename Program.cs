@@ -24,15 +24,15 @@ builder.Services.AddControllersWithViews();
 
 // QUAN TRỌNG: Cấu hình Cookie Policy để đảm bảo tất cả cookies được set đúng SameSite
 // Điều này ảnh hưởng đến correlation cookie của OAuth
-builder.Services.Configure<Microsoft.AspNetCore.Http.CookiePolicyOptions>(options =>
+builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
-    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.Unspecified;
+    options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
     
     // Đảm bảo SameSite=None cookies luôn có Secure=true
     options.OnAppendCookie = cookieContext =>
     {
-        if (cookieContext.CookieOptions.SameSite == Microsoft.AspNetCore.Http.SameSiteMode.None)
+        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
         {
             cookieContext.CookieOptions.Secure = true;
         }
@@ -41,7 +41,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.CookiePolicyOptions>(option
     // Đảm bảo SameSite=None cookies được check khi check policy
     options.OnDeleteCookie = cookieContext =>
     {
-        if (cookieContext.CookieOptions.SameSite == Microsoft.AspNetCore.Http.SameSiteMode.None)
+        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
         {
             cookieContext.CookieOptions.Secure = true;
         }
@@ -340,7 +340,7 @@ var app = builder.Build();
 
 // QUAN TRỌNG: Configure Forwarded Headers để detect HTTPS đúng cách
 // Railway sử dụng reverse proxy, cần forward headers để biết request thực sự là HTTPS
-// PHẢI được gọi TRƯỚC UseHttpsRedirection và UseCookiePolicy
+// PHẢI được gọi TRƯỚC tất cả middleware khác
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
@@ -352,6 +352,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 // QUAN TRỌNG: Middleware để force HTTPS scheme trong production
+// PHẢI được gọi SAU UseForwardedHeaders nhưng TRƯỚC UseCookiePolicy và UseSession
 // Đảm bảo Request.Scheme = https trước khi OAuth middleware chạy
 app.Use(async (context, next) =>
 {
@@ -359,13 +360,31 @@ app.Use(async (context, next) =>
     var isProduction = !app.Environment.IsDevelopment() || 
                       Environment.GetEnvironmentVariable("PORT") != null;
     
-    if (isProduction && context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+    if (isProduction)
     {
-        var forwardedProto = context.Request.Headers["X-Forwarded-Proto"].ToString();
-        if (forwardedProto == "https" && context.Request.Scheme != "https")
+        var originalScheme = context.Request.Scheme;
+        var host = context.Request.Host.Host ?? "";
+        
+        // Kiểm tra X-Forwarded-Proto header (Railway set header này)
+        if (context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
         {
-            // Force scheme thành https để cookies được set đúng
+            var forwardedProto = context.Request.Headers["X-Forwarded-Proto"].ToString();
+            if (forwardedProto == "https")
+            {
+                // Force scheme thành https để cookies được set đúng
+                context.Request.Scheme = "https";
+            }
+        }
+        // Nếu không có header nhưng là Railway domain, vẫn force https
+        else if (host.Contains("railway.app"))
+        {
             context.Request.Scheme = "https";
+        }
+        
+        // Log để debug
+        if (originalScheme != context.Request.Scheme)
+        {
+            Console.WriteLine($"🔄 Force HTTPS: {originalScheme} -> {context.Request.Scheme} (Host: {host})");
         }
     }
     
