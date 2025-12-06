@@ -161,16 +161,27 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Tự động chạy migration khi khởi động (Production)
-using (var scope = app.Services.CreateScope())
+// Tự động chạy migration khi khởi động (Production) - với retry logic
+_ = Task.Run(async () =>
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    try
+    await Task.Delay(TimeSpan.FromSeconds(5)); // Đợi 5 giây để database sẵn sàng
+    
+    var maxRetries = 5;
+    var delay = TimeSpan.FromSeconds(2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
     {
-        // Kiểm tra và thêm các cột mới nếu chưa có
-        var connection = db.Database.GetDbConnection();
-        await connection.OpenAsync();
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            
+            logger.LogInformation($"Attempting database connection (attempt {attempt}/{maxRetries})...");
+            
+            // Kiểm tra và thêm các cột mới nếu chưa có
+            var connection = db.Database.GetDbConnection();
+            await connection.OpenAsync();
         using var command = connection.CreateCommand();
         
         // Kiểm tra xem đang dùng SQL Server hay PostgreSQL
@@ -339,84 +350,125 @@ using (var scope = app.Services.CreateScope())
             await command.ExecuteNonQueryAsync();
         }
         
-        await connection.CloseAsync();
-        
-        // Chạy migration tự động - bỏ qua warning về pending changes
-        try
-        {
-            db.Database.Migrate();
-            logger.LogInformation("Database migration completed successfully.");
+            await connection.CloseAsync();
+            
+            // Chạy migration tự động - bỏ qua warning về pending changes
+            try
+            {
+                db.Database.Migrate();
+                logger.LogInformation("Database migration completed successfully.");
+                break; // Thành công, thoát khỏi retry loop
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
+            {
+                // Bỏ qua warning về pending changes - đã xử lý thủ công ở trên
+                logger.LogWarning("Skipping pending model changes warning - columns already added manually.");
+                break; // Thành công, thoát khỏi retry loop
+            }
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
+        catch (Exception ex)
         {
-            // Bỏ qua warning về pending changes - đã xử lý thủ công ở trên
-            logger.LogWarning("Skipping pending model changes warning - columns already added manually.");
+            using var errorScope = app.Services.CreateScope();
+            var errorLogger = errorScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            
+            if (attempt < maxRetries)
+            {
+                errorLogger.LogWarning(ex, "Database connection failed (attempt {Attempt}/{MaxRetries}). Retrying in {Delay} seconds...", attempt, maxRetries, delay.TotalSeconds);
+                await Task.Delay(delay);
+                delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2); // Exponential backoff
+            }
+            else
+            {
+                errorLogger.LogError(ex, "Failed to connect to database after {MaxRetries} attempts. Application will continue but database operations may fail.", maxRetries);
+            }
+        }
+    }
+});
+
+// Seed data - chạy trong background để không block startup
+_ = Task.Run(async () =>
+{
+    await Task.Delay(TimeSpan.FromSeconds(10)); // Đợi database sẵn sàng
+    
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        // Tạo role Admin nếu chưa có
+        if (!await roleManager.RoleExistsAsync("Admin"))
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+        // Tạo user admin
+        var adminEmail = "admin@localhost.com";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            var user = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FullName = "Quản trị viên",
+                ProfilePicture = "default1-avatar.png",  // Cung cấp giá trị mặc định
+                Role = "Admin",
+                EmailConfirmed = true
+            };
+            var result = await userManager.CreateAsync(user, "Admin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(user, "Admin");
+                logger.LogInformation("Admin user created successfully.");
+            }
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while migrating the database.");
-        // Không throw exception để ứng dụng vẫn có thể chạy
-    }
-}
-
-using (var scope = app.Services.CreateScope())
-{
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-    // Tạo role Admin nếu chưa có
-    if (!await roleManager.RoleExistsAsync("Admin"))
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
-
-    // Tạo user admin
-    var adminEmail = "admin@localhost.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
-    {
-        var user = new ApplicationUser
-        {
-            UserName = adminEmail,
-            Email = adminEmail,
-            FullName = "Quản trị viên",
-            ProfilePicture = "default1-avatar.png",  // Cung cấp giá trị mặc định
-            Role = "Admin",
-            EmailConfirmed = true
-        };
-        var result = await userManager.CreateAsync(user, "Admin@123");
-        if (result.Succeeded)
-        {
-            await userManager.AddToRoleAsync(user, "Admin");
-        }
-    }
-}
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    if (!db.BotRules.Any())
-    {
-        db.BotRules.AddRange(new[]
-        {
-            new BotRule { Trigger = "xin chào", MatchType = MatchType.Contains, Response = "Chào bạn! Mình có thể giúp gì cho bạn?", Priority = 100 },
-            new BotRule { Trigger = "đóng góp", MatchType = MatchType.Contains, Response = "Bạn có thể đóng góp tại /DongGop hoặc liên hệ số (+84) 902115231.", Priority = 90 },
-            new BotRule { Trigger = "giờ làm việc", MatchType = MatchType.Exact, Response = "Mái Ấm mở cửa: 8:00 - 17:00 (T2-T7).", Priority = 80 },
-            new BotRule { Trigger = "lien he", MatchType = MatchType.Regex, Response = "Bạn có thể gọi (+84)902115231 hoặc email MaiAmYeuThuong@gmail.com", Priority = 70 }
-        });
-        db.SaveChanges();
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error creating admin user: {Message}", ex.Message);
     }
     
-    // Seed SupportTypes nếu chưa có
-    if (!db.SupportTypes.Any())
+    try
     {
-        db.SupportTypes.AddRange(new[]
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        if (!db.BotRules.Any())
         {
-            new SupportType { Name = "Tài chính" },
-            new SupportType { Name = "Vật tư" },
-            new SupportType { Name = "Chỗ ở" }
-        });
-        db.SaveChanges();
+            db.BotRules.AddRange(new[]
+            {
+                new BotRule { Trigger = "xin chào", MatchType = MatchType.Contains, Response = "Chào bạn! Mình có thể giúp gì cho bạn?", Priority = 100 },
+                new BotRule { Trigger = "đóng góp", MatchType = MatchType.Contains, Response = "Bạn có thể đóng góp tại /DongGop hoặc liên hệ số (+84) 902115231.", Priority = 90 },
+                new BotRule { Trigger = "giờ làm việc", MatchType = MatchType.Exact, Response = "Mái Ấm mở cửa: 8:00 - 17:00 (T2-T7).", Priority = 80 },
+                new BotRule { Trigger = "lien he", MatchType = MatchType.Regex, Response = "Bạn có thể gọi (+84)902115231 hoặc email MaiAmYeuThuong@gmail.com", Priority = 70 }
+            });
+            db.SaveChanges();
+            logger.LogInformation("Bot rules seeded successfully.");
+        }
+        
+        // Seed SupportTypes nếu chưa có
+        if (!db.SupportTypes.Any())
+        {
+            db.SupportTypes.AddRange(new[]
+            {
+                new SupportType { Name = "Tài chính" },
+                new SupportType { Name = "Vật tư" },
+                new SupportType { Name = "Chỗ ở" }
+            });
+            db.SaveChanges();
+            logger.LogInformation("Support types seeded successfully.");
+        }
     }
-}
+    catch (Exception ex)
+    {
+        using var scope = app.Services.CreateScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error seeding data: {Message}", ex.Message);
+    }
+});
 
 
 // Configure port for Railway (Railway sets PORT environment variable)
