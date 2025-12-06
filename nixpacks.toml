@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["dotnet-sdk_9"]
+
+[phases.install]
+cmds = ["dotnet restore"]
+
+[phases.build]
+cmds = ["dotnet publish -c Release -o /app/output"]
+
+[start]
+cmd = "dotnet /app/output/MaiAmTinhThuong.dll --urls http://0.0.0.0:${{PORT}}"
