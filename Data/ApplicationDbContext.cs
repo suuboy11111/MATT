@@ -96,5 +96,39 @@ namespace MaiAmTinhThuong.Data
                 .HasForeignKey(sr => sr.MaiAmId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
+
+        // Override SaveChangesAsync để đảm bảo tất cả DateTime đều là UTC (PostgreSQL yêu cầu)
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var entries = ChangeTracker.Entries()
+                .Where(e => e.Entity is ApplicationUser && (e.State == Microsoft.EntityFrameworkCore.EntityState.Added || e.State == Microsoft.EntityFrameworkCore.EntityState.Modified));
+
+            foreach (var entityEntry in entries)
+            {
+                if (entityEntry.Entity is ApplicationUser user)
+                {
+                    // Đảm bảo CreatedAt là UTC
+                    if (user.CreatedAt.HasValue && user.CreatedAt.Value.Kind != DateTimeKind.Utc)
+                    {
+                        user.CreatedAt = user.CreatedAt.Value.ToUniversalTime();
+                    }
+
+                    // Đảm bảo UpdatedAt là UTC
+                    if (user.UpdatedAt.HasValue && user.UpdatedAt.Value.Kind != DateTimeKind.Utc)
+                    {
+                        user.UpdatedAt = user.UpdatedAt.Value.ToUniversalTime();
+                    }
+
+                    // Đảm bảo DateOfBirth là UTC (chỉ lấy date part)
+                    if (user.DateOfBirth.HasValue)
+                    {
+                        var dateOnly = user.DateOfBirth.Value.Date;
+                        user.DateOfBirth = new DateTime(dateOnly.Ticks, DateTimeKind.Utc);
+                    }
+                }
+            }
+
+            return await base.SaveChangesAsync(cancellationToken);
+        }
     }
 }

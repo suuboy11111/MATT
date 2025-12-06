@@ -296,13 +296,29 @@ namespace MaiAmTinhThuong.Controllers
                 // Cập nhật thông tin người dùng
                 user.FullName = model.FullName;
                 user.Gender = model.Gender;
-                user.DateOfBirth = model.DateOfBirth;
+                // Đảm bảo DateOfBirth là UTC nếu có (PostgreSQL yêu cầu)
+                if (model.DateOfBirth.HasValue)
+                {
+                    // DateOfBirth thường là local date, chỉ lấy date part và convert sang UTC
+                    var dateOnly = model.DateOfBirth.Value.Date;
+                    user.DateOfBirth = new DateTime(dateOnly.Ticks, DateTimeKind.Utc);
+                }
+                else
+                {
+                    user.DateOfBirth = null;
+                }
                 user.Address = model.Address;
                 if (!string.IsNullOrEmpty(model.PhoneNumber))
                 {
                     user.PhoneNumber2 = model.PhoneNumber;
                 }
                 user.UpdatedAt = DateTime.UtcNow;
+                
+                // Đảm bảo CreatedAt là UTC nếu có
+                if (user.CreatedAt.HasValue && user.CreatedAt.Value.Kind != DateTimeKind.Utc)
+                {
+                    user.CreatedAt = user.CreatedAt.Value.ToUniversalTime();
+                }
 
                 // Thay đổi mật khẩu nếu có
                 if (!string.IsNullOrEmpty(model.CurrentPassword) && !string.IsNullOrEmpty(model.NewPassword))
@@ -449,6 +465,20 @@ namespace MaiAmTinhThuong.Controllers
 
             // Xác nhận email
             user.EmailConfirmed = true;
+            // Đảm bảo UpdatedAt là UTC (PostgreSQL yêu cầu)
+            user.UpdatedAt = DateTime.UtcNow;
+            // Đảm bảo CreatedAt là UTC nếu có
+            if (user.CreatedAt.HasValue && user.CreatedAt.Value.Kind != DateTimeKind.Utc)
+            {
+                user.CreatedAt = user.CreatedAt.Value.ToUniversalTime();
+            }
+            // Đảm bảo DateOfBirth là UTC nếu có
+            if (user.DateOfBirth.HasValue && user.DateOfBirth.Value.Kind != DateTimeKind.Utc)
+            {
+                // DateOfBirth thường là local date, chỉ lấy date part
+                user.DateOfBirth = user.DateOfBirth.Value.Date;
+            }
+            
             var updateResult = await _userManager.UpdateAsync(user);
             
             if (updateResult.Succeeded)
