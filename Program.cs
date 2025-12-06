@@ -29,6 +29,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddScoped<MaiAmTinhThuong.Services.SupportRequestService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
+builder.Services.AddScoped<MaiAmTinhThuong.Services.EmailService>();
 
 // Hỗ trợ cả SQL Server và PostgreSQL
 // Railway cung cấp DATABASE_URL (internal) hoặc DATABASE_PUBLIC_URL (public), ưu tiên sử dụng internal
@@ -150,10 +151,40 @@ else
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.SignIn.RequireConfirmedAccount = false;
+    options.SignIn.RequireConfirmedAccount = false; // Không yêu cầu xác nhận khi đăng nhập (chỉ cần email đã được xác nhận từ lúc đăng ký)
+    options.SignIn.RequireConfirmedEmail = false; // Tắt yêu cầu xác nhận email tự động, sẽ kiểm tra thủ công trong Register
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+    options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
+// Google OAuth
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.CallbackPath = "/Account/GoogleCallback";
+        });
+    Console.WriteLine("✅ Google OAuth configured");
+}
+else
+{
+    Console.WriteLine("⚠️ Google OAuth configuration not found. Google login will be disabled.");
+    Console.WriteLine("💡 To enable Google OAuth, add these environment variables:");
+    Console.WriteLine("   - Authentication__Google__ClientId");
+    Console.WriteLine("   - Authentication__Google__ClientSecret");
+}
 
 // Đăng ký PayOSClient (optional - chỉ đăng ký nếu có config)
 var payOSClientId = builder.Configuration["PayOS:ClientId"];
@@ -331,8 +362,9 @@ _ = Task.Run(async () =>
         if (!await roleManager.RoleExistsAsync("Admin"))
             await roleManager.CreateAsync(new IdentityRole("Admin"));
 
-        // Tạo user admin
-        var adminEmail = "admin@localhost.com";
+        // Tạo user admin - có thể override bằng environment variable
+        var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "admin@maiamtinhthuong.vn";
+        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "Admin@123456";
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
         {
@@ -341,16 +373,26 @@ _ = Task.Run(async () =>
                 UserName = adminEmail,
                 Email = adminEmail,
                 FullName = "Quản trị viên",
-                ProfilePicture = "default1-avatar.png",  // Cung cấp giá trị mặc định
+                ProfilePicture = "/images/default1-avatar.png",
                 Role = "Admin",
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
             };
-            var result = await userManager.CreateAsync(user, "Admin@123");
+            var result = await userManager.CreateAsync(user, adminPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(user, "Admin");
-                logger.LogInformation("Admin user created successfully.");
+                logger.LogInformation($"✅ Admin user created successfully. Email: {adminEmail}");
             }
+            else
+            {
+                logger.LogError($"❌ Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        else
+        {
+            logger.LogInformation($"ℹ️ Admin user already exists: {adminEmail}");
         }
     }
     catch (Exception ex)

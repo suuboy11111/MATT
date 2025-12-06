@@ -1,8 +1,9 @@
-﻿using MaiAmTinhThuong.Models;
+using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Models.ViewModels;
+using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.Encodings.Web;
 
 namespace MaiAmTinhThuong.Controllers
 {
@@ -11,14 +12,20 @@ namespace MaiAmTinhThuong.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly EmailService _emailService;
+        private readonly ILogger<AccountController> _logger;
 
         public AccountController(UserManager<ApplicationUser> userManager,
                                  SignInManager<ApplicationUser> signInManager,
-                                 RoleManager<IdentityRole> roleManager)
+                                 RoleManager<IdentityRole> roleManager,
+                                 EmailService emailService,
+                                 ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         // GET: /Account/Register
@@ -42,7 +49,8 @@ namespace MaiAmTinhThuong.Controllers
                 ProfilePicture = "/images/default1-avatar.png",
                 Gender = model.Gender?.ToString(),
                 CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now
+                UpdatedAt = DateTime.Now,
+                EmailConfirmed = false // Chưa xác nhận email
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -57,8 +65,19 @@ namespace MaiAmTinhThuong.Controllers
                 // Gán role cho user
                 await _userManager.AddToRoleAsync(user, model.Role);
 
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("Index", "Home");
+                // Gửi email xác nhận
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = Url.Action("ConfirmEmail", "Account", 
+                    new { userId = user.Id, token = token }, 
+                    Request.Scheme);
+
+                if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+                {
+                    await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+                }
+
+                TempData["Message"] = "Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.";
+                return RedirectToAction("Login");
             }
 
             foreach (var error in result.Errors)
@@ -77,17 +96,53 @@ namespace MaiAmTinhThuong.Controllers
 
         // POST: /Account/Login
         [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             if (!ModelState.IsValid) return View(model);
-            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, false);
-            if (result.Succeeded)
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
             {
-                return RedirectToAction("Index", "Home");
+                ModelState.AddModelError("", "Email hoặc mật khẩu không đúng.");
+                return View(model);
             }
 
-            ModelState.AddModelError("", "Đăng nhập thất bại");
+            // Kiểm tra email đã được xác nhận chưa (chỉ cần kiểm tra, không yêu cầu xác nhận lại)
+            if (!await _userManager.IsEmailConfirmedAsync(user))
+            {
+                ModelState.AddModelError("", "Email chưa được xác nhận. Vui lòng kiểm tra email đã nhận khi đăng ký và click vào link xác nhận.");
+                // Hiển thị nút gửi lại email xác nhận
+                ViewBag.ShowResendEmail = true;
+                ViewBag.UserEmail = model.Email;
+                return View(model);
+            }
+
+            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
+            
+            if (result.Succeeded)
+            {
+                return RedirectToLocal(returnUrl);
+            }
+            
+            if (result.IsLockedOut)
+            {
+                ModelState.AddModelError("", "Tài khoản đã bị khóa. Vui lòng thử lại sau.");
+            }
+            else
+            {
+                ModelState.AddModelError("", "Email hoặc mật khẩu không đúng.");
+            }
+
             return View(model);
+        }
+
+        private IActionResult RedirectToLocal(string? returnUrl)
+        {
+            if (Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+            return RedirectToAction("Index", "Home");
         }
 
         // GET: /Account/Logout
@@ -108,8 +163,8 @@ namespace MaiAmTinhThuong.Controllers
             // Tạo model và gán giá trị cho nó
             var model = new ProfileViewModel
             {
-                FullName = user.FullName,
-                Email = user.Email,
+                FullName = user.FullName ?? "",
+                Email = user.Email ?? "",
                 ProfilePicture = user.ProfilePicture ?? "/images/default1-avatar.png",
                 Gender = user.Gender,
                 DateOfBirth = user.DateOfBirth,
@@ -231,7 +286,7 @@ namespace MaiAmTinhThuong.Controllers
             }
 
             // Nếu có lỗi, load lại model với dữ liệu user
-            model.Email = user.Email;
+            model.Email = user.Email ?? "";
             model.ProfilePicture = user.ProfilePicture ?? "/images/default1-avatar.png";
             return View(model);
         }
@@ -255,6 +310,143 @@ namespace MaiAmTinhThuong.Controllers
             {
                 return Json(new { success = false });
             }
+        }
+
+        // Email Confirmation
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        {
+            if (userId == null || token == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                TempData["Error"] = "Không tìm thấy người dùng.";
+                return RedirectToAction("Login");
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+            {
+                TempData["Message"] = "Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay bây giờ.";
+                return RedirectToAction("Login");
+            }
+
+            TempData["Error"] = "Link xác nhận không hợp lệ hoặc đã hết hạn.";
+            return RedirectToAction("Login");
+        }
+
+        // Resend confirmation email
+        [HttpPost]
+        public async Task<IActionResult> ResendConfirmationEmail([FromBody] Dictionary<string, string>? request)
+        {
+            var email = request?.GetValueOrDefault("email");
+            if (string.IsNullOrEmpty(email))
+            {
+                return Json(new { success = false, message = "Email không được để trống." });
+            }
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Email không tồn tại trong hệ thống." });
+            }
+
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                return Json(new { success = false, message = "Email đã được xác nhận rồi." });
+            }
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = Url.Action("ConfirmEmail", "Account",
+                new { userId = user.Id, token = token },
+                Request.Scheme);
+
+            bool emailSent = false;
+            if (!string.IsNullOrEmpty(user.Email) && !string.IsNullOrEmpty(confirmationLink))
+            {
+                emailSent = await _emailService.SendVerificationEmailAsync(user.Email, confirmationLink);
+            }
+            
+            if (emailSent)
+            {
+                return Json(new { success = true, message = "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư." });
+            }
+            else
+            {
+                return Json(new { success = false, message = "Không thể gửi email. Vui lòng thử lại sau." });
+            }
+        }
+
+        // Google OAuth
+        [HttpGet]
+        public IActionResult GoogleLogin()
+        {
+            var redirectUrl = Url.Action("GoogleCallback", "Account");
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GoogleCallback(string? returnUrl = null)
+        {
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null)
+            {
+                TempData["Error"] = "Không thể lấy thông tin từ Google.";
+                return RedirectToAction("Login");
+            }
+
+            var email = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+            var name = info.Principal.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            var picture = info.Principal.FindFirst("picture")?.Value ?? "";
+
+            if (string.IsNullOrEmpty(email))
+            {
+                TempData["Error"] = "Không thể lấy email từ Google.";
+                return RedirectToAction("Login");
+            }
+
+            // Tìm user đã tồn tại
+            var user = await _userManager.FindByEmailAsync(email);
+            
+            if (user == null)
+            {
+                // Tạo user mới
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = name ?? "Người dùng Google",
+                    ProfilePicture = picture ?? "/images/default1-avatar.png",
+                    EmailConfirmed = true, // Google đã xác nhận email
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now,
+                    Role = "NguoiHoTro" // Mặc định
+                };
+
+                var result = await _userManager.CreateAsync(user);
+                if (!result.Succeeded)
+                {
+                    TempData["Error"] = "Không thể tạo tài khoản. " + string.Join(", ", result.Errors.Select(e => e.Description));
+                    return RedirectToAction("Login");
+                }
+            }
+
+            // Thêm external login nếu chưa có
+            var addLoginResult = await _userManager.AddLoginAsync(user, info);
+            if (!addLoginResult.Succeeded && !addLoginResult.Errors.Any(e => e.Code == "LoginAlreadyAssociated"))
+            {
+                TempData["Error"] = "Không thể liên kết tài khoản Google.";
+                return RedirectToAction("Login");
+            }
+
+            // Đăng nhập
+            await _signInManager.SignInAsync(user, isPersistent: false);
+            return RedirectToLocal(returnUrl);
         }
     }
 }

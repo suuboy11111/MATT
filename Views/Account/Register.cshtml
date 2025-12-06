@@ -1,77 +1,143 @@
-﻿@model MaiAmTinhThuong.Models.ViewModels.RegisterViewModel
+@model MaiAmTinhThuong.Models.ViewModels.RegisterViewModel
 
 @{
     ViewData["Title"] = "Đăng ký";
 }
 
-<div class="container mt-5">
+<div class="container mt-5 mb-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem; font-weight: 600;">ĐĂNG KÝ</h2>
-
-            <form asp-action="Register" class="register-form shadow-lg p-4 rounded">
-                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
-
-                <!-- Họ và Tên -->
-                <div class="mb-3">
-                    <label asp-for="FullName" class="form-label">Họ và Tên</label>
-                    <input asp-for="FullName" class="form-control" placeholder="Nhập họ tên của bạn" />
-                    <span asp-validation-for="FullName" class="text-danger"></span>
+        <div class="col-md-8 col-lg-7">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h2 class="text-center mb-0">
+                        <span style="font-size: 2rem;">❤️</span>
+                        <span class="ms-2">Đăng ký tài khoản</span>
+                    </h2>
+                    <p class="text-center text-muted mt-2">Tham gia cùng chúng tôi để lan tỏa yêu thương</p>
                 </div>
 
-                <!-- Email -->
-                <div class="mb-3">
-                    <label asp-for="Email" class="form-label">Email</label>
-                    <input asp-for="Email" class="form-control" placeholder="Nhập email của bạn" />
-                    <span asp-validation-for="Email" class="text-danger"></span>
-                </div>
+                @if (TempData["Message"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @TempData["Message"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
 
-                <!-- Loại tài khoản -->
-                <div class="mb-3">
-                    <label asp-for="Role" class="form-label">Loại tài khoản</label>
-                    <select asp-for="Role" class="form-control" required>
-                        <option value="">-- Chọn loại tài khoản --</option>
-                        <option value="NguoiCanHoTro">Người cần hỗ trợ</option>
-                        <option value="NguoiHoTro">Người hỗ trợ</option>
-                    </select>
-                    <span asp-validation-for="Role" class="text-danger"></span>
-                </div>
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
 
-                <!-- Giới tính -->
-                <div class="mb-3">
-                    <label asp-for="Gender" class="form-label">Giới tính</label>
-                    <select asp-for="Gender" class="form-control">
-                        <option value="">-- Chọn giới tính --</option>
-                        <option value="1">Nam</option>
-                        <option value="2">Nữ</option>
-                        <option value="3">Khác</option>
-                    </select>
-                    <span asp-validation-for="Gender" class="text-danger"></span>
-                </div>
+                <form asp-action="Register" class="auth-form">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                <!-- Mật khẩu -->
-                <div class="mb-3">
-                    <label asp-for="Password" class="form-label">Mật khẩu</label>
-                    <input asp-for="Password" class="form-control" type="password" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)" />
-                    <span asp-validation-for="Password" class="text-danger"></span>
-                </div>
+                    <div class="row">
+                        <!-- Họ và Tên -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="FullName" class="form-label">
+                                    <i class="fas fa-user me-2"></i>Họ và Tên
+                                </label>
+                                <input asp-for="FullName" class="form-control" placeholder="Nhập họ tên của bạn" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+                        </div>
 
-                <!-- Xác nhận mật khẩu -->
-                <div class="mb-3">
-                    <label asp-for="ConfirmPassword" class="form-label">Xác nhận mật khẩu</label>
-                    <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Xác nhận mật khẩu" />
-                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                </div>
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>Email
+                                </label>
+                                <input asp-for="Email" class="form-control" type="email" placeholder="Nhập email của bạn" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- Nút Đăng ký -->
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
-                </div>
+                    <div class="row">
+                        <!-- Loại tài khoản -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Role" class="form-label">
+                                    <i class="fas fa-user-tag me-2"></i>Loại tài khoản
+                                </label>
+                                <select asp-for="Role" class="form-control" required>
+                                    <option value="">-- Chọn loại tài khoản --</option>
+                                    <option value="NguoiCanHoTro">Người cần hỗ trợ</option>
+                                    <option value="NguoiHoTro">Người hỗ trợ</option>
+                                </select>
+                                <span asp-validation-for="Role" class="text-danger"></span>
+                            </div>
+                        </div>
 
-                <div class="mt-3 text-center">
-                    <a asp-action="Login">Đã có tài khoản? Đăng nhập</a>
-                </div>
-            </form>
+                        <!-- Giới tính -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Gender" class="form-label">
+                                    <i class="fas fa-venus-mars me-2"></i>Giới tính
+                                </label>
+                                <select asp-for="Gender" class="form-control">
+                                    <option value="">-- Chọn giới tính --</option>
+                                    <option value="1">Nam</option>
+                                    <option value="2">Nữ</option>
+                                    <option value="3">Khác</option>
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Mật khẩu -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="Password" class="form-label">
+                                    <i class="fas fa-lock me-2"></i>Mật khẩu
+                                </label>
+                                <input asp-for="Password" class="form-control" type="password" placeholder="Tối thiểu 6 ký tự" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Xác nhận mật khẩu -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="ConfirmPassword" class="form-label">
+                                    <i class="fas fa-lock me-2"></i>Xác nhận mật khẩu
+                                </label>
+                                <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Nhập lại mật khẩu" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nút Đăng ký -->
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-user-plus me-2"></i>Đăng ký
+                    </button>
+
+                    <!-- Divider -->
+                    <div class="divider">
+                        <span>hoặc</span>
+                    </div>
+
+                    <!-- Google Login -->
+                    <a asp-action="GoogleLogin" class="btn btn-google w-100 mb-3">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon" />
+                        Đăng ký với Google
+                    </a>
+
+                    <!-- Links -->
+                    <div class="text-center">
+                        <a asp-action="Login" class="auth-link">Đã có tài khoản? Đăng nhập ngay</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -83,84 +149,129 @@
 }
 
 <style>
-    /* Cải thiện giao diện của form đăng ký */
-    .register-form {
-        background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    .auth-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 2.5rem;
+        margin-top: 2rem;
+    }
+
+    .auth-header {
+        margin-bottom: 2rem;
+    }
+
+    .auth-header h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
     }
 
     .form-label {
         font-weight: 600;
-        color: #333333;
+        color: #333;
+        margin-bottom: 0.5rem;
+        display: block;
     }
 
     .form-control {
-        border-radius: 8px;
-        padding: 15px;
+        border-radius: 12px;
+        padding: 0.875rem 1.25rem;
         font-size: 1rem;
-        border: 1px solid #ddd;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
     }
 
-        .form-control:focus {
-            border-color: #87cefa;
-            box-shadow: 0 0 5px rgba(135, 206, 250, 0.6);
-            outline: none;
-        }
+    .form-control:focus {
+        border-color: #FF6B9D;
+        box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+        outline: none;
+    }
 
     .btn-primary {
-        background-color: #87cefa;
-        border-color: #87cefa;
-        padding: 12px;
+        background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%);
+        border: none;
+        border-radius: 12px;
+        padding: 0.875rem;
         font-weight: 600;
-        text-transform: uppercase;
-        border-radius: 30px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
     }
 
-        .btn-primary:hover {
-            background-color: #f1b6b3;
-            border-color: #f1b6b3;
-        }
-
-    .alert-danger {
-        display: none;
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
     }
 
-    /* Cải thiện khoảng cách và căn chỉnh */
-    .container {
-        max-width: 800px;
-    }
-
-    .mt-5 {
-        margin-top: 50px;
-    }
-
-    .w-100 {
-        width: 100%;
-    }
-
-    .text-center {
-        text-align: center;
-    }
-
-    .mb-3 {
-        margin-bottom: 20px;
-    }
-
-    .mt-4 {
-        margin-top: 30px;
-    }
-
-    .mt-3 {
-        margin-top: 20px;
-    }
-
-    a {
-        color: #87cefa;
+    .btn-google {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 0.875rem;
+        font-weight: 600;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
         text-decoration: none;
     }
 
-        a:hover {
-            text-decoration: underline;
-        }
+    .btn-google:hover {
+        border-color: #4285f4;
+        background: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+        color: #333;
+    }
+
+    .google-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .divider {
+        text-align: center;
+        margin: 1.5rem 0;
+        position: relative;
+    }
+
+    .divider::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 100%;
+        height: 1px;
+        background: #e0e0e0;
+    }
+
+    .divider span {
+        background: white;
+        padding: 0 1rem;
+        position: relative;
+        color: #666;
+    }
+
+    .auth-link {
+        color: #FF6B9D;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .auth-link:hover {
+        color: #C44569;
+        text-decoration: underline;
+    }
+
+    .alert {
+        border-radius: 12px;
+        border: none;
+    }
 </style>
