@@ -28,20 +28,12 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     // Cho phép SameSite=None cho cross-site requests (cần cho OAuth)
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
-    
-    // Đảm bảo SameSite=None cookies luôn có Secure=true
+
+    // Chỉ đảm bảo Secure cho cookie SameSite=None, không can thiệp correlation/external
     options.OnAppendCookie = cookieContext =>
     {
-        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
-        {
-            cookieContext.CookieOptions.Secure = true;
-        }
-    };
-    
-    // Đảm bảo SameSite=None cookies được check khi check policy
-    options.OnDeleteCookie = cookieContext =>
-    {
-        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None)
+        if (cookieContext.CookieOptions.SameSite == SameSiteMode.None &&
+            cookieContext.CookieOptions.Secure == false)
         {
             cookieContext.CookieOptions.Secure = true;
         }
@@ -261,6 +253,7 @@ builder.Services.ConfigureExternalCookie(options =>
     options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.Path = "/";
+    options.Cookie.Domain = "matt-production.up.railway.app";
     options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
 });
 
@@ -297,7 +290,7 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
                 // QUAN TRỌNG: Browser chỉ chấp nhận SameSite=None nếu có Secure=true
                 options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
                 options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                options.CorrelationCookie.Domain = null;
+                options.CorrelationCookie.Domain = "matt-production.up.railway.app";
                 
                 Console.WriteLine($"✅ Google OAuth Correlation Cookie (Production): SameSite=None, Secure=Always, MaxAge=10min, IsEssential=true");
             }
