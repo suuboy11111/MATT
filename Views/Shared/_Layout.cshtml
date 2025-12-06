@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity
 @using MaiAmTinhThuong.Models
 @inject UserManager<ApplicationUser> UserManager
 
@@ -194,10 +194,16 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
                     <div class="navbar-nav mx-auto fw-semibold">
-                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "text-danger" : "")" asp-controller="Home" asp-action="Index">Trang chủ</a>
-                        <a class="nav-link" href="#about">Về chúng tôi</a>
-                        <a class="nav-link" href="#services">Dịch vụ</a>
-                        <a class="nav-link" href="#contact">Liên hệ</a>
+                        <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "text-danger" : "")" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                        @{
+                            var isHomePage = ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index";
+                            var aboutLink = isHomePage ? "#about" : Url.Action("Index", "Home") + "#about";
+                            var servicesLink = isHomePage ? "#services" : Url.Action("Index", "Home") + "#services";
+                            var contactLink = isHomePage ? "#contact" : Url.Action("Index", "Home") + "#contact";
+                        }
+                        <a class="nav-link" href="@aboutLink">Về chúng tôi</a>
+                        <a class="nav-link" href="@servicesLink">Dịch vụ</a>
+                        <a class="nav-link" href="@contactLink">Liên hệ</a>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="maiAmDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Mái ấm

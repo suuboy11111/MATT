@@ -1,37 +1,44 @@
-﻿@{
+@{
     ViewData["Title"] = "Giới thiệu về tôi";
 }
 
 
-<section class="py-5" style="background-color: #f9f9f9;">
+<section class="py-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f0f4ff 100%); position: relative; overflow: hidden;">
     <div class="container-fluid px-5">
         <div class="row align-items-center">
             <!-- Ảnh bên trái -->
-            <div class="col-md-6 text-center mb-4 mb-md-0">
-                <img src="/images/ab.jpg" class="img-fluid w-100 shadow-sm" alt="Ảnh đại diện" style="max-height: 400px; object-fit: cover;">
+            <div class="col-md-6 text-center mb-4 mb-md-0" data-aos="fade-right">
+                <div style="position: relative; display: inline-block;">
+                    <img src="/images/ab.jpg" class="img-fluid w-100 shadow-lg rounded-4" alt="Ảnh đại diện" style="max-height: 450px; object-fit: cover; transition: transform 0.3s ease;">
+                    <div style="position: absolute; top: -10px; left: -10px; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)); border-radius: 1rem; z-index: -1;"></div>
+                </div>
             </div>
 
             <!-- Nội dung bên phải -->
-            <div class="col-md-6 px-4">
-                <h2 class="fw-bold mb-3" style="font-size: 2.5rem; color: #2c3e50;">Về Mái Ấm Tình Thương</h2>
-                <p class="text-muted mb-4" style="font-size: 1.1rem;">
+            <div class="col-md-6 px-4" data-aos="fade-left">
+                <h2 class="fw-bold mb-3" style="font-size: 2.8rem; color: #2c3e50; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    Về Mái Ấm Tình Thương
+                </h2>
+                <p class="mb-4" style="font-size: 1.2rem; color: #6c757d; font-weight: 500;">
                     Hành trình lan toả tình thương và kiến tạo tương lai cho những mảnh đời khó khăn
                 </p>
-                <h3 class="fw-bold mb-3" style="color: #2c3e50;">Sứ mệnh của chúng tôi</h3>
-                <p style="font-size: 1.05rem; line-height: 1.7; color: #444;">
+                <h3 class="fw-bold mb-3" style="color: #667eea; font-size: 1.8rem;">Sứ mệnh của chúng tôi</h3>
+                <p style="font-size: 1.1rem; line-height: 1.8; color: #555; margin-bottom: 1rem;">
                     Mái Ấm Tình Thương được thành lập vào năm 2010 với sứ mệnh hỗ trợ và bảo vệ trẻ em và gia đình có hoàn cảnh khó khăn, đặc biệt là những người bị ảnh hưởng bởi đói nghèo, bệnh tật và thiên tai.
                 </p>
-                <p style="font-size: 1.05rem; line-height: 1.7; color: #444;">
+                <p style="font-size: 1.1rem; line-height: 1.8; color: #555; margin-bottom: 1.5rem;">
                     Chúng tôi tin rằng mỗi đứa trẻ đều xứng đáng có một tuổi thơ hạnh phúc, được học tập và phát triển trong môi trường an toàn và yêu thương.
                 </p>
                 <ul class="list-unstyled mt-4">
-                    <li class="mb-2">
-                        <i class="fas fa-heart text-primary me-2"></i>
-                        <strong>Tầm nhìn:</strong> Một xã hội nơi mọi trẻ em đều được yêu thương và có cơ hội phát triển.
+                    <li class="mb-3 p-3 rounded-3" style="background: rgba(102, 126, 234, 0.05); border-left: 4px solid #667eea;">
+                        <i class="fas fa-heart text-danger me-2" style="font-size: 1.2rem;"></i>
+                        <strong style="color: #2c3e50;">Tầm nhìn:</strong> 
+                        <span style="color: #555;">Một xã hội nơi mọi trẻ em đều được yêu thương và có cơ hội phát triển.</span>
                     </li>
-                    <li>
-                        <i class="fas fa-bullseye text-success me-2"></i>
-                        <strong>Sứ mệnh:</strong> Hỗ trợ và trao quyền cho trẻ em và gia đình thông qua giáo dục và y tế.
+                    <li class="p-3 rounded-3" style="background: rgba(118, 75, 162, 0.05); border-left: 4px solid #764ba2;">
+                        <i class="fas fa-bullseye text-success me-2" style="font-size: 1.2rem;"></i>
+                        <strong style="color: #2c3e50;">Sứ mệnh:</strong> 
+                        <span style="color: #555;">Hỗ trợ và trao quyền cho trẻ em và gia đình thông qua giáo dục và y tế.</span>
                     </li>
                 </ul>
             </div>
@@ -39,46 +46,48 @@
     </div>
 </section>
 <!-- Giá trị cốt lõi -->
-<section class="py-5 bg-light">
-    <div>
-        <h2 class="text-center fw-bold mb-3">GIÁ TRỊ CỐT LÕI</h2>
-        <p class="text-center text-muted mb-5">Những giá trị định hướng mọi hoạt động và quyết định của chúng tôi</p>
+<section class="py-5" style="background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);">
+    <div class="container">
+        <h2 class="text-center fw-bold mb-3" style="font-size: 2.5rem; color: #2c3e50; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            GIÁ TRỊ CỐT LÕI
+        </h2>
+        <p class="text-center text-muted mb-5" style="font-size: 1.1rem;">Những giá trị định hướng mọi hoạt động và quyết định của chúng tôi</p>
 
         <div class="row g-4">
             <!-- Tình thương -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-heart fs-2 text-danger"></i>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card border-0 shadow-lg h-100 p-4 text-center" style="border-radius: 20px; transition: all 0.3s ease; background: white;">
+                    <div class="mb-3" style="width: 80px; height: 80px; margin: 0 auto; background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-heart" style="font-size: 2.5rem; color: #dc3545;"></i>
                     </div>
-                    <h5 class="fw-bold mb-3">Tình thương</h5>
-                    <p class="text-muted">
+                    <h5 class="fw-bold mb-3" style="color: #2c3e50; font-size: 1.5rem;">Tình thương</h5>
+                    <p class="text-muted" style="line-height: 1.7; font-size: 1rem;">
                         Chúng tôi tin vào sức mạnh của tình yêu thương. Mọi hoạt động đều xuất phát từ trái tim và hướng đến mục tiêu mang lại hạnh phúc cho những mảnh đời khó khăn.
                     </p>
                 </div>
             </div>
 
             <!-- Trách nhiệm -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-check-circle fs-2 text-primary"></i>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card border-0 shadow-lg h-100 p-4 text-center" style="border-radius: 20px; transition: all 0.3s ease; background: white;">
+                    <div class="mb-3" style="width: 80px; height: 80px; margin: 0 auto; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(102, 126, 234, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-check-circle" style="font-size: 2.5rem; color: #667eea;"></i>
                     </div>
-                    <h5 class="fw-bold mb-3">Trách nhiệm</h5>
-                    <p class="text-muted">
+                    <h5 class="fw-bold mb-3" style="color: #2c3e50; font-size: 1.5rem;">Trách nhiệm</h5>
+                    <p class="text-muted" style="line-height: 1.7; font-size: 1rem;">
                         Chúng tôi cam kết hoạt động với tinh thần trách nhiệm cao nhất, minh bạch trong mọi hoạt động và đảm bảo mọi nguồn lực đều được sử dụng hiệu quả.
                     </p>
                 </div>
             </div>
 
             <!-- Tôn trọng -->
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm h-100 p-4 text-center">
-                    <div class="mb-3">
-                        <i class="fas fa-star fs-2 text-warning"></i>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="card border-0 shadow-lg h-100 p-4 text-center" style="border-radius: 20px; transition: all 0.3s ease; background: white;">
+                    <div class="mb-3" style="width: 80px; height: 80px; margin: 0 auto; background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-star" style="font-size: 2.5rem; color: #ffc107;"></i>
                     </div>
-                    <h5 class="fw-bold mb-3">Tôn trọng</h5>
-                    <p class="text-muted">
+                    <h5 class="fw-bold mb-3" style="color: #2c3e50; font-size: 1.5rem;">Tôn trọng</h5>
+                    <p class="text-muted" style="line-height: 1.7; font-size: 1rem;">
                         Chúng tôi tôn trọng phẩm giá, quyền và giá trị của mỗi cá nhân, không phân biệt hoàn cảnh hay xuất thân, đồng thời tôn trọng sự đa dạng văn hóa và quan điểm.
                     </p>
                 </div>
@@ -86,40 +95,78 @@
         </div>
     </div>
 </section>
-<section class="py-5">
+
+<style>
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+<section class="py-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
     <div class="container text-center">
-        <h2 class="text-center fw-bold mb-3">ĐỘI NGŨ CỦA CHÚNG TÔI</h2>
-        <p class="text-muted mb-5">Gặp gỡ những con người tận tâm đang làm việc hàng ngày để thực hiện sứ mệnh của Mái Ấm Tình Thương</p>
+        <h2 class="text-center fw-bold mb-3" style="font-size: 2.5rem; color: #2c3e50; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            ĐỘI NGŨ CỦA CHÚNG TÔI
+        </h2>
+        <p class="text-muted mb-5" style="font-size: 1.1rem;">Gặp gỡ những con người tận tâm đang làm việc hàng ngày để thực hiện sứ mệnh của Mái Ấm Tình Thương</p>
 
         <div class="row justify-content-center g-4">
-            <div class="col-md-4 col-sm-6 d-flex">
-                <div class="card border-0 shadow-sm text-center py-4 w-100">
-                    <img src="/images/tuananh.jpg" class="rounded-circle mx-auto mb-3" width="100" height="100 " alt=" Nguyễn Tuấn Anh">
-                    <h6 class="fw-bold mb-1">Nguyễn Tuấn Anh</h6>
-                    <p class="text-center mb-5" "text-muted mb-5" "text-danger small">Founder</p>
+            <div class="col-md-4 col-sm-6 d-flex" data-aos="fade-up" data-aos-delay="100">
+                <div class="card border-0 shadow-lg text-center py-4 w-100 team-card" style="border-radius: 20px; transition: all 0.3s ease; background: white; overflow: hidden;">
+                    <div style="position: relative; margin-bottom: 1rem;">
+                        <img src="/images/tuananh.jpg" class="rounded-circle mx-auto mb-3" width="140" height="140" alt="Nguyễn Tuấn Anh" style="object-fit: cover; object-position: center; aspect-ratio: 1 / 1; border: 4px solid rgba(102, 126, 234, 0.2); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #2c3e50; font-size: 1.3rem;">Nguyễn Tuấn Anh</h5>
+                    <p class="mb-4" style="color: #dc3545; font-weight: 600; font-size: 0.95rem;">Founder</p>
                 </div>
             </div>
-            <div class="col-md-4 col-sm-6 d-flex">
-                <div class="card border-0 shadow-sm text-center py-4 w-100">
-                    <img src="/images/thanhvann.jpg" class="rounded-circle mx-auto mb-3" width="100" height="100" alt="Nguyễn Đỗ Thanh Vân">
-                    <h6 class="fw-bold mb-1">Nguyễn Đỗ Thanh Vân</h6>
-                    <p class="text-center mb-5" "text-muted mb-5" "text-danger small">Co-Founder/Quản lý TNV</p>
+            <div class="col-md-4 col-sm-6 d-flex" data-aos="fade-up" data-aos-delay="200">
+                <div class="card border-0 shadow-lg text-center py-4 w-100 team-card" style="border-radius: 20px; transition: all 0.3s ease; background: white; overflow: hidden;">
+                    <div style="position: relative; margin-bottom: 1rem;">
+                        <img src="/images/thanhvann.jpg" class="rounded-circle mx-auto mb-3" width="140" height="140" alt="Nguyễn Đỗ Thanh Vân" style="object-fit: cover; object-position: center; aspect-ratio: 1 / 1; border: 4px solid rgba(102, 126, 234, 0.2); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);">
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #2c3e50; font-size: 1.3rem;">Nguyễn Đỗ Thanh Vân</h5>
+                    <p class="mb-4" style="color: #dc3545; font-weight: 600; font-size: 0.95rem;">Co-Founder/Quản lý TNV</p>
                 </div>
             </div>
-            <div class="col-md-4 col-sm-6 d-flex">
-                <div class="card border-0 shadow-sm text-center py-4 w-100">
-                    <img src="/images/people-placeholder.png" class="rounded-circle mx-auto mb-3" width="100" height="100" alt="Nguyễn Thị Hồng Tươi">
-                    <h6 class="fw-bold mb-1">Nguyễn Thị Hồng Tươi</h6>
-                    <p class="text-center mb-5" "text-muted mb-5" "text-danger small">Quản lý TNV</p>
+            <div class="col-md-4 col-sm-6 d-flex" data-aos="fade-up" data-aos-delay="300">
+                <div class="card border-0 shadow-lg text-center py-4 w-100 team-card" style="border-radius: 20px; transition: all 0.3s ease; background: white; overflow: hidden;">
+                    <div style="position: relative; margin-bottom: 1rem;">
+                        <img src="~/images/hongtuoi.jpg" asp-append-version="true" class="rounded-circle mx-auto mb-3" width="140" height="140" alt="Nguyễn Thị Hồng Tươi" style="object-fit: cover; object-position: center; aspect-ratio: 1 / 1; border: 4px solid rgba(102, 126, 234, 0.2); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);" onerror="this.onerror=null; this.src='/images/default1-avatar.png';">
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: #2c3e50; font-size: 1.3rem;">Nguyễn Thị Hồng Tươi</h5>
+                    <p class="mb-4" style="color: #dc3545; font-weight: 600; font-size: 0.95rem;">Quản lý TNV</p>
                 </div>
             </div>
         </div>
-        <div class="mt-5">
-            <p class="text-muted mb-3">Bên cạnh đội ngũ nhân viên chính thức, chúng tôi còn nhận được sự hỗ trợ từ hơn 300 tình nguyện viên tận tâm.</p>
-            <a class="btn btn-primary btn-lg" asp-controller="SupportRequest" asp-action="CreateRequest">Tham gia cùng chúng tôi</a>
+        <div class="mt-5" data-aos="fade-up">
+            <p class="text-muted mb-4" style="font-size: 1.1rem; max-width: 700px; margin: 0 auto;">Bên cạnh đội ngũ nhân viên chính thức, chúng tôi còn nhận được sự hỗ trợ từ hơn 300 tình nguyện viên tận tâm.</p>
+            <a class="btn btn-lg mt-3" asp-controller="SupportRequest" asp-action="CreateRequest" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 30px; padding: 12px 40px; font-weight: 600; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">
+                Tham gia cùng chúng tôi
+            </a>
         </div>
-
     </div>
 </section>
+
+<style>
+    .team-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25) !important;
+    }
+    
+    .team-card:hover img {
+        transform: scale(1.05);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
+        border-color: rgba(102, 126, 234, 0.4) !important;
+    }
+    
+    .team-card img {
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
+    }
+</style>
 
 

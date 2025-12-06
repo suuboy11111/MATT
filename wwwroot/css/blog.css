@@ -1,20 +1,79 @@
-/* ===== Blog Modern Design ===== */
+/* ===== Blog Modern Design - Full Screen Layout ===== */
 
-.blog-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem;
-    background: linear-gradient(180deg, #f5f7fa 0%, #ffffff 50%, #f8f9fa 100%);
-    min-height: 100vh;
-    position: relative;
+/* Full screen background */
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 
-/* Two Column Layout */
+.blog-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 2rem 3rem;
+    min-height: 100vh;
+    position: relative;
+    background-image: 
+        linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.88) 50%, rgba(102, 126, 234, 0.85) 100%),
+        url('/images/caregiver-help-and-care-asian-senior-or-elderly-old-lady-woman-use-walker-with-strong-health-while-walking-at-park-in-happy-fresh-holiday-photo.jpg');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-attachment: fixed, fixed;
+    background-repeat: no-repeat, no-repeat;
+    box-sizing: border-box;
+}
+
+/* Background overlay for better readability - Additional layer */
+.blog-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.35) 50%, rgba(102, 126, 234, 0.3) 100%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.blog-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Full Width Layout - Optimized Grid */
 .blog-main-content {
     display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) 350px;
+    gap: 2.5rem;
     align-items: start;
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Large screens - wider layout */
+@media (min-width: 1400px) {
+    .blog-main-content {
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 3rem;
+    }
+    
+    .blog-container {
+        padding: 2.5rem 4rem;
+    }
+}
+
+/* Extra large screens - maximize space */
+@media (min-width: 1600px) {
+    .blog-main-content {
+        grid-template-columns: minmax(0, 1fr) 400px;
+        gap: 3.5rem;
+    }
+    
+    .blog-container {
+        padding: 3rem 5rem;
+    }
 }
 
 .blog-feed {
@@ -43,84 +102,97 @@
     border-radius: 10px;
 }
 
+/* Tablet and below - single column */
 @media (max-width: 992px) {
     .blog-main-content {
         grid-template-columns: 1fr;
+        gap: 2rem;
     }
     
     .blog-sidebar {
         position: relative;
         top: 0;
         max-height: none;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .blog-container {
+        padding: 1.5rem 2rem;
     }
 }
 
-.blog-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-    z-index: 0;
+
+/* Page Header - Full Width */
+.blog-container > .text-center {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 2rem;
 }
 
-.blog-container > * {
-    position: relative;
-    z-index: 1;
-}
-
-/* Page Header */
 .blog-page-title {
     font-size: 3.5rem;
     font-weight: 900;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0ff 50%, #ffffff 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 0.75rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: 0 4px 20px rgba(255, 255, 255, 0.5), 0 2px 10px rgba(102, 126, 234, 0.3);
     letter-spacing: -1px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@media (max-width: 768px) {
+    .blog-page-title {
+        font-size: 2.5rem;
+    }
 }
 
 .blog-page-subtitle {
     font-size: 1.15rem;
-    color: #6c757d;
+    color: rgba(255, 255, 255, 0.95);
     font-weight: 500;
     margin: 0;
     font-style: italic;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Create Post Card - Modern Design */
 .blog-create-post {
     margin-bottom: 2.5rem;
+    max-width: 100%;
+    width: 100%;
 }
 
 .blog-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5);
     overflow: hidden;
     margin-bottom: 2.5rem;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(102, 126, 234, 0.08);
-    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .blog-card:hover {
-    box-shadow: 0 12px 40px rgba(102, 126, 234, 0.15);
-    transform: translateY(-4px);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6);
+    transform: translateY(-6px) scale(1.01);
+    background: rgba(255, 255, 255, 0.98);
 }
 
 .blog-card-header {
     padding: 1.5rem 1.75rem;
-    border-bottom: 1px solid #f0f0f0;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border-bottom: 1px solid rgba(102, 126, 234, 0.15);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: relative;
+    backdrop-filter: blur(10px);
 }
 
 .blog-card-header::after {
@@ -136,16 +208,25 @@
 .blog-avatar {
     width: 48px;
     height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    object-position: center;
+    aspect-ratio: 1 / 1;
+    display: block;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3), 0 0 0 2px rgba(102, 126, 234, 0.1);
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .blog-avatar:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    transform: scale(1.15);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5), 0 0 0 3px rgba(102, 126, 234, 0.2);
+    border-color: rgba(255, 255, 255, 1);
 }
 
 .blog-card-body {
@@ -155,21 +236,23 @@
 /* Input Styles - Modern */
 .blog-input,
 .blog-textarea {
-    border: 2px solid #e8eaf6;
+    border: 2px solid rgba(102, 126, 234, 0.2);
     border-radius: 16px;
     padding: 1rem 1.25rem;
     transition: all 0.3s ease;
     font-size: 1rem;
-    background: #fafafa;
+    background: rgba(255, 255, 255, 0.9);
     color: #2c3e50;
+    backdrop-filter: blur(10px);
 }
 
 .blog-input:focus,
 .blog-textarea:focus {
     border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2), 0 4px 15px rgba(102, 126, 234, 0.15);
     outline: none;
-    background: white;
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
 }
 
 .blog-textarea {
@@ -294,27 +377,30 @@
     color: #2c3e50;
     margin-bottom: 1rem;
     line-height: 1.4;
-    background: linear-gradient(135deg, #2c3e50 0%, #667eea 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: -0.5px;
+    text-shadow: 0 2px 10px rgba(102, 126, 234, 0.2);
 }
 
 .blog-post-content {
-    color: #555;
-    line-height: 1.8;
+    color: #444;
+    line-height: 1.9;
     margin: 0;
     white-space: pre-wrap;
-    font-size: 1rem;
+    font-size: 1.05rem;
+    font-weight: 400;
 }
 
 /* Post Actions - Beautiful Icons */
 .blog-card-footer {
     padding: 1.25rem 1.75rem;
-    border-top: 1px solid #f0f0f0;
-    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    border-top: 1px solid rgba(102, 126, 234, 0.15);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 250, 0.9) 100%);
     position: relative;
+    backdrop-filter: blur(10px);
 }
 
 .blog-card-footer::before {
@@ -396,7 +482,8 @@
     padding: 1.25rem 1.75rem;
     max-height: 400px;
     overflow-y: auto;
-    background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+    background: linear-gradient(180deg, rgba(250, 250, 250, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+    backdrop-filter: blur(10px);
 }
 
 .blog-comments-section::-webkit-scrollbar {
@@ -418,24 +505,33 @@
     gap: 1rem;
     margin-bottom: 1rem;
     padding: 1rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 16px;
     transition: all 0.3s ease;
-    border: 1px solid #f0f0f0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
 }
 
 .blog-comment-item:hover {
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15);
-    transform: translateX(6px);
-    border-color: rgba(102, 126, 234, 0.2);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+    transform: translateX(8px) translateY(-2px);
+    border-color: rgba(102, 126, 234, 0.3);
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .blog-comment-avatar {
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
     border-radius: 50%;
     object-fit: cover;
+    object-position: center;
+    aspect-ratio: 1 / 1;
+    display: block;
     flex-shrink: 0;
     border: 2px solid #e8eaf6;
 }
@@ -488,9 +584,10 @@
 /* Add Comment - Modern */
 .blog-add-comment {
     padding: 1.25rem 1.75rem;
-    border-top: 1px solid #f0f0f0;
-    background: white;
+    border-top: 1px solid rgba(102, 126, 234, 0.15);
+    background: rgba(255, 255, 255, 0.95);
     position: relative;
+    backdrop-filter: blur(10px);
 }
 
 .blog-add-comment::before {
@@ -511,19 +608,20 @@
 
 .blog-comment-input {
     flex: 1;
-    border: 2px solid #e8eaf6;
+    border: 2px solid rgba(102, 126, 234, 0.2);
     border-radius: 24px;
     padding: 0.75rem 1.25rem;
     font-size: 0.95rem;
     transition: all 0.3s ease;
-    background: #fafafa;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
 }
 
 .blog-comment-input:focus {
     border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2), 0 4px 15px rgba(102, 126, 234, 0.15);
     outline: none;
-    background: white;
+    background: rgba(255, 255, 255, 1);
 }
 
 .blog-comment-submit {
@@ -588,13 +686,17 @@
     margin-bottom: 0.5rem;
     transition: all 0.3s ease;
     cursor: pointer;
-    background: #fafafa;
+    background: rgba(250, 250, 250, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 .blog-trending-item:hover {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    transform: translateX(5px);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    transform: translateX(8px) translateY(-2px);
     color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
 }
 
 .blog-trending-item i {
@@ -614,10 +716,19 @@
     margin-bottom: 1rem;
 }
 
-/* Responsive */
+/* Mobile responsive */
 @media (max-width: 768px) {
     .blog-container {
-        padding: 1rem 0.5rem;
+        padding: 1rem 1rem;
+        background-attachment: scroll;
+    }
+    
+    .blog-main-content {
+        gap: 1.5rem;
+    }
+    
+    .blog-sidebar {
+        grid-template-columns: 1fr;
     }
 
     .blog-card-header,
@@ -736,4 +847,157 @@
 
 .blog-comment-submit:hover i {
     transform: rotate(15deg) translateX(2px);
+}
+
+/* Additional Enhancements */
+.blog-container {
+    animation: fadeIn 0.8s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Enhanced text readability on background */
+.blog-card-body strong,
+.blog-card-header strong {
+    color: #2c3e50;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Better contrast for text on cards */
+.blog-card-body p,
+.blog-card-body span {
+    color: #444;
+}
+
+/* Enhanced empty state */
+.blog-empty-state {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Enhanced post image container */
+.blog-post-image {
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.blog-post-image::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.1), transparent);
+    pointer-events: none;
+}
+
+/* Better mobile experience */
+@media (max-width: 576px) {
+    .blog-page-title {
+        font-size: 2rem;
+    }
+    
+    .blog-card {
+        border-radius: 20px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .blog-container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .blog-main-content {
+        gap: 1rem;
+    }
+}
+
+/* Ensure all content uses full width efficiently */
+.blog-feed {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0; /* Prevent grid overflow */
+}
+
+/* Optimize card widths */
+.blog-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Load More Button - Full Width Container */
+.blog-container > .text-center:last-of-type {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 2rem;
+    padding: 0;
+}
+
+/* Ensure sidebar cards use full width of sidebar */
+.blog-sidebar .blog-card {
+    width: 100%;
+}
+
+/* Optimize post image for full width */
+.blog-post-image {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Prevent horizontal overflow - scoped to blog container */
+.blog-container,
+.blog-container * {
+    box-sizing: border-box;
+}
+
+.blog-container * {
+    max-width: 100%;
+}
+
+/* Ensure images don't overflow */
+.blog-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Force circular avatars - prevent distortion */
+.blog-container img.blog-avatar,
+.blog-container img.blog-comment-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    aspect-ratio: 1 / 1 !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+}
+
+.blog-container img.blog-comment-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
 }
