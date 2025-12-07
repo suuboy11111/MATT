@@ -19,26 +19,26 @@ namespace MaiAmTinhThuong.Services
         {
             _logger = logger;
             
-            var cloudName = configuration["Cloudinary:CloudName"] 
-                ?? Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
-            var apiKey = configuration["Cloudinary:ApiKey"] 
-                ?? Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
-            var apiSecret = configuration["Cloudinary:ApiSecret"] 
-                ?? Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
-
             // Log để debug - chi tiết hơn
             _logger.LogInformation("🔍 Checking Cloudinary configuration...");
             
+            // Đọc từ config hoặc environment variables, và trim whitespace
             var cloudNameFromConfig = configuration["Cloudinary:CloudName"];
             var cloudNameFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+            var cloudName = (cloudNameFromConfig ?? cloudNameFromEnv)?.Trim();
+            
             var apiKeyFromConfig = configuration["Cloudinary:ApiKey"];
             var apiKeyFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+            var apiKey = (apiKeyFromConfig ?? apiKeyFromEnv)?.Trim();
+            
             var apiSecretFromConfig = configuration["Cloudinary:ApiSecret"];
             var apiSecretFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+            var apiSecret = (apiSecretFromConfig ?? apiSecretFromEnv)?.Trim();
             
-            _logger.LogInformation($"CloudName - Config: {!string.IsNullOrEmpty(cloudNameFromConfig)}, Env: {!string.IsNullOrEmpty(cloudNameFromEnv)}, Final: {!string.IsNullOrEmpty(cloudName)}");
-            _logger.LogInformation($"API Key - Config: {!string.IsNullOrEmpty(apiKeyFromConfig)}, Env: {!string.IsNullOrEmpty(apiKeyFromEnv)}, Final: {!string.IsNullOrEmpty(apiKey)}");
-            _logger.LogInformation($"API Secret - Config: {!string.IsNullOrEmpty(apiSecretFromConfig)}, Env: {!string.IsNullOrEmpty(apiSecretFromEnv)}, Final: {!string.IsNullOrEmpty(apiSecret)}");
+            // Log chi tiết với giá trị (masked)
+            _logger.LogInformation($"CloudName - Config: {!string.IsNullOrWhiteSpace(cloudNameFromConfig)}, Env: {!string.IsNullOrWhiteSpace(cloudNameFromEnv)}, Value: {(string.IsNullOrWhiteSpace(cloudName) ? "EMPTY" : cloudName.Substring(0, Math.Min(3, cloudName.Length)) + "***")}");
+            _logger.LogInformation($"API Key - Config: {!string.IsNullOrWhiteSpace(apiKeyFromConfig)}, Env: {!string.IsNullOrWhiteSpace(apiKeyFromEnv)}, Value: {(string.IsNullOrWhiteSpace(apiKey) ? "EMPTY" : apiKey.Substring(0, Math.Min(3, apiKey.Length)) + "***")}");
+            _logger.LogInformation($"API Secret - Config: {!string.IsNullOrWhiteSpace(apiSecretFromConfig)}, Env: {!string.IsNullOrWhiteSpace(apiSecretFromEnv)}, Value: {(string.IsNullOrWhiteSpace(apiSecret) ? "EMPTY" : "***" + apiSecret.Substring(Math.Max(0, apiSecret.Length - 3)))}");
             
             // Log tất cả environment variables có chứa CLOUDINARY để debug
             var allEnvVars = Environment.GetEnvironmentVariables();
@@ -48,18 +48,38 @@ namespace MaiAmTinhThuong.Services
             if (cloudinaryVars.Any())
             {
                 _logger.LogInformation($"Found Cloudinary-related env vars: {string.Join(", ", cloudinaryVars)}");
+                
+                // Log giá trị thực tế (masked) của từng biến
+                foreach (var varName in cloudinaryVars)
+                {
+                    var varValue = Environment.GetEnvironmentVariable(varName);
+                    if (!string.IsNullOrWhiteSpace(varValue))
+                    {
+                        var maskedValue = varValue.Length > 6 
+                            ? varValue.Substring(0, 3) + "***" + varValue.Substring(varValue.Length - 3)
+                            : "***";
+                        _logger.LogInformation($"  {varName} = {maskedValue} (Length: {varValue.Length})");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"  {varName} = EMPTY or NULL (Length: {varValue?.Length ?? 0})");
+                    }
+                }
             }
             else
             {
                 _logger.LogWarning("⚠️ No CLOUDINARY environment variables found!");
             }
 
-            if (string.IsNullOrEmpty(cloudName) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
+            if (string.IsNullOrWhiteSpace(cloudName) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiSecret))
             {
                 var errorMsg = "Cloudinary configuration is missing! " +
                     "Please set the following environment variables in Railway: " +
                     "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET. " +
-                    "Or add them to appsettings.json for local development.";
+                    "Or add them to appsettings.json for local development. " +
+                    $"Current status - CloudName: {(string.IsNullOrWhiteSpace(cloudName) ? "MISSING" : "OK")}, " +
+                    $"API Key: {(string.IsNullOrWhiteSpace(apiKey) ? "MISSING" : "OK")}, " +
+                    $"API Secret: {(string.IsNullOrWhiteSpace(apiSecret) ? "MISSING" : "OK")}";
                 _logger.LogError(errorMsg);
                 throw new Exception(errorMsg);
             }
