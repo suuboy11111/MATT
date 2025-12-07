@@ -1,69 +1,317 @@
-﻿@model MaiAmTinhThuong.Models.SupportRequest
+@model MaiAmTinhThuong.Models.SupportRequest
 
-<h2>Chi tiết Hồ sơ: @Model.Name</h2>
+@{
+    ViewData["Title"] = "Chi tiết Hồ sơ";
+}
 
-<table class="table table-bordered">
-    <tr>
-        <th>Tên</th>
-        <td>@Model.Name</td>
-    </tr>
-    <tr>
-        <th>Tuổi</th>
-        <td>@Model.Age</td>
-    </tr>
-    <tr>
-        <th>Giới tính</th>
-        <td>@Model.Gender</td>
-    </tr>
-    <tr>
-        <th>Số điện thoại</th>
-        <td>@Model.PhoneNumber</td>
-    </tr>
-    <tr>
-        <th>Địa chỉ</th>
-        <td>@Model.Address</td>
-    </tr>
-    <tr>
-        <th>Số CCCD</th>
-        <td>@Model.CCCD</td>
-    </tr>
-    <tr>
-        <th>Hoàn cảnh</th>
-        <td>@Model.Reason</td>
-    </tr>
-    <tr>
-        <th>Tình trạng sức khỏe</th>
-        <td>@Model.HealthStatus</td>
-    </tr>
-    <tr>
-        <th>Đã duyệt</th>
-        <td>@(Model.IsApproved ? "✔️" : "❌")</td>
-    </tr>
-    <tr>
-        <th>Hỗ trợ hoàn cảnh</th>
-        <td>@(Model.IsSupportedReason ? "✔️" : "❌")</td>
-    </tr>
-    <tr>
-        <th>Hỗ trợ sức khỏe</th>
-        <td>@(Model.IsSupportedHealth ? "✔️" : "❌")</td>
-    </tr>
-    <tr>
-        <th>Hỗ trợ chung</th>
-        <td>@(Model.IsSupported ? "✔️" : "❌")</td>
-    </tr>
-    @if (!string.IsNullOrEmpty(Model.ImageUrl))
-    {
-        <tr>
-            <th>Ảnh</th>
-            <td>
-                <img src="@Model.ImageUrl" alt="Ảnh hồ sơ" style="max-width:200px; max-height:200px;" />
-            </td>
-        </tr>
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-user-circle me-3"></i>Chi tiết Hồ sơ: @Model.Name</h2>
+            <p>Thông tin chi tiết về người cần hỗ trợ</p>
+        </div>
+
+        <div class="admin-detail-wrapper">
+            <div class="row">
+                <!-- Cột trái: Thông tin cơ bản -->
+                <div class="col-lg-8">
+                    <div class="admin-detail-section">
+                        <h3 class="admin-section-title">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Thông tin cơ bản
+                        </h3>
+
+                        <div class="admin-detail-grid">
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-user me-2"></i>Họ và Tên
+                                </div>
+                                <div class="admin-detail-value">@(Model.Name ?? "N/A")</div>
+                            </div>
+
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-birthday-cake me-2"></i>Tuổi
+                                </div>
+                                <div class="admin-detail-value">@Model.Age</div>
+                            </div>
+
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-venus-mars me-2"></i>Giới tính
+                                </div>
+                                <div class="admin-detail-value">@(Model.Gender ?? "N/A")</div>
+                            </div>
+
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-phone me-2"></i>Số điện thoại
+                                </div>
+                                <div class="admin-detail-value">@(Model.PhoneNumber ?? "N/A")</div>
+                            </div>
+
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ
+                                </div>
+                                <div class="admin-detail-value">@(Model.Address ?? "N/A")</div>
+                            </div>
+
+                            <div class="admin-detail-item">
+                                <div class="admin-detail-label">
+                                    <i class="fas fa-id-card me-2"></i>Số CCCD
+                                </div>
+                                <div class="admin-detail-value">@(Model.CCCD ?? "N/A")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-detail-section">
+                        <h3 class="admin-section-title">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Thông tin hỗ trợ
+                        </h3>
+
+                        <div class="admin-detail-item-full">
+                            <div class="admin-detail-label">
+                                <i class="fas fa-heart me-2"></i>Hoàn cảnh
+                            </div>
+                            <div class="admin-detail-value">@(Model.Reason ?? "Chưa có thông tin")</div>
+                        </div>
+
+                        <div class="admin-detail-item-full">
+                            <div class="admin-detail-label">
+                                <i class="fas fa-heartbeat me-2"></i>Tình trạng sức khỏe
+                            </div>
+                            <div class="admin-detail-value">@(Model.HealthStatus ?? "Chưa có thông tin")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cột phải: Ảnh và trạng thái -->
+                <div class="col-lg-4">
+                    <div class="admin-detail-section">
+                        <h3 class="admin-section-title">
+                            <i class="fas fa-image me-2"></i>
+                            Ảnh đại diện
+                        </h3>
+                        
+                        <div class="admin-detail-image-wrapper">
+                            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                            {
+                                <img src="@Model.ImageUrl" class="admin-detail-image" alt="Ảnh đại diện" 
+                                     onerror="this.src='/images/default1-avatar.png';" />
+                            }
+                            else
+                            {
+                                <img src="/images/default1-avatar.png" class="admin-detail-image" alt="Ảnh đại diện" />
+                            }
+                        </div>
+                    </div>
+
+                    <div class="admin-detail-section">
+                        <h3 class="admin-section-title">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Trạng thái
+                        </h3>
+
+                        <div class="admin-status-badges">
+                            <div class="admin-status-item">
+                                <span class="admin-detail-label">Đã duyệt:</span>
+                                @if (Model.IsApproved)
+                                {
+                                    <span class="admin-badge admin-badge-success">
+                                        <i class="fas fa-check-circle"></i> Đã duyệt
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="admin-badge admin-badge-warning">
+                                        <i class="fas fa-clock"></i> Chờ duyệt
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="admin-status-item">
+                                <span class="admin-detail-label">Hỗ trợ hoàn cảnh:</span>
+                                @if (Model.IsSupportedReason)
+                                {
+                                    <span class="admin-badge admin-badge-success">
+                                        <i class="fas fa-check"></i> Có
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="admin-badge admin-badge-secondary">
+                                        <i class="fas fa-times"></i> Chưa
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="admin-status-item">
+                                <span class="admin-detail-label">Hỗ trợ sức khỏe:</span>
+                                @if (Model.IsSupportedHealth)
+                                {
+                                    <span class="admin-badge admin-badge-success">
+                                        <i class="fas fa-check"></i> Có
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="admin-badge admin-badge-secondary">
+                                        <i class="fas fa-times"></i> Chưa
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="admin-status-item">
+                                <span class="admin-detail-label">Hỗ trợ chung:</span>
+                                @if (Model.IsSupported)
+                                {
+                                    <span class="admin-badge admin-badge-success">
+                                        <i class="fas fa-check"></i> Có
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="admin-badge admin-badge-secondary">
+                                        <i class="fas fa-times"></i> Chưa
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nút hành động -->
+            <div class="admin-detail-actions">
+                <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="admin-btn admin-btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Quay lại
+                </a>
+                <a asp-action="EditProfile" asp-route-id="@Model.Id" class="admin-btn admin-btn-warning">
+                    <i class="fas fa-edit me-2"></i>
+                    Sửa
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-detail-wrapper {
+        background: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-bottom: 30px;
     }
-</table>
 
-<p>
-    <a asp-action="ManageProfiles" asp-route-id="@Model.MaiAmId" class="btn btn-secondary">Quay lại</a>
-    <a asp-action="EditProfile" asp-route-id="@Model.Id" class="btn btn-warning">Sửa</a>
-    <a asp-action="DeleteProfile" asp-route-id="@Model.Id" class="btn btn-danger">Xóa</a>
-</p>
+    .admin-detail-section {
+        margin-bottom: 25px;
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+    }
+
+    .admin-section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ff6b9d;
+    }
+
+    .admin-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .admin-detail-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .admin-detail-item-full {
+        margin-bottom: 20px;
+    }
+
+    .admin-detail-label {
+        font-weight: 600;
+        color: #34495e;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .admin-detail-label i {
+        color: #ff6b9d;
+        width: 20px;
+    }
+
+    .admin-detail-value {
+        color: #2c3e50;
+        font-size: 1rem;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+    }
+
+    .admin-detail-image-wrapper {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .admin-detail-image {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid #ff6b9d;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .admin-status-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .admin-status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .admin-detail-actions {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    @@media (max-width: 992px) {
+        .admin-detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-detail-image {
+            width: 150px;
+            height: 150px;
+        }
+    }
+</style>

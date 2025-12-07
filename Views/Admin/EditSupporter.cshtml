@@ -1,95 +1,377 @@
-﻿@model MaiAmTinhThuong.Models.Supporter
+@model MaiAmTinhThuong.Models.Supporter
 
 @{
     ViewData["Title"] = "Sửa Hồ sơ Người Hỗ Trợ";
 }
 
-<h2>Sửa Hồ sơ Người Hỗ Trợ</h2>
-
-<form asp-action="EditSupporter" method="post" enctype="multipart/form-data">
-    <input type="hidden" asp-for="Id" />
-    <input type="hidden" asp-for="CreatedDate" />
-    <input type="hidden" asp-for="UpdatedDate" />
-
-    <div class="form-group mb-3">
-        <label asp-for="Name" class="form-label">Họ và Tên</label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Age" class="form-label">Tuổi</label>
-        <input asp-for="Age" type="number" class="form-control" />
-        <span asp-validation-for="Age" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Gender" class="form-label">Giới tính</label>
-        <select asp-for="Gender" class="form-control">
-            <option value="">-- Chọn giới tính --</option>
-            <option value="Nam">Nam</option>
-            <option value="Nu">Nữ</option>
-            <option value="Khac">Khác</option>
-        </select>
-        <span asp-validation-for="Gender" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
-        <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678 hoặc +84912345678" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Address" class="form-label">Địa chỉ</label>
-        <input asp-for="Address" class="form-control" />
-        <span asp-validation-for="Address" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label>Ảnh đại diện hiện tại</label><br />
-        @if (!string.IsNullOrEmpty(Model.ImageUrl))
-        {
-            <img src="@Model.ImageUrl" alt="Ảnh đại diện" style="max-width: 150px; max-height: 150px; margin-bottom: 10px;" />
-        }
-        else
-        {
-            <p>Chưa có ảnh đại diện</p>
-        }
-    </div>
-
-    <div class="form-group mb-3">
-        <label>Thay đổi ảnh đại diện (tùy chọn)</label>
-        <input type="file" name="ImageFile" accept="image/*" class="form-control" />
-    </div>
-
-    <!-- Dropdown Mái ấm -->
-    <div class="form-group mb-3">
-        <label>Mái ấm</label>
-        <select asp-for="MaiAmId" asp-items="ViewBag.MaiAms" class="form-control">
-            <option value="">-- Chọn Mái ấm --</option>
-        </select>
-    </div>
-
-    @foreach (var supportType in ViewBag.SupportTypes as SelectList)
-    {
-        var isChecked = Model.SupporterSupportTypes != null && Model.SupporterSupportTypes.Any(sst => sst.SupportTypeId == int.Parse(supportType.Value));
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox"
-                   name="selectedSupportTypes"
-                   value="@supportType.Value"
-                   id="supportType_@supportType.Value"
-            @(isChecked ? "checked" : "") />
-            <label class="form-check-label" for="supportType_@supportType.Value">@supportType.Text</label>
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-user-edit me-3"></i>Sửa Hồ sơ Người Hỗ Trợ</h2>
+            <p>Cập nhật thông tin người hỗ trợ trong hệ thống</p>
         </div>
-    }
 
-    <button type="submit" class="btn btn-primary">Lưu</button>
-    <a asp-action="ManageSupporters" asp-route-id="@Model.MaiAmId" class="btn btn-secondary ms-2">Hủy</a>
-</form>
+        <div class="admin-form-wrapper">
+            <form asp-action="EditSupporter" method="post" enctype="multipart/form-data" class="admin-form">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreatedDate" />
+                <input type="hidden" asp-for="UpdatedDate" />
+
+                <div class="row">
+                    <!-- Cột trái: Thông tin cơ bản -->
+                    <div class="col-lg-8">
+                        <div class="admin-form-section">
+                            <h3 class="admin-section-title">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Thông tin cơ bản
+                            </h3>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="admin-form-group">
+                                        <label asp-for="Name" class="admin-form-label">
+                                            <i class="fas fa-user me-2"></i>Họ và Tên <span class="text-danger">*</span>
+                                        </label>
+                                        <input asp-for="Name" class="admin-form-control" placeholder="Nhập họ và tên" />
+                                        <span asp-validation-for="Name" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="admin-form-group">
+                                        <label asp-for="Age" class="admin-form-label">
+                                            <i class="fas fa-birthday-cake me-2"></i>Tuổi <span class="text-danger">*</span>
+                                        </label>
+                                        <input asp-for="Age" type="number" class="admin-form-control" min="0" max="150" />
+                                        <span asp-validation-for="Age" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="admin-form-group">
+                                        <label asp-for="Gender" class="admin-form-label">
+                                            <i class="fas fa-venus-mars me-2"></i>Giới tính <span class="text-danger">*</span>
+                                        </label>
+                                        <select asp-for="Gender" class="admin-form-control">
+                                            <option value="">-- Chọn giới tính --</option>
+                                            <option value="Nam">Nam</option>
+                                            <option value="Nu">Nữ</option>
+                                            <option value="Khac">Khác</option>
+                                        </select>
+                                        <span asp-validation-for="Gender" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="admin-form-group">
+                                        <label asp-for="PhoneNumber" class="admin-form-label">
+                                            <i class="fas fa-phone me-2"></i>Số điện thoại <span class="text-danger">*</span>
+                                        </label>
+                                        <input asp-for="PhoneNumber" class="admin-form-control" placeholder="0912345678 hoặc +84912345678" />
+                                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label asp-for="Address" class="admin-form-label">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ
+                                </label>
+                                <input asp-for="Address" class="admin-form-control" placeholder="Nhập địa chỉ" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label asp-for="CCCD" class="admin-form-label">
+                                    <i class="fas fa-id-card me-2"></i>Số CCCD
+                                </label>
+                                <input asp-for="CCCD" class="admin-form-control" placeholder="Nhập số CCCD (12 chữ số)" maxlength="12" />
+                                <span asp-validation-for="CCCD" class="text-danger"></span>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label class="admin-form-label">
+                                    <i class="fas fa-home me-2"></i>Mái ấm
+                                </label>
+                                <select asp-for="MaiAmId" asp-items="ViewBag.MaiAms" class="admin-form-control">
+                                    <option value="">-- Chọn Mái ấm --</option>
+                                </select>
+                            </div>
+
+                            <div class="admin-form-group">
+                                <label class="admin-form-label">
+                                    <i class="fas fa-heart me-2"></i>Loại hỗ trợ
+                                </label>
+                                <div class="admin-checkbox-group">
+                                    @if (ViewBag.SupportTypes != null)
+                                    {
+                                        @foreach (var supportType in (List<MaiAmTinhThuong.Models.SupportType>)ViewBag.SupportTypes)
+                                        {
+                                            var isChecked = Model.SupporterSupportTypes != null && 
+                                                           Model.SupporterSupportTypes.Any(sst => sst.SupportTypeId == supportType.Id);
+                                            <div class="form-check form-check-inline admin-checkbox">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="selectedSupportTypes"
+                                                       value="@supportType.Id"
+                                                       id="supportType_@supportType.Id"
+                                                       @(isChecked ? "checked" : "") />
+                                                <label class="form-check-label" for="supportType_@supportType.Id">
+                                                    @supportType.Name
+                                                </label>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột phải: Ảnh đại diện -->
+                    <div class="col-lg-4">
+                        <div class="admin-form-section">
+                            <h3 class="admin-section-title">
+                                <i class="fas fa-image me-2"></i>
+                                Ảnh đại diện
+                            </h3>
+                            
+                            <div class="admin-profile-picture-wrapper">
+                                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                                {
+                                    <img src="@Model.ImageUrl" class="admin-profile-img" id="imagePreview" alt="Ảnh đại diện" 
+                                         onerror="this.src='/images/default1-avatar.png';" />
+                                }
+                                else
+                                {
+                                    <img src="/images/default1-avatar.png" class="admin-profile-img" id="imagePreview" alt="Ảnh đại diện" />
+                                }
+                                
+                                <div class="admin-profile-picture-overlay">
+                                    <label for="ImageFile" class="admin-profile-picture-label">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Chọn ảnh</span>
+                                    </label>
+                                    <input type="file" class="d-none" id="ImageFile" name="ImageFile" accept="image/*" onchange="previewImage(this)" />
+                                </div>
+                            </div>
+
+                            <div class="admin-profile-picture-actions">
+                                <button type="button" class="admin-btn admin-btn-outline-danger admin-btn-sm w-100" onclick="resetImage()">
+                                    <i class="fas fa-undo me-2"></i>
+                                    Đặt lại ảnh mặc định
+                                </button>
+                            </div>
+
+                            <small class="form-text text-muted text-center d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Chấp nhận: JPG, PNG, GIF (tối đa 5MB)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nút hành động -->
+                <div class="admin-form-actions">
+                    <button type="submit" class="admin-btn admin-btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        Lưu thay đổi
+                    </button>
+                    <a asp-action="ManageSupporters" class="admin-btn admin-btn-secondary">
+                        <i class="fas fa-times me-2"></i>
+                        Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function resetImage() {
+            if (confirm('Bạn có chắc muốn đặt lại ảnh mặc định?')) {
+                document.getElementById('imagePreview').src = '/images/default1-avatar.png';
+                document.getElementById('ImageFile').value = '';
+            }
+        }
+    </script>
+    <style>
+        .admin-form-wrapper {
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .admin-form-section {
+            margin-bottom: 25px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .admin-section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ff6b9d;
+        }
+
+        .admin-form-group {
+            margin-bottom: 20px;
+        }
+
+        .admin-form-label {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .admin-form-label i {
+            color: #ff6b9d;
+            width: 20px;
+        }
+
+        .admin-form-control {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .admin-form-control:focus {
+            border-color: #ff6b9d;
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+            outline: none;
+        }
+
+        .admin-profile-picture-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .admin-profile-img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #ff6b9d;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .admin-profile-picture-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: calc(50% - 100px + 10px);
+            background: #ff6b9d;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .admin-profile-picture-overlay:hover {
+            background: #ff4d7a;
+            transform: scale(1.1);
+        }
+
+        .admin-profile-picture-label {
+            color: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            padding: 5px;
+        }
+
+        .admin-profile-picture-label i {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+
+        .admin-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .admin-checkbox {
+            padding: 10px 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .admin-checkbox:hover {
+            border-color: #ff6b9d;
+        }
+
+        .admin-checkbox input[type="checkbox"]:checked + label {
+            color: #ff6b9d;
+            font-weight: 600;
+        }
+
+        .admin-form-actions {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .admin-btn-outline-danger {
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            background: transparent;
+        }
+
+        .admin-btn-outline-danger:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        @@media (max-width: 992px) {
+            .admin-profile-img {
+                width: 150px;
+                height: 150px;
+            }
+
+            .admin-profile-picture-overlay {
+                right: calc(50% - 75px + 10px);
+            }
+        }
+    </style>
 }

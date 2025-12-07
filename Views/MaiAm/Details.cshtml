@@ -1,4 +1,4 @@
-﻿@model MaiAmTinhThuong.Models.MaiAm
+@model MaiAmTinhThuong.Models.MaiAm
 @using MaiAmTinhThuong.Models
 @using System.Linq
 
@@ -109,13 +109,18 @@
                                                 <strong>Tình trạng sức khỏe:</strong>
                                                 <p class="mt-2">@(request.HealthStatus ?? "Chưa có thông tin")</p>
                                             </div>
-                                            @if (!string.IsNullOrEmpty(request.ImageUrl))
-                                            {
-                                                <div class="mb-3">
-                                                    <strong>Ảnh đại diện:</strong>
-                                                    <img src="@request.ImageUrl" alt="Ảnh đại diện" class="img-fluid mt-2" style="max-height: 300px; border-radius: 8px;" />
-                                                </div>
-                                            }
+                                            <div class="mb-3">
+                                                <strong>Ảnh đại diện:</strong>
+                                                @if (!string.IsNullOrEmpty(request.ImageUrl))
+                                                {
+                                                    <img src="@request.ImageUrl" alt="Ảnh đại diện" class="img-fluid mt-2" style="max-height: 300px; border-radius: 8px;" 
+                                                         onerror="this.src='/images/default1-avatar.png'; this.onerror=null;" />
+                                                }
+                                                else
+                                                {
+                                                    <img src="/images/default1-avatar.png" alt="Ảnh đại diện" class="img-fluid mt-2" style="max-height: 300px; border-radius: 8px;" />
+                                                }
+                                            </div>
                                             <div class="row mb-3">
                                                 <div class="col-md-4">
                                                     <strong>Trạng thái:</strong>

@@ -1,4 +1,4 @@
-﻿@model MaiAmTinhThuong.Helpers.PagedResult<MaiAmTinhThuong.Models.BlogPost>
+@model MaiAmTinhThuong.Helpers.PagedResult<MaiAmTinhThuong.Models.BlogPost>
 @using System.Linq
 
 @{
@@ -106,9 +106,9 @@
                                     <div class="d-flex gap-2 justify-content-center">
                                         @if (!post.IsApproved)
                                         {
-                                            <form method="post" action="@Url.Action("ApproveBlogPost", "Admin")" asp-antiforgery="true">
+                                            <form method="post" action="@Url.Action("ApproveBlogPost", "Admin")" asp-antiforgery="true" style="display:inline;">
                                                 <input type="hidden" name="id" value="@post.Id" />
-                                                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">
+                                                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm" onclick="return confirm('Bạn có chắc muốn duyệt bài viết này?');">
                                                     <i class="fas fa-check"></i> Duyệt
                                                 </button>
                                             </form>

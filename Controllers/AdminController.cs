@@ -259,6 +259,88 @@ namespace MaiAmTinhThuong.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveSupporter(int id)
+        {
+            try
+            {
+                var supporter = await _context.Supporters
+                    .Include(s => s.MaiAm)
+                    .FirstOrDefaultAsync(s => s.Id == id);
+                
+                if (supporter == null)
+                {
+                    TempData["Error"] = "Không tìm thấy người hỗ trợ cần duyệt.";
+                    return RedirectToAction("ManageSupporters");
+                }
+
+                if (supporter.IsApproved)
+                {
+                    TempData["Message"] = "Người hỗ trợ này đã được duyệt trước đó.";
+                    return RedirectToAction("ManageSupporters");
+                }
+
+                supporter.IsApproved = true;
+                supporter.UpdatedDate = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                
+                // Gửi thông báo cho user nếu có user liên kết
+                try
+                {
+                    var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
+                    var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
+                    
+                    // Tìm user theo phone number
+                    var normalizedPhone = supporter.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                    if (!string.IsNullOrEmpty(normalizedPhone) && normalizedPhone.StartsWith("84"))
+                    {
+                        normalizedPhone = "0" + normalizedPhone.Substring(2);
+                    }
+                    
+                    ApplicationUser user = null;
+                    if (!string.IsNullOrEmpty(normalizedPhone))
+                    {
+                        var allUsers = await _userManager.Users.ToListAsync();
+                        user = allUsers.FirstOrDefault(u => 
+                        {
+                            var userPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                            var userPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                            
+                            if (!string.IsNullOrEmpty(userPhone1) && userPhone1.StartsWith("84"))
+                                userPhone1 = "0" + userPhone1.Substring(2);
+                            if (!string.IsNullOrEmpty(userPhone2) && userPhone2.StartsWith("84"))
+                                userPhone2 = "0" + userPhone2.Substring(2);
+                            
+                            return userPhone1 == normalizedPhone || userPhone2 == normalizedPhone;
+                        });
+                    }
+                    
+                    if (user != null)
+                    {
+                        logger.LogInformation($"Đã tìm thấy user {user.Id} ({user.Email}) cho supporter {id}, gửi thông báo duyệt");
+                        await notificationService.NotifySupporterApprovedAsync(user.Id, supporter.Name ?? "Người hỗ trợ");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
+                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho supporter {id}");
+                }
+                
+                TempData["Message"] = "Người hỗ trợ đã được duyệt thành công!";
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
+                logger.LogError(ex, $"Lỗi khi duyệt supporter {id}");
+                TempData["Error"] = "Có lỗi xảy ra khi duyệt người hỗ trợ. Vui lòng thử lại sau.";
+            }
+            
+            return RedirectToAction("ManageSupporters");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteSupporter(int id)
         {
             var supporter = await _context.Supporters.FindAsync(id);

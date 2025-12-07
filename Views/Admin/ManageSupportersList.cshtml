@@ -113,18 +113,27 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-center">
+                                        @if (!supporter.IsApproved)
+                                        {
+                                            <form asp-action="ApproveSupporter" method="post" style="display:inline;" asp-antiforgery="true">
+                                                <input type="hidden" name="id" value="@supporter.Id" />
+                                                <button type="submit" class="admin-btn admin-btn-success admin-btn-sm" title="Duyệt người hỗ trợ">
+                                                    <i class="fas fa-check-circle"></i> Duyệt
+                                                </button>
+                                            </form>
+                                        }
                                         <a asp-action="DetailsSupporter" asp-controller="MaiAmAdmin" asp-route-id="@supporter.Id" 
-                                           class="admin-btn admin-btn-info admin-btn-sm">
+                                           class="admin-btn admin-btn-info admin-btn-sm" title="Xem chi tiết">
                                             <i class="fas fa-eye"></i> Xem
                                         </a>
                                         <a asp-action="EditSupporter" asp-controller="MaiAmAdmin" asp-route-id="@supporter.Id" 
-                                           class="admin-btn admin-btn-warning admin-btn-sm">
+                                           class="admin-btn admin-btn-warning admin-btn-sm" title="Sửa thông tin">
                                             <i class="fas fa-edit"></i> Sửa
                                         </a>
                                         <form asp-action="DeleteSupporter" method="post" style="display:inline;" 
-                                              onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa?');" asp-antiforgery="true">
                                             <input type="hidden" name="id" value="@supporter.Id" />
-                                            <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm">
+                                            <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm" title="Xóa">
                                                 <i class="fas fa-trash-alt"></i> Xóa
                                             </button>
                                         </form>
