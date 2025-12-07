@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Identity
 @using MaiAmTinhThuong.Models
 @model IEnumerable<BlogPost>
 @inject UserManager<ApplicationUser> UserManager
@@ -39,7 +39,12 @@
         @if (!string.IsNullOrEmpty(post.ImageUrl))
         {
             <div class="blog-post-image">
-                <img src="@post.ImageUrl" alt="@post.Title" class="img-fluid" />
+                <img src="@post.ImageUrl" alt="@post.Title" class="img-fluid" 
+                     onerror="this.onerror=null; this.src='/images/default1-avatar.png'; this.style.display='none'; this.nextElementSibling?.style.setProperty('display', 'block', 'important');" />
+                <div style="display:none; padding: 40px; text-align: center; background: #f8f9fa; border-radius: 8px;">
+                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Ảnh không thể tải</p>
+                </div>
             </div>
         }
 

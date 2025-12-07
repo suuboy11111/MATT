@@ -1,4 +1,4 @@
-﻿@model MaiAmTinhThuong.Models.Supporter
+@model MaiAmTinhThuong.Models.Supporter
 
 <h2 class="mb-4">Chi tiết Người Hỗ Trợ</h2>
 
@@ -6,7 +6,8 @@
     <div class="col-md-4 text-center mb-3">
         @if (!string.IsNullOrEmpty(Model.ImageUrl))
         {
-            <img src="@Model.ImageUrl" alt="Ảnh đại diện" class="img-fluid rounded border" style="max-height: 200px; object-fit: cover;" />
+            <img src="@Model.ImageUrl" alt="Ảnh đại diện" class="img-fluid rounded border" style="max-height: 200px; object-fit: cover;" 
+                 onerror="this.onerror=null; this.src='/images/default1-avatar.png';" />
         }
         else
         {

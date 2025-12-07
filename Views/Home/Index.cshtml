@@ -165,7 +165,8 @@
                              onclick="window.location.href='@Url.Action("Index", "Blog")#post-@(post.Id)'">
                             @if (!string.IsNullOrEmpty(post.ImageUrl))
                             {
-                                <img src="@post.ImageUrl" class="card-img-top" alt="@post.Title" style="height: 200px; object-fit: cover;">
+                                <img src="@post.ImageUrl" class="card-img-top" alt="@post.Title" style="height: 200px; object-fit: cover;"
+                                     onerror="this.onerror=null; this.src='/images/default1-avatar.png'; this.style.objectFit='cover';" />
                             }
                             else
                             {
