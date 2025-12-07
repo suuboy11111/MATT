@@ -1,117 +1,199 @@
-﻿@model MaiAmTinhThuong.Models.MaiAm
+@model MaiAmTinhThuong.Models.MaiAm
 
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white">
-        <h4 class="text-center text-primary fw-bold mb-0">👥 Danh sách Người Hỗ Trợ: @Model.Name</h4>
-    </div>
-    <div class="card-body p-3">
-        <div class="mb-3">
-            <a asp-action="Manage" class="btn btn-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách Mái ấm
-            </a>
+@{
+    ViewData["Title"] = "Danh sách Người Hỗ Trợ";
+}
+
+<div class="admin-container">
+    <div class="admin-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h2 class="admin-title">
+                    <i class="fas fa-users me-3"></i>Danh sách Người Hỗ Trợ: @Model.Name
+                </h2>
+                <p class="admin-subtitle">Quản lý người hỗ trợ của mái ấm</p>
+            </div>
+            <div class="admin-header-actions">
+                <a asp-action="Manage" class="admin-btn admin-btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách Mái ấm
+                </a>
+            </div>
         </div>
+    </div>
 
-        <!-- Form tìm kiếm và lọc -->
-        <form method="get" asp-action="ManageSupporters" asp-route-id="@Model.Id" class="mb-3">
-            <div class="row g-2">
+    <!-- Search and Filter Section -->
+    <div class="admin-card mb-4">
+        <form method="get" asp-action="ManageSupporters" asp-route-id="@Model.Id" class="admin-filter-form">
+            <div class="row g-3">
                 <div class="col-md-3">
-                    <input type="text" name="searchString" class="form-control form-control-sm" 
-                           placeholder="Tìm kiếm..." value="@ViewBag.SearchString" />
+                    <div class="admin-form-group">
+                        <label class="admin-label">
+                            <i class="fas fa-search me-2"></i>Tìm kiếm
+                        </label>
+                        <input type="text" name="searchString" class="admin-input" 
+                               placeholder="Tìm kiếm..." value="@ViewBag.SearchString" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="filterApproved" class="form-select form-select-sm">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="true" selected="@(ViewBag.FilterApproved == "true")">Đã duyệt</option>
-                        <option value="false" selected="@(ViewBag.FilterApproved == "false")">Chưa duyệt</option>
-                    </select>
+                    <div class="admin-form-group">
+                        <label class="admin-label">Trạng thái</label>
+                        <select name="filterApproved" class="admin-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="true" selected="@(ViewBag.FilterApproved == "true")">Đã duyệt</option>
+                            <option value="false" selected="@(ViewBag.FilterApproved == "false")">Chưa duyệt</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="filterSupportType" class="form-select form-select-sm">
-                        <option value="">Tất cả loại hỗ trợ</option>
-                        @if (ViewBag.SupportTypes != null)
-                        {
-                            @foreach (var type in (List<MaiAmTinhThuong.Models.SupportType>)ViewBag.SupportTypes)
+                    <div class="admin-form-group">
+                        <label class="admin-label">Loại hỗ trợ</label>
+                        <select name="filterSupportType" class="admin-select">
+                            <option value="">Tất cả loại hỗ trợ</option>
+                            @if (ViewBag.SupportTypes != null)
                             {
-                                <option value="@type.Name" selected="@(ViewBag.FilterSupportType == type.Name)">@type.Name</option>
+                                @foreach (var type in (List<MaiAmTinhThuong.Models.SupportType>)ViewBag.SupportTypes)
+                                {
+                                    <option value="@type.Name" selected="@(ViewBag.FilterSupportType == type.Name)">@type.Name</option>
+                                }
                             }
-                        }
-                    </select>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="sortBy" class="form-select form-select-sm">
-                        <option value="date" selected="@(ViewBag.SortBy == "date" || ViewBag.SortBy == null)">Mới nhất</option>
-                        <option value="name" selected="@(ViewBag.SortBy == "name")">Tên A-Z</option>
-                        <option value="age" selected="@(ViewBag.SortBy == "age")">Tuổi</option>
-                    </select>
+                    <div class="admin-form-group">
+                        <label class="admin-label">Sắp xếp</label>
+                        <select name="sortBy" class="admin-select">
+                            <option value="date" selected="@(ViewBag.SortBy == "date" || ViewBag.SortBy == null)">Mới nhất</option>
+                            <option value="name" selected="@(ViewBag.SortBy == "name")">Tên A-Z</option>
+                            <option value="age" selected="@(ViewBag.SortBy == "age")">Tuổi</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i> Tìm kiếm
-                    </button>
-                    <a asp-action="ManageSupporters" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
-                    </a>
+                    <div class="admin-form-group">
+                        <label class="admin-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="admin-btn admin-btn-primary flex-fill">
+                                <i class="fas fa-search me-2"></i>Tìm kiếm
+                            </button>
+                            <a asp-action="ManageSupporters" asp-route-id="@Model.Id" class="admin-btn admin-btn-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>
+    </div>
 
-<div class="table-responsive">
-    <table class="table table-bordered table-striped table-hover align-middle text-center">
-    <thead>
-        <tr>
-            <th>Tên</th>
-            <th>Tuổi</th>
-            <th>Loại hỗ trợ</th>
-            <th>Trạng thái duyệt</th>
-            <th>Hành động</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var sma in Model.SupporterMaiAms)
-        {
-            var supporter = sma.Supporter;
-            if (supporter != null)
-            {
-                var supportTypeNames = supporter.SupporterSupportTypes?.Select(sst => sst.SupportType.Name).ToList() ?? new List<string>();
-                var supportTypeDisplay = string.Join(", ", supportTypeNames);
-                <tr>
-                    <td>@supporter.Name</td>
-                    <td>@supporter.Age</td>
-                    <td>@supportTypeDisplay</td>
-                    <td>
-                        @if (supporter.IsApproved)
+    <!-- Table Section -->
+    <div class="admin-card">
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-user me-2"></i>Tên</th>
+                        <th class="text-center"><i class="fas fa-birthday-cake me-2"></i>Tuổi</th>
+                        <th><i class="fas fa-tags me-2"></i>Loại hỗ trợ</th>
+                        <th class="text-center"><i class="fas fa-check-circle me-2"></i>Trạng thái duyệt</th>
+                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.SupporterMaiAms != null && Model.SupporterMaiAms.Any())
+                    {
+                        @foreach (var sma in Model.SupporterMaiAms)
                         {
-                            <span class="badge bg-success">Đã duyệt</span>
+                            var supporter = sma?.Supporter;
+                            @if (supporter != null)
+                            {
+                                var supportTypeNames = supporter.SupporterSupportTypes?
+                                    .Where(sst => sst?.SupportType != null)
+                                    .Select(sst => sst.SupportType.Name)
+                                    .ToList() ?? new List<string>();
+                                var supportTypeDisplay = string.Join(", ", supportTypeNames);
+                                
+                                <tr>
+                                    <td><strong>@supporter.Name</strong></td>
+                                    <td class="text-center">@supporter.Age</td>
+                                    <td>
+                                        @if (supportTypeNames.Any())
+                                        {
+                                            @foreach (var type in supportTypeNames)
+                                            {
+                                                <span class="admin-badge admin-badge-info me-1">@type</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Chưa có</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (supporter.IsApproved)
+                                        {
+                                            <span class="admin-badge admin-badge-success">
+                                                <i class="fas fa-check-circle"></i> Đã duyệt
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="admin-btn admin-btn-sm admin-btn-primary btn-approve" 
+                                                    data-id="@supporter.Id">
+                                                <i class="fas fa-check me-1"></i>Duyệt
+                                            </button>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="admin-action-buttons">
+                                            <a asp-action="DetailsSupporter" asp-route-id="@supporter.Id" 
+                                               class="admin-btn-icon admin-btn-icon-info" title="Xem">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="EditSupporter" asp-route-id="@supporter.Id" 
+                                               class="admin-btn-icon admin-btn-icon-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="DeleteSupporter" asp-route-id="@supporter.Id" 
+                                               class="admin-btn-icon admin-btn-icon-danger" title="Xóa"
+                                               onclick="return confirm('Bạn có chắc muốn xóa người hỗ trợ này?');">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
-                        else
-                        {
-                            <button type="button" class="btn btn-sm btn-primary btn-approve" data-id="@supporter.Id">Duyệt</button>
-                        }
-                    </td>
-                    <td>
-                        <a asp-action="DetailsSupporter" asp-route-id="@supporter.Id" class="btn btn-info btn-sm">Xem</a>
-                        <a asp-action="EditSupporter" asp-route-id="@supporter.Id" class="btn btn-warning btn-sm">Sửa</a>
-                        <a asp-action="DeleteSupporter" asp-route-id="@supporter.Id" class="btn btn-danger btn-sm">Xóa</a>
-                    </td>
-                </tr>
-            }
-        }
-    </tbody>
-</table>
-</div>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Chưa có người hỗ trợ nào</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
             $('.btn-approve').click(function () {
                 var supporterId = $(this).data('id');
                 var btn = $(this);
+                
+                if (!confirm('Bạn có chắc muốn duyệt người hỗ trợ này?')) return;
+
                 $.post('@Url.Action("ApproveSupporter", "MaiAmAdmin")', { supporterId: supporterId })
                     .done(function (data) {
                         if (data.success) {
-                            btn.replaceWith('<span class="badge bg-success">Đã duyệt</span>');
+                            btn.replaceWith('<span class="admin-badge admin-badge-success"><i class="fas fa-check-circle"></i> Đã duyệt</span>');
                         } else {
                             alert('Duyệt thất bại!');
                         }
@@ -122,4 +204,220 @@
             });
         });
     </script>
+    <style>
+        .admin-container {
+            padding: 30px 20px;
+        }
+
+        .admin-header {
+            margin-bottom: 25px;
+        }
+
+        .admin-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .admin-subtitle {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .admin-header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .admin-filter-form .admin-form-group {
+            margin-bottom: 0;
+        }
+
+        .admin-label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .admin-input, .admin-select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .admin-input:focus, .admin-select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .admin-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .admin-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .admin-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .admin-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .admin-btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table thead th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 0.9rem;
+        }
+
+        .admin-table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .admin-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .admin-badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .admin-badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .admin-action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .admin-btn-icon {
+            width: 35px;
+            height: 35px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .admin-btn-icon-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .admin-btn-icon-info:hover {
+            background: #bee5eb;
+            transform: translateY(-2px);
+            color: #0c5460;
+        }
+
+        .admin-btn-icon-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .admin-btn-icon-warning:hover {
+            background: #ffeaa7;
+            transform: translateY(-2px);
+            color: #856404;
+        }
+
+        .admin-btn-icon-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .admin-btn-icon-danger:hover {
+            background: #f5c6cb;
+            transform: translateY(-2px);
+            color: #721c24;
+        }
+
+        @@media (max-width: 768px) {
+            .admin-header-actions {
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            .admin-btn {
+                flex: 1;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
+        }
+    </style>
 }

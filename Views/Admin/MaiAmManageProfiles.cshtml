@@ -1,110 +1,191 @@
-﻿@model MaiAmTinhThuong.Models.MaiAm
+@model MaiAmTinhThuong.Models.MaiAm
 
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white">
-        <h4 class="text-center text-primary fw-bold mb-0">📁 Quản lý hồ sơ: @ViewBag.MaiAmName</h4>
-    </div>
-    <div class="card-body p-3">
-        <div class="mb-3 text-end">
-            <a asp-action="CreateProfile" asp-route-maiAmId="@Model.Id" class="btn btn-success btn-sm">
-                <i class="bi bi-plus-circle"></i> Thêm hồ sơ mới
-            </a>
-            <a asp-action="Manage" class="btn btn-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách Mái ấm
-            </a>
+@{
+    ViewData["Title"] = "Quản lý hồ sơ";
+}
+
+<div class="admin-container">
+    <div class="admin-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h2 class="admin-title">
+                    <i class="fas fa-folder-open me-3"></i>Quản lý hồ sơ: @Model.Name
+                </h2>
+                <p class="admin-subtitle">Quản lý và duyệt hồ sơ người cần hỗ trợ</p>
+            </div>
+            <div class="admin-header-actions">
+                <a asp-action="CreateProfile" asp-route-maiAmId="@Model.Id" class="admin-btn admin-btn-success">
+                    <i class="fas fa-plus-circle me-2"></i>Thêm hồ sơ mới
+                </a>
+                <a asp-action="Manage" class="admin-btn admin-btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách Mái ấm
+                </a>
+            </div>
         </div>
+    </div>
 
-        <!-- Form tìm kiếm và lọc -->
-        <form method="get" asp-action="ManageProfiles" asp-route-id="@Model.Id" class="mb-3">
-            <div class="row g-2">
+    <!-- Search and Filter Section -->
+    <div class="admin-card mb-4">
+        <form method="get" asp-action="ManageProfiles" asp-route-id="@Model.Id" class="admin-filter-form">
+            <div class="row g-3">
                 <div class="col-md-3">
-                    <input type="text" name="searchString" class="form-control form-control-sm" 
-                           placeholder="Tìm kiếm..." value="@ViewBag.SearchString" />
+                    <div class="admin-form-group">
+                        <label class="admin-label">
+                            <i class="fas fa-search me-2"></i>Tìm kiếm
+                        </label>
+                        <input type="text" name="searchString" class="admin-input" 
+                               placeholder="Tìm kiếm..." value="@ViewBag.SearchString" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="filterApproved" class="form-select form-select-sm">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="true" selected="@(ViewBag.FilterApproved == "true")">Đã duyệt</option>
-                        <option value="false" selected="@(ViewBag.FilterApproved == "false")">Chưa duyệt</option>
-                    </select>
+                    <div class="admin-form-group">
+                        <label class="admin-label">Trạng thái</label>
+                        <select name="filterApproved" class="admin-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="true" selected="@(ViewBag.FilterApproved == "true")">Đã duyệt</option>
+                            <option value="false" selected="@(ViewBag.FilterApproved == "false")">Chưa duyệt</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="filterSupported" class="form-select form-select-sm">
-                        <option value="">Tất cả hỗ trợ</option>
-                        <option value="reason" selected="@(ViewBag.FilterSupported == "reason")">Hỗ trợ HC</option>
-                        <option value="health" selected="@(ViewBag.FilterSupported == "health")">Hỗ trợ SK</option>
-                        <option value="general" selected="@(ViewBag.FilterSupported == "general")">Hỗ trợ chung</option>
-                    </select>
+                    <div class="admin-form-group">
+                        <label class="admin-label">Loại hỗ trợ</label>
+                        <select name="filterSupported" class="admin-select">
+                            <option value="">Tất cả hỗ trợ</option>
+                            <option value="reason" selected="@(ViewBag.FilterSupported == "reason")">Hỗ trợ HC</option>
+                            <option value="health" selected="@(ViewBag.FilterSupported == "health")">Hỗ trợ SK</option>
+                            <option value="general" selected="@(ViewBag.FilterSupported == "general")">Hỗ trợ chung</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <select name="sortBy" class="form-select form-select-sm">
-                        <option value="date" selected="@(ViewBag.SortBy == "date" || ViewBag.SortBy == null)">Mới nhất</option>
-                        <option value="name" selected="@(ViewBag.SortBy == "name")">Tên A-Z</option>
-                        <option value="age" selected="@(ViewBag.SortBy == "age")">Tuổi</option>
-                    </select>
+                    <div class="admin-form-group">
+                        <label class="admin-label">Sắp xếp</label>
+                        <select name="sortBy" class="admin-select">
+                            <option value="date" selected="@(ViewBag.SortBy == "date" || ViewBag.SortBy == null)">Mới nhất</option>
+                            <option value="name" selected="@(ViewBag.SortBy == "name")">Tên A-Z</option>
+                            <option value="age" selected="@(ViewBag.SortBy == "age")">Tuổi</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i> Tìm kiếm
-                    </button>
-                    <a asp-action="ManageProfiles" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-x-circle"></i> Xóa bộ lọc
-                    </a>
+                    <div class="admin-form-group">
+                        <label class="admin-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="admin-btn admin-btn-primary flex-fill">
+                                <i class="fas fa-search me-2"></i>Tìm kiếm
+                            </button>
+                            <a asp-action="ManageProfiles" asp-route-id="@Model.Id" class="admin-btn admin-btn-secondary">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </form>
+    </div>
 
+    <!-- Table Section -->
+    <div class="admin-card">
         <div class="table-responsive">
-            <table class="table table-bordered table-striped table-hover align-middle text-center">
-                <thead class="table-light">
+            <table class="admin-table">
+                <thead>
                     <tr>
-                        <th>Họ tên</th>
-                        <th>Tuổi</th>
-                        <th>Hoàn cảnh</th>
-                        <th>Sức khỏe</th>
-                        <th>Duyệt</th>
-                        <th>Hỗ trợ HC</th>
-                        <th>Hỗ trợ SK</th>
-                        <th>Hỗ trợ chung</th>
-                        <th>Hành động</th>
+                        <th><i class="fas fa-user me-2"></i>Họ tên</th>
+                        <th><i class="fas fa-birthday-cake me-2"></i>Tuổi</th>
+                        <th><i class="fas fa-heart me-2"></i>Hoàn cảnh</th>
+                        <th><i class="fas fa-heartbeat me-2"></i>Sức khỏe</th>
+                        <th class="text-center"><i class="fas fa-check-circle me-2"></i>Duyệt</th>
+                        <th class="text-center"><i class="fas fa-tag me-2"></i>Hỗ trợ HC</th>
+                        <th class="text-center"><i class="fas fa-tag me-2"></i>Hỗ trợ SK</th>
+                        <th class="text-center"><i class="fas fa-tag me-2"></i>Hỗ trợ chung</th>
+                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var request in Model.SupportRequests)
+                    @if (Model.SupportRequests != null && Model.SupportRequests.Any())
+                    {
+                        @foreach (var request in Model.SupportRequests)
+                        {
+                            <tr>
+                                <td><strong>@request.Name</strong></td>
+                                <td class="text-center">@request.Age</td>
+                                <td>
+                                    @{
+                                        var reason = request.Reason ?? "";
+                                        var reasonPreview = reason.Length > 30 ? reason.Substring(0, 30) + "..." : reason;
+                                    }
+                                    <span title="@reason">@reasonPreview</span>
+                                </td>
+                                <td>
+                                    @{
+                                        var healthStatus = request.HealthStatus ?? "";
+                                        var healthPreview = healthStatus.Length > 30 ? healthStatus.Substring(0, 30) + "..." : healthStatus;
+                                    }
+                                    <span title="@healthStatus">@healthPreview</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (request.IsApproved)
+                                    {
+                                        <span class="admin-badge admin-badge-success">
+                                            <i class="fas fa-check-circle"></i> Đã duyệt
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <button class="admin-btn admin-btn-sm admin-btn-success approve-btn"
+                                                data-id="@request.Id">
+                                            <i class="fas fa-check me-1"></i>Duyệt
+                                        </button>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="admin-checkbox-wrapper">
+                                        <input type="checkbox" data-id="@request.Id"
+                                               class="admin-checkbox toggle-support-reason"
+                                               @(request.IsSupportedReason ? "checked" : "") />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="admin-checkbox-wrapper">
+                                        <input type="checkbox" data-id="@request.Id"
+                                               class="admin-checkbox toggle-support-health"
+                                               @(request.IsSupportedHealth ? "checked" : "") />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="admin-checkbox-wrapper">
+                                        <input type="checkbox" data-id="@request.Id"
+                                               class="admin-checkbox toggle-support-general"
+                                               @(request.IsSupported ? "checked" : "") />
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="admin-action-buttons">
+                                        <a asp-action="DetailsProfile" asp-route-id="@request.Id" 
+                                           class="admin-btn-icon admin-btn-icon-info" title="Xem">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="EditProfile" asp-route-id="@request.Id" 
+                                           class="admin-btn-icon admin-btn-icon-warning" title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="DeleteProfile" asp-route-id="@request.Id" 
+                                           class="admin-btn-icon admin-btn-icon-danger" title="Xóa"
+                                           onclick="return confirm('Bạn có chắc muốn xóa hồ sơ này?');">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td class="text-start">@request.Name</td>
-                            <td>@request.Age</td>
-                            <td class="text-start">@request.Reason</td>
-                            <td class="text-start">@request.HealthStatus</td>
-                            <td>
-                                <button class="btn btn-success btn-sm approve-btn"
-                                        data-id="@request.Id"
-                                @(request.IsApproved ? "disabled" : "")>
-                                    @(request.IsApproved ? "Đã duyệt" : "Duyệt")
-                                </button>
-                            </td>
-                            <td>
-                                <input type="checkbox" data-id="@request.Id"
-                                       class="form-check-input toggle-support-reason"
-                                @(request.IsSupportedReason ? "checked" : "") />
-                            </td>
-                            <td>
-                                <input type="checkbox" data-id="@request.Id"
-                                       class="form-check-input toggle-support-health"
-                                @(request.IsSupportedHealth ? "checked" : "") />
-                            </td>
-                            <td>
-                                <input type="checkbox" data-id="@request.Id"
-                                       class="form-check-input toggle-support-general"
-                                @(request.IsSupported ? "checked" : "") />
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a asp-action="DetailsProfile" asp-route-id="@request.Id" class="btn btn-outline-info">Xem</a>
-                                    <a asp-action="EditProfile" asp-route-id="@request.Id" class="btn btn-outline-warning">Sửa</a>
-                                    <a asp-action="DeleteProfile" asp-route-id="@request.Id" class="btn btn-outline-danger">Xóa</a>
-                                </div>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Chưa có hồ sơ nào</p>
                             </td>
                         </tr>
                     }
@@ -113,35 +194,32 @@
         </div>
     </div>
 </div>
+
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(function () {
             $('.toggle-support-reason').change(function () {
                 var id = $(this).data('id');
-                $.post('@Url.Action("ToggleSupportStatus")', { id: id, supportType: 'Reason' });
+                $.post('@Url.Action("ToggleSupportStatus", "MaiAmAdmin")', { id: id, supportType: 'Reason' });
             });
             $('.toggle-support-health').change(function () {
                 var id = $(this).data('id');
-                $.post('@Url.Action("ToggleSupportStatus")', { id: id, supportType: 'Health' });
+                $.post('@Url.Action("ToggleSupportStatus", "MaiAmAdmin")', { id: id, supportType: 'Health' });
             });
             $('.toggle-support-general').change(function () {
                 var id = $(this).data('id');
-                $.post('@Url.Action("ToggleSupportStatus")', { id: id, supportType: 'General' });
+                $.post('@Url.Action("ToggleSupportStatus", "MaiAmAdmin")', { id: id, supportType: 'General' });
             });
-        });
-    </script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(function () {
+
             $('.approve-btn').click(function () {
                 var btn = $(this);
                 var id = btn.data('id');
+                if (!confirm('Bạn có chắc muốn duyệt hồ sơ này?')) return;
 
                 $.post('@Url.Action("ApproveSupportRequest", "MaiAmAdmin")', { id: id })
                     .done(function () {
-                        btn.text('Đã duyệt');
-                        btn.prop('disabled', true);
+                        btn.replaceWith('<span class="admin-badge admin-badge-success"><i class="fas fa-check-circle"></i> Đã duyệt</span>');
                     })
                     .fail(function () {
                         alert('Duyệt hồ sơ thất bại!');
@@ -149,4 +227,237 @@
             });
         });
     </script>
+    <style>
+        .admin-container {
+            padding: 30px 20px;
+        }
+
+        .admin-header {
+            margin-bottom: 25px;
+        }
+
+        .admin-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .admin-subtitle {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .admin-header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .admin-filter-form .admin-form-group {
+            margin-bottom: 0;
+        }
+
+        .admin-label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .admin-input, .admin-select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .admin-input:focus, .admin-select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .admin-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .admin-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .admin-btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .admin-btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .admin-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .admin-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .admin-btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table thead th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 0.9rem;
+        }
+
+        .admin-table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .admin-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .admin-badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .admin-checkbox-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .admin-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .admin-action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .admin-btn-icon {
+            width: 35px;
+            height: 35px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .admin-btn-icon-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .admin-btn-icon-info:hover {
+            background: #bee5eb;
+            transform: translateY(-2px);
+            color: #0c5460;
+        }
+
+        .admin-btn-icon-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .admin-btn-icon-warning:hover {
+            background: #ffeaa7;
+            transform: translateY(-2px);
+            color: #856404;
+        }
+
+        .admin-btn-icon-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .admin-btn-icon-danger:hover {
+            background: #f5c6cb;
+            transform: translateY(-2px);
+            color: #721c24;
+        }
+
+        @@media (max-width: 768px) {
+            .admin-header-actions {
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            .admin-btn {
+                flex: 1;
+            }
+
+            .table-responsive {
+                overflow-x: auto;
+            }
+        }
+    </style>
 }

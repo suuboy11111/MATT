@@ -1,32 +1,219 @@
-﻿@model MaiAmTinhThuong.Models.MaiAm
+@model MaiAmTinhThuong.Models.MaiAm
 
-<h2>Sửa Mái ấm</h2>
+@{
+    ViewData["Title"] = "Sửa Mái ấm";
+}
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="Id" />
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+<div class="admin-container">
+    <div class="admin-header">
+        <h2 class="admin-title">
+            <i class="fas fa-edit me-3"></i>Sửa Mái ấm
+        </h2>
+        <p class="admin-subtitle">Cập nhật thông tin mái ấm</p>
     </div>
-    <div class="form-group">
-        <label asp-for="Description"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
+
+    <div class="admin-card">
+        <form asp-action="Edit" method="post" class="admin-form">
+            <input type="hidden" asp-for="Id" />
+            
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="admin-form-group">
+                        <label asp-for="Name" class="admin-label">
+                            <i class="fas fa-home me-2"></i>Tên Mái ấm <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Name" class="admin-input" placeholder="Nhập tên mái ấm" />
+                        <span asp-validation-for="Name" class="admin-error"></span>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="admin-form-group">
+                        <label asp-for="Description" class="admin-label">
+                            <i class="fas fa-align-left me-2"></i>Mô tả
+                        </label>
+                        <textarea asp-for="Description" class="admin-textarea" rows="5" placeholder="Nhập mô tả về mái ấm"></textarea>
+                        <span asp-validation-for="Description" class="admin-error"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="admin-form-group">
+                        <label asp-for="Address" class="admin-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Address" class="admin-input" placeholder="Nhập địa chỉ" />
+                        <span asp-validation-for="Address" class="admin-error"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="admin-form-group">
+                        <label asp-for="Fund" class="admin-label">
+                            <i class="fas fa-money-bill-wave me-2"></i>Quỹ tài trợ (VNĐ) <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Fund" class="admin-input" type="number" min="0" step="1000" placeholder="Nhập số tiền" />
+                        <span asp-validation-for="Fund" class="admin-error"></span>
+                        <small class="admin-hint">Nhập số tiền bằng VNĐ (ví dụ: 20000000)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary">
+                    <i class="fas fa-save me-2"></i>Lưu thay đổi
+                </button>
+                <a asp-action="Manage" class="admin-btn admin-btn-secondary">
+                    <i class="fas fa-times me-2"></i>Hủy
+                </a>
+            </div>
+        </form>
     </div>
-    <div class="form-group">
-        <label asp-for="Address"></label>
-        <input asp-for="Address" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Fund"></label>
-        <input asp-for="Fund" class="form-control" type="number" />
-    </div>
-    <button type="submit" class="btn btn-primary">Lưu</button>
-    <a asp-action="Manage" class="btn btn-secondary">Hủy</a>
-</form>
+</div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+    <style>
+        .admin-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .admin-header {
+            margin-bottom: 30px;
+        }
+
+        .admin-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .admin-subtitle {
+            color: #6c757d;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 15px;
+            padding: 35px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .admin-form-group {
+            margin-bottom: 25px;
+        }
+
+        .admin-label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .admin-input, .admin-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .admin-input:focus, .admin-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .admin-textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .admin-error {
+            display: block;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+
+        .admin-hint {
+            display: block;
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .admin-form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .admin-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .admin-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .admin-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .admin-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        @@media (max-width: 768px) {
+            .admin-container {
+                padding: 20px 15px;
+            }
+
+            .admin-card {
+                padding: 25px 20px;
+            }
+
+            .admin-form-actions {
+                flex-direction: column;
+            }
+
+            .admin-btn {
+                width: 100%;
+            }
+        }
+    </style>
 }

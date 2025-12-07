@@ -603,6 +603,9 @@
 }
 
 @section Scripts {
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <script>
         // Hàm đóng modal đảm bảo hoạt động
         function closeModal(modalId) {
@@ -635,7 +638,189 @@
                     }
                 });
             });
+
+            // Khởi tạo biểu đồ khi tab Statistics được click
+            const statisticsTab = document.getElementById('statistics-tab');
+            if (statisticsTab) {
+                statisticsTab.addEventListener('shown.bs.tab', function() {
+                    initializeCharts();
+                });
+            }
+
+            // Nếu tab Statistics đã active, khởi tạo charts ngay
+            if (statisticsTab && statisticsTab.classList.contains('active')) {
+                setTimeout(initializeCharts, 100);
+            }
         });
+
+        // Hàm khởi tạo biểu đồ
+        function initializeCharts() {
+            // Kiểm tra xem Chart.js đã load chưa
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js chưa được load!');
+                return;
+            }
+
+            // Dữ liệu từ server
+            const totalSupportRequests = @(ViewBag.TotalSupportRequests ?? 0);
+            const totalSupporters = @(ViewBag.TotalSupporters ?? 0);
+            const totalFund = @(Model.Fund);
+            const approvedCount = @(Model.SupportRequests?.Count(r => r.IsApproved) ?? 0);
+            const pendingCount = @(Model.SupportRequests?.Count(r => !r.IsApproved) ?? 0);
+            const supportedReason = @(Model.SupportRequests?.Count(r => r.IsSupportedReason) ?? 0);
+            const supportedHealth = @(Model.SupportRequests?.Count(r => r.IsSupportedHealth) ?? 0);
+            const supportedGeneral = @(Model.SupportRequests?.Count(r => r.IsSupported) ?? 0);
+
+            // Bar Chart - Biểu đồ thống kê
+            const barCtx = document.getElementById('supportChart');
+            if (barCtx) {
+                // Xóa chart cũ nếu có
+                const existingChart = Chart.getChart(barCtx);
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Người cần hỗ trợ', 'Người hỗ trợ', 'Đã duyệt', 'Chờ duyệt'],
+                        datasets: [{
+                            label: 'Số lượng',
+                            data: [totalSupportRequests, totalSupporters, approvedCount, pendingCount],
+                            backgroundColor: [
+                                'rgba(244, 169, 169, 0.8)',
+                                'rgba(138, 197, 169, 0.8)',
+                                'rgba(40, 167, 69, 0.8)',
+                                'rgba(255, 193, 7, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(166, 91, 91, 1)',
+                                'rgba(47, 106, 79, 1)',
+                                'rgba(25, 135, 84, 1)',
+                                'rgba(255, 193, 7, 1)'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Pie Chart - Phân bố hỗ trợ
+            const pieCtx = document.getElementById('supportPieChart');
+            if (pieCtx) {
+                // Xóa chart cũ nếu có
+                const existingPieChart = Chart.getChart(pieCtx);
+                if (existingPieChart) {
+                    existingPieChart.destroy();
+                }
+
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Hỗ trợ hoàn cảnh', 'Hỗ trợ sức khỏe', 'Hỗ trợ chung', 'Chưa hỗ trợ'],
+                        datasets: [{
+                            data: [
+                                supportedReason,
+                                supportedHealth,
+                                supportedGeneral,
+                                Math.max(0, totalSupportRequests - supportedReason - supportedHealth - supportedGeneral)
+                            ],
+                            backgroundColor: [
+                                'rgba(102, 126, 234, 0.8)',
+                                'rgba(40, 167, 69, 0.8)',
+                                'rgba(255, 193, 7, 0.8)',
+                                'rgba(108, 117, 125, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(102, 126, 234, 1)',
+                                'rgba(40, 167, 69, 1)',
+                                'rgba(255, 193, 7, 1)',
+                                'rgba(108, 117, 125, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 12
+                                    },
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        label += value + ' (' + percentage + '%)';
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
     </script>
     <style>
         .maiam-detail-container {
@@ -984,6 +1169,94 @@
             margin: 5px 0 0 0;
             color: #6c757d;
             font-weight: 500;
+        }
+
+        .maiam-stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: #2c3e50;
+            line-height: 1.2;
+        }
+
+        .maiam-stat-label {
+            font-size: 1rem;
+            color: #6c757d;
+            font-weight: 500;
+            margin: 8px 0 0 0;
+        }
+
+        .maiam-stat-trend {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .maiam-chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+
+        .maiam-chart-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .maiam-chart-header h5 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .maiam-chart-body {
+            position: relative;
+            height: 300px;
+        }
+
+        .maiam-info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+
+        .maiam-info-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .maiam-info-header h6 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .maiam-info-content {
+            text-align: center;
+        }
+
+        .maiam-info-number {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .maiam-info-text {
+            font-size: 0.95rem;
+            color: #6c757d;
+            margin: 10px 0 0 0;
         }
 
         @@media (max-width: 992px) {
