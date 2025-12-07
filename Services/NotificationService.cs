@@ -109,9 +109,10 @@ namespace MaiAmTinhThuong.Services
             await CreateAsync(new Notification
             {
                 UserId = userId,
-                Title = "Hồ sơ cần hỗ trợ đã được duyệt",
-                Message = $"Hồ sơ '{requestName}' đã được duyệt và sẽ được xem xét hỗ trợ.",
-                Type = "Success"
+                Title = "Hồ sơ đã được duyệt",
+                Message = $"Hồ sơ '{requestName}' của bạn đã được admin duyệt thành công và sẽ được xem xét hỗ trợ.",
+                Type = "Success",
+                Link = "/SupportRequest/CreateRequest"
             });
         }
 

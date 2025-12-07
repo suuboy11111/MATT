@@ -315,16 +315,40 @@ namespace MaiAmTinhThuong.Controllers
                 try
                 {
                     var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
+                    var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
                     
-                    // Chuẩn hóa phone number để so sánh (loại bỏ khoảng trắng, dấu +, dấu -)
+                    // Chuẩn hóa phone number để so sánh (loại bỏ khoảng trắng, dấu +, dấu -, và chuẩn hóa format)
                     var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                    // Chuẩn hóa thêm: nếu bắt đầu bằng 0, giữ nguyên; nếu bắt đầu bằng 84, đổi thành 0
+                    if (!string.IsNullOrEmpty(normalizedRequestPhone) && normalizedRequestPhone.StartsWith("84"))
+                    {
+                        normalizedRequestPhone = "0" + normalizedRequestPhone.Substring(2);
+                    }
+                    
+                    ApplicationUser user = null;
                     
                     // Tìm user theo phone number (chính xác hoặc chuẩn hóa)
-                    var user = await _userManager.Users.FirstOrDefaultAsync(u => 
-                        (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber == request.PhoneNumber || 
-                         u.PhoneNumber.Replace(" ", "").Replace("+", "").Replace("-", "").Trim() == normalizedRequestPhone)) ||
-                        (!string.IsNullOrEmpty(u.PhoneNumber2) && (u.PhoneNumber2 == request.PhoneNumber || 
-                         u.PhoneNumber2.Replace(" ", "").Replace("+", "").Replace("-", "").Trim() == normalizedRequestPhone)));
+                    if (!string.IsNullOrEmpty(normalizedRequestPhone))
+                    {
+                        var allUsers = await _userManager.Users.ToListAsync();
+                        user = allUsers.FirstOrDefault(u => 
+                        {
+                            var normalizedUserPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                            var normalizedUserPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                            
+                            // Chuẩn hóa user phone numbers
+                            if (!string.IsNullOrEmpty(normalizedUserPhone1) && normalizedUserPhone1.StartsWith("84"))
+                            {
+                                normalizedUserPhone1 = "0" + normalizedUserPhone1.Substring(2);
+                            }
+                            if (!string.IsNullOrEmpty(normalizedUserPhone2) && normalizedUserPhone2.StartsWith("84"))
+                            {
+                                normalizedUserPhone2 = "0" + normalizedUserPhone2.Substring(2);
+                            }
+                            
+                            return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
+                        });
+                    }
                     
                     // Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
                     if (user == null && !string.IsNullOrEmpty(request.Name))
@@ -335,14 +359,19 @@ namespace MaiAmTinhThuong.Controllers
                     
                     if (user != null)
                     {
+                        logger.LogInformation($"Đã tìm thấy user {user.Id} ({user.Email}) cho hồ sơ {id}, gửi thông báo duyệt");
                         await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name ?? "Hồ sơ");
+                    }
+                    else
+                    {
+                        logger.LogWarning($"Không tìm thấy user cho hồ sơ {id} (Phone: {request.PhoneNumber}, Name: {request.Name})");
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log lỗi nhưng không làm gián đoạn quá trình duyệt
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
-                    logger.LogWarning(ex, $"Không thể gửi thông báo khi duyệt hồ sơ {id}");
+                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho hồ sơ {id}");
                 }
                 
                 TempData["Message"] = "Hồ sơ đã được duyệt!";
