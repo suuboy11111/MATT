@@ -182,37 +182,102 @@
             <!-- Tab: Thống kê -->
             <div class="tab-pane fade" id="statistics" role="tabpanel">
                 <div class="maiam-stats-container">
-                    <div class="row g-4">
-                        <div class="col-md-4">
+                    <!-- Summary Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-4 col-md-6">
                             <div class="maiam-stat-card maiam-stat-card-primary">
                                 <div class="maiam-stat-icon">
                                     <i class="fas fa-users"></i>
                                 </div>
                                 <div class="maiam-stat-content">
-                                    <h3>@ViewBag.TotalSupportRequests</h3>
-                                    <p>Người cần hỗ trợ</p>
+                                    <h3 class="maiam-stat-number">@ViewBag.TotalSupportRequests</h3>
+                                    <p class="maiam-stat-label">Người cần hỗ trợ</p>
+                                    <div class="maiam-stat-trend">
+                                        <i class="fas fa-arrow-up text-success"></i>
+                                        <span class="text-muted small">Đang tăng</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4 col-md-6">
                             <div class="maiam-stat-card maiam-stat-card-success">
                                 <div class="maiam-stat-icon">
                                     <i class="fas fa-hand-holding-heart"></i>
                                 </div>
                                 <div class="maiam-stat-content">
-                                    <h3>@ViewBag.TotalSupporters</h3>
-                                    <p>Người hỗ trợ</p>
+                                    <h3 class="maiam-stat-number">@ViewBag.TotalSupporters</h3>
+                                    <p class="maiam-stat-label">Người hỗ trợ</p>
+                                    <div class="maiam-stat-trend">
+                                        <i class="fas fa-arrow-up text-success"></i>
+                                        <span class="text-muted small">Đang tăng</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4 col-md-6">
                             <div class="maiam-stat-card maiam-stat-card-info">
                                 <div class="maiam-stat-icon">
                                     <i class="fas fa-money-bill-wave"></i>
                                 </div>
                                 <div class="maiam-stat-content">
-                                    <h3>@Model.Fund.ToString("N0")</h3>
-                                    <p>VNĐ Quỹ tài trợ</p>
+                                    <h3 class="maiam-stat-number">@Model.Fund.ToString("N0")</h3>
+                                    <p class="maiam-stat-label">VNĐ Quỹ tài trợ</p>
+                                    <div class="maiam-stat-trend">
+                                        <i class="fas fa-chart-line text-info"></i>
+                                        <span class="text-muted small">Tổng quỹ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="maiam-chart-card">
+                                <div class="maiam-chart-header">
+                                    <h5><i class="fas fa-chart-bar me-2"></i>Biểu đồ thống kê</h5>
+                                </div>
+                                <div class="maiam-chart-body">
+                                    <canvas id="supportChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="maiam-chart-card">
+                                <div class="maiam-chart-header">
+                                    <h5><i class="fas fa-chart-pie me-2"></i>Phân bố hỗ trợ</h5>
+                                </div>
+                                <div class="maiam-chart-body">
+                                    <canvas id="supportPieChart" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Stats -->
+                    <div class="row g-4 mt-2">
+                        <div class="col-lg-6">
+                            <div class="maiam-info-card">
+                                <div class="maiam-info-header">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    <h6>Hồ sơ đã duyệt</h6>
+                                </div>
+                                <div class="maiam-info-content">
+                                    <p class="maiam-info-number">@(Model.SupportRequests?.Count(r => r.IsApproved) ?? 0)</p>
+                                    <p class="maiam-info-text">trong tổng số @(Model.SupportRequests?.Count ?? 0) hồ sơ</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="maiam-info-card">
+                                <div class="maiam-info-header">
+                                    <i class="fas fa-clock text-warning me-2"></i>
+                                    <h6>Hồ sơ chờ duyệt</h6>
+                                </div>
+                                <div class="maiam-info-content">
+                                    <p class="maiam-info-number">@(Model.SupportRequests?.Count(r => !r.IsApproved) ?? 0)</p>
+                                    <p class="maiam-info-text">cần được xem xét</p>
                                 </div>
                             </div>
                         </div>
