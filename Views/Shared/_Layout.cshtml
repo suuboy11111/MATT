@@ -25,6 +25,7 @@
     <!-- Custom Styles -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MaiAmTinhThuong.styles.css" asp-append-version="true" />
     
     <!-- Fix: Ẩn dấu chấm đen notification bell (KHÔNG ẩn icon chuông) -->
@@ -233,22 +234,25 @@
                                         0
                                     </span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" id="notificationList" style="min-width: 380px; max-height: 500px; overflow-y: auto;" aria-labelledby="notificationDropdown">
-                                    <li class="dropdown-header bg-light">
+                                <ul class="dropdown-menu dropdown-menu-end notification-dropdown" id="notificationList" aria-labelledby="notificationDropdown">
+                                    <li class="dropdown-header notification-header">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <span class="fw-bold">🔔 Thông báo</span>
-                                            <button class="btn btn-sm btn-link p-0 text-primary" id="markAllReadBtn" title="Đánh dấu tất cả đã đọc">
-                                                <i class="fas fa-check-double"></i> Đã đọc tất cả
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-bell me-2"></i>
+                                                <span class="fw-bold">Thông báo</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-link p-0" id="markAllReadBtn" title="Đánh dấu tất cả đã đọc">
+                                                <i class="fas fa-check-double me-1"></i>Đã đọc tất cả
                                             </button>
                                         </div>
                                     </li>
                                     <li><hr class="dropdown-divider m-0" /></li>
-                                    <li id="notificationItems">
-                                        <div class="text-center text-muted p-3">
-                                            <div class="spinner-border spinner-border-sm" role="status">
+                                    <li id="notificationItems" class="notification-items-container">
+                                        <div class="text-center text-muted p-4">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
                                                 <span class="visually-hidden">Đang tải...</span>
                                             </div>
-                                            <div class="mt-2">Đang tải thông báo...</div>
+                                            <div class="mt-2 small">Đang tải thông báo...</div>
                                         </div>
                                     </li>
                                 </ul>
@@ -494,37 +498,41 @@
                     }
 
                     if (data.notifications && data.notifications.length > 0) {
-                        items.innerHTML = data.notifications.map(n => {
-                            const typeClass = n.type === 'Success' ? 'text-success' : 
-                                            n.type === 'Warning' ? 'text-warning' : 
-                                            n.type === 'Error' ? 'text-danger' : 'text-info';
-                            const typeIcon = n.type === 'Success' ? '✓' : 
-                                           n.type === 'Warning' ? '⚠' : 
-                                           n.type === 'Error' ? '✗' : 'ℹ';
-                            const linkAttr = n.link ? `onclick="if(event.target.tagName !== 'BUTTON') { window.location.href='${n.link}'; markAsRead(${n.id}); }"` : '';
+                        items.innerHTML = data.notifications.map((n, index) => {
+                            const typeConfig = {
+                                'Success': { class: 'notification-success', icon: 'fa-check-circle', color: '#28a745' },
+                                'Warning': { class: 'notification-warning', icon: 'fa-exclamation-triangle', color: '#ffc107' },
+                                'Error': { class: 'notification-error', icon: 'fa-exclamation-circle', color: '#dc3545' },
+                                'Info': { class: 'notification-info', icon: 'fa-info-circle', color: '#17a2b8' }
+                            };
+                            const config = typeConfig[n.type] || typeConfig['Info'];
+                            const linkAttr = n.link ? `onclick="if(event.target.tagName !== 'BUTTON' && event.target.tagName !== 'I') { window.location.href='${n.link}'; markAsRead(${n.id}); }"` : '';
+                            const timeAgo = getTimeAgo(new Date(n.createdAt));
                             return `
-                            <li class="dropdown-item-text ${!n.isRead ? 'bg-light border-start border-3 border-primary' : ''}" style="cursor: pointer; padding: 10px;" ${linkAttr}>
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-1">
-                                            <span class="${typeClass} me-2" style="font-size: 1.2em;">${typeIcon}</span>
-                                            <strong class="${typeClass}">${escapeHtml(n.title)}</strong>
-                                        </div>
-                                        <small class="text-muted d-block mb-1">${escapeHtml(n.message || '')}</small>
-                                        <small class="text-muted" style="font-size: 0.75rem;">${new Date(n.createdAt).toLocaleString('vi-VN')}</small>
+                            <li class="notification-item ${!n.isRead ? 'notification-unread' : ''}" style="animation-delay: ${index * 0.05}s;" ${linkAttr}>
+                                <div class="notification-content">
+                                    <div class="notification-icon-wrapper">
+                                        <i class="fas ${config.icon} ${config.class}"></i>
                                     </div>
-                                    <div class="d-flex flex-column align-items-end gap-1">
-                                        ${!n.isRead ? '<span class="badge bg-primary">Mới</span>' : ''}
-                                        <button class="btn btn-sm btn-link text-danger p-0" onclick="event.stopPropagation(); deleteNotification(${n.id});" title="Xóa">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                    <div class="notification-body">
+                                        <div class="notification-title-row">
+                                            <strong class="notification-title">${escapeHtml(n.title)}</strong>
+                                            ${!n.isRead ? '<span class="notification-badge-new">Mới</span>' : ''}
+                                        </div>
+                                        <p class="notification-message">${escapeHtml(n.message || '')}</p>
+                                        <div class="notification-footer">
+                                            <small class="notification-time">${timeAgo}</small>
+                                            <button class="btn-notification-delete" onclick="event.stopPropagation(); deleteNotification(${n.id});" title="Xóa">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </li>
                         `;
                         }).join('');
                     } else {
-                        items.innerHTML = '<div class="text-center text-muted p-3">Không có thông báo</div>';
+                        items.innerHTML = '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>Không có thông báo</p></div>';
                     }
                 }
             } catch (error) {
@@ -555,6 +563,21 @@
                     alert('Lỗi khi xóa thông báo');
                 }
             }
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (seconds < 60) return 'Vừa xong';
+            if (minutes < 60) return `${minutes} phút trước`;
+            if (hours < 24) return `${hours} giờ trước`;
+            if (days < 7) return `${days} ngày trước`;
+            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
     </script>
 

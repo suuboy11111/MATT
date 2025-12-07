@@ -504,37 +504,26 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     var notificationService = HttpContext.RequestServices.GetRequiredService<MaiAmTinhThuong.Services.NotificationService>();
                     var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
                     
-                    // Tìm user theo phone number (chính xác hoặc chứa)
-                    var user = await userManager.Users.FirstOrDefaultAsync(u => 
-                        (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber == request.PhoneNumber) ||
-                        (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2 == request.PhoneNumber) ||
-                        (!string.IsNullOrEmpty(request.PhoneNumber) && !string.IsNullOrEmpty(u.Email) && u.Email.Contains(request.PhoneNumber)));
+                    // Chuẩn hóa phone number để so sánh (loại bỏ khoảng trắng, dấu +, dấu -)
+                    var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
                     
-                    // Nếu không tìm thấy, thử tìm theo tên
-                    if (user == null && !string.IsNullOrEmpty(request.PhoneNumber))
+                    // Tìm user theo phone number (chính xác hoặc chuẩn hóa)
+                    var user = await userManager.Users.FirstOrDefaultAsync(u => 
+                        (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber == request.PhoneNumber || 
+                         u.PhoneNumber.Replace(" ", "").Replace("+", "").Replace("-", "").Trim() == normalizedRequestPhone)) ||
+                        (!string.IsNullOrEmpty(u.PhoneNumber2) && (u.PhoneNumber2 == request.PhoneNumber || 
+                         u.PhoneNumber2.Replace(" ", "").Replace("+", "").Replace("-", "").Trim() == normalizedRequestPhone)));
+                    
+                    // Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
+                    if (user == null && !string.IsNullOrEmpty(request.Name))
                     {
                         user = await userManager.Users.FirstOrDefaultAsync(u => 
-                            u.FullName == request.Name && 
-                            (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber.Contains(request.PhoneNumber) || request.PhoneNumber.Contains(u.PhoneNumber))));
+                            u.FullName != null && u.FullName.Trim().Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
                     }
                     
                     if (user != null)
                     {
                         await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name ?? "Hồ sơ");
-                    }
-                    else if (!string.IsNullOrEmpty(request.PhoneNumber) && request.PhoneNumber.Length >= 4)
-                    {
-                        // Nếu không tìm thấy user, thử tìm các user có phone number tương tự
-                        var phoneSuffix = request.PhoneNumber.Substring(Math.Max(0, request.PhoneNumber.Length - 4));
-                        var similarUsers = await userManager.Users
-                            .Where(u => (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber.Contains(phoneSuffix)) ||
-                                       (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2.Contains(phoneSuffix)))
-                            .ToListAsync();
-                        
-                        foreach (var similarUser in similarUsers)
-                        {
-                            await notificationService.NotifySupportRequestApprovedAsync(similarUser.Id, request.Name ?? "Hồ sơ");
-                        }
                     }
                 }
                 catch (Exception ex)
