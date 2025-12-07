@@ -1,4 +1,4 @@
-﻿using MaiAmTinhThuong.Data;
+using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.DataProtection;
@@ -72,6 +72,7 @@ builder.Services.AddScoped<MaiAmTinhThuong.Services.SupporterService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.NotificationService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.EmailService>();
 builder.Services.AddScoped<MaiAmTinhThuong.Services.VerificationCodeService>();
+builder.Services.AddScoped<MaiAmTinhThuong.Services.IImageUploadService, MaiAmTinhThuong.Services.ImageUploadService>();
 builder.Services.AddMemoryCache(); // Cần cho VerificationCodeService
 
 // Hỗ trợ cả SQL Server và PostgreSQL
