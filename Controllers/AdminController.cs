@@ -543,6 +543,15 @@ namespace MaiAmTinhThuong.Controllers
                 }
 
                 logger.LogInformation($"Đang cập nhật trạng thái duyệt cho bài viết {id}");
+                
+                // Đảm bảo CreatedAt là UTC trước khi update
+                if (blogPost.CreatedAt.Kind != DateTimeKind.Utc)
+                {
+                    blogPost.CreatedAt = blogPost.CreatedAt.Kind == DateTimeKind.Unspecified 
+                        ? DateTime.SpecifyKind(blogPost.CreatedAt, DateTimeKind.Utc)
+                        : blogPost.CreatedAt.ToUniversalTime();
+                }
+                
                 blogPost.IsApproved = true;  // Cập nhật trạng thái duyệt
                 _context.Update(blogPost);
                 

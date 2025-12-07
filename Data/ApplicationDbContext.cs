@@ -101,10 +101,12 @@ namespace MaiAmTinhThuong.Data
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var entries = ChangeTracker.Entries()
-                .Where(e => e.Entity is ApplicationUser && (e.State == Microsoft.EntityFrameworkCore.EntityState.Added || e.State == Microsoft.EntityFrameworkCore.EntityState.Modified));
+                .Where(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Added || 
+                           e.State == Microsoft.EntityFrameworkCore.EntityState.Modified);
 
             foreach (var entityEntry in entries)
             {
+                // Xử lý ApplicationUser
                 if (entityEntry.Entity is ApplicationUser user)
                 {
                     // Đảm bảo CreatedAt là UTC
@@ -124,6 +126,126 @@ namespace MaiAmTinhThuong.Data
                     {
                         var dateOnly = user.DateOfBirth.Value.Date;
                         user.DateOfBirth = new DateTime(dateOnly.Ticks, DateTimeKind.Utc);
+                    }
+                }
+                
+                // Xử lý BlogPost
+                if (entityEntry.Entity is BlogPost blogPost)
+                {
+                    // Đảm bảo CreatedAt là UTC
+                    if (blogPost.CreatedAt.Kind != DateTimeKind.Utc)
+                    {
+                        blogPost.CreatedAt = blogPost.CreatedAt.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(blogPost.CreatedAt, DateTimeKind.Utc)
+                            : blogPost.CreatedAt.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý Notification
+                if (entityEntry.Entity is Notification notification)
+                {
+                    // Đảm bảo CreatedAt là UTC
+                    if (notification.CreatedAt.Kind != DateTimeKind.Utc)
+                    {
+                        notification.CreatedAt = notification.CreatedAt.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(notification.CreatedAt, DateTimeKind.Utc)
+                            : notification.CreatedAt.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý Comment
+                if (entityEntry.Entity is Comment comment)
+                {
+                    // Đảm bảo CreatedAt là UTC
+                    if (comment.CreatedAt.Kind != DateTimeKind.Utc)
+                    {
+                        comment.CreatedAt = comment.CreatedAt.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(comment.CreatedAt, DateTimeKind.Utc)
+                            : comment.CreatedAt.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý SupportRequest
+                if (entityEntry.Entity is SupportRequest supportRequest)
+                {
+                    // Đảm bảo CreatedDate là UTC
+                    if (supportRequest.CreatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        supportRequest.CreatedDate = supportRequest.CreatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(supportRequest.CreatedDate, DateTimeKind.Utc)
+                            : supportRequest.CreatedDate.ToUniversalTime();
+                    }
+                    
+                    // Đảm bảo UpdatedDate là UTC
+                    if (supportRequest.UpdatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        supportRequest.UpdatedDate = supportRequest.UpdatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(supportRequest.UpdatedDate, DateTimeKind.Utc)
+                            : supportRequest.UpdatedDate.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý Supporter
+                if (entityEntry.Entity is Supporter supporter)
+                {
+                    // Đảm bảo CreatedDate là UTC
+                    if (supporter.CreatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        supporter.CreatedDate = supporter.CreatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(supporter.CreatedDate, DateTimeKind.Utc)
+                            : supporter.CreatedDate.ToUniversalTime();
+                    }
+                    
+                    // Đảm bảo UpdatedDate là UTC
+                    if (supporter.UpdatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        supporter.UpdatedDate = supporter.UpdatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(supporter.UpdatedDate, DateTimeKind.Utc)
+                            : supporter.UpdatedDate.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý MaiAm
+                if (entityEntry.Entity is MaiAm maiAm)
+                {
+                    // Đảm bảo CreatedDate là UTC
+                    if (maiAm.CreatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        maiAm.CreatedDate = maiAm.CreatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(maiAm.CreatedDate, DateTimeKind.Utc)
+                            : maiAm.CreatedDate.ToUniversalTime();
+                    }
+                    
+                    // Đảm bảo UpdatedDate là UTC
+                    if (maiAm.UpdatedDate.Kind != DateTimeKind.Utc)
+                    {
+                        maiAm.UpdatedDate = maiAm.UpdatedDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(maiAm.UpdatedDate, DateTimeKind.Utc)
+                            : maiAm.UpdatedDate.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý TransactionHistory
+                if (entityEntry.Entity is TransactionHistory transaction)
+                {
+                    // Đảm bảo TransactionDate là UTC
+                    if (transaction.TransactionDate.Kind != DateTimeKind.Utc)
+                    {
+                        transaction.TransactionDate = transaction.TransactionDate.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(transaction.TransactionDate, DateTimeKind.Utc)
+                            : transaction.TransactionDate.ToUniversalTime();
+                    }
+                }
+                
+                // Xử lý VinhDanh
+                if (entityEntry.Entity is VinhDanh vinhDanh)
+                {
+                    // Đảm bảo NgayVinhDanh là UTC
+                    if (vinhDanh.NgayVinhDanh.Kind != DateTimeKind.Utc)
+                    {
+                        vinhDanh.NgayVinhDanh = vinhDanh.NgayVinhDanh.Kind == DateTimeKind.Unspecified 
+                            ? DateTime.SpecifyKind(vinhDanh.NgayVinhDanh, DateTimeKind.Utc)
+                            : vinhDanh.NgayVinhDanh.ToUniversalTime();
                     }
                 }
             }

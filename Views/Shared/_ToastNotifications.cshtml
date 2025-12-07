@@ -112,28 +112,39 @@
             // Escape HTML để tránh XSS
             const escapedMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             
-            toast.innerHTML = `
-                <div class="toast-content">
-                    <div class="toast-icon">${icon}</div>
-                    <div class="toast-message">${escapedMessage}</div>
-                    <button type="button" class="toast-close" aria-label="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="toast-progress"></div>
-            `;
-
-            container.appendChild(toast);
+            // Tạo nút close riêng để có thể gắn event listener trực tiếp
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'toast-close';
+            closeButton.setAttribute('aria-label', 'Close');
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
             
-            // Gắn event listener cho nút close sau khi append vào DOM
-            const closeButton = toast.querySelector('.toast-close');
-            if (closeButton) {
-                closeButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeToast(toastId);
-                });
-            }
+            // Gắn event listener TRƯỚC KHI append vào DOM
+            closeButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                closeToast(toastId);
+                return false;
+            });
+            
+            // Tạo content div
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'toast-content';
+            contentDiv.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-message">${escapedMessage}</div>
+            `;
+            contentDiv.appendChild(closeButton);
+            
+            // Tạo progress bar
+            const progressBar = document.createElement('div');
+            progressBar.className = 'toast-progress';
+            
+            toast.appendChild(contentDiv);
+            toast.appendChild(progressBar);
+            
+            container.appendChild(toast);
 
             // Trigger animation sau khi DOM đã render
             requestAnimationFrame(() => {
@@ -141,7 +152,6 @@
             });
 
             // Auto close after 4 seconds (giảm từ 5 xuống 4 để nhanh hơn)
-            const progressBar = toast.querySelector('.toast-progress');
             progressBar.style.animation = 'toast-progress 4s linear forwards';
 
             // Đảm bảo toast sẽ bị xóa sau 4.5 giây (4s animation + 0.5s buffer)
@@ -272,6 +282,8 @@
         padding: 0;
         z-index: 10;
         position: relative;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .toast-close:hover {
@@ -281,6 +293,12 @@
     
     .toast-close:active {
         transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.4);
+    }
+    
+    .toast-close:focus {
+        outline: 2px solid rgba(255, 255, 255, 0.5);
+        outline-offset: 2px;
     }
 
     .toast-close i {
