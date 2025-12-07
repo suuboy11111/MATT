@@ -17,6 +17,8 @@ namespace MaiAmTinhThuong.Services
 
         public ImageUploadService(IConfiguration configuration, ILogger<ImageUploadService> logger)
         {
+            _logger = logger;
+            
             var cloudName = configuration["Cloudinary:CloudName"] 
                 ?? Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
             var apiKey = configuration["Cloudinary:ApiKey"] 
@@ -24,14 +26,47 @@ namespace MaiAmTinhThuong.Services
             var apiSecret = configuration["Cloudinary:ApiSecret"] 
                 ?? Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
 
+            // Log để debug - chi tiết hơn
+            _logger.LogInformation("🔍 Checking Cloudinary configuration...");
+            
+            var cloudNameFromConfig = configuration["Cloudinary:CloudName"];
+            var cloudNameFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+            var apiKeyFromConfig = configuration["Cloudinary:ApiKey"];
+            var apiKeyFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+            var apiSecretFromConfig = configuration["Cloudinary:ApiSecret"];
+            var apiSecretFromEnv = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+            
+            _logger.LogInformation($"CloudName - Config: {!string.IsNullOrEmpty(cloudNameFromConfig)}, Env: {!string.IsNullOrEmpty(cloudNameFromEnv)}, Final: {!string.IsNullOrEmpty(cloudName)}");
+            _logger.LogInformation($"API Key - Config: {!string.IsNullOrEmpty(apiKeyFromConfig)}, Env: {!string.IsNullOrEmpty(apiKeyFromEnv)}, Final: {!string.IsNullOrEmpty(apiKey)}");
+            _logger.LogInformation($"API Secret - Config: {!string.IsNullOrEmpty(apiSecretFromConfig)}, Env: {!string.IsNullOrEmpty(apiSecretFromEnv)}, Final: {!string.IsNullOrEmpty(apiSecret)}");
+            
+            // Log tất cả environment variables có chứa CLOUDINARY để debug
+            var allEnvVars = Environment.GetEnvironmentVariables();
+            var cloudinaryVars = allEnvVars.Keys.Cast<string>()
+                .Where(k => k.Contains("CLOUDINARY", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (cloudinaryVars.Any())
+            {
+                _logger.LogInformation($"Found Cloudinary-related env vars: {string.Join(", ", cloudinaryVars)}");
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ No CLOUDINARY environment variables found!");
+            }
+
             if (string.IsNullOrEmpty(cloudName) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
             {
-                throw new Exception("Cloudinary configuration is missing! Please check appsettings.json or environment variables.");
+                var errorMsg = "Cloudinary configuration is missing! " +
+                    "Please set the following environment variables in Railway: " +
+                    "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET. " +
+                    "Or add them to appsettings.json for local development.";
+                _logger.LogError(errorMsg);
+                throw new Exception(errorMsg);
             }
 
             var account = new Account(cloudName, apiKey, apiSecret);
             _cloudinary = new Cloudinary(account);
-            _logger = logger;
+            _logger.LogInformation($"Cloudinary initialized successfully with CloudName: {cloudName}");
         }
 
         public async Task<string> UploadImageAsync(IFormFile file, string folder = "maiam")

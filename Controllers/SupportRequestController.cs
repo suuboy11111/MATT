@@ -13,12 +13,14 @@ public class SupportRequestController : Controller
     private readonly ApplicationDbContext _context;
     private readonly NotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IImageUploadService _imageUploadService;
 
-    public SupportRequestController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager)
+    public SupportRequestController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager, IImageUploadService imageUploadService)
     {
         _context = context;
         _notificationService = notificationService;
         _userManager = userManager;
+        _imageUploadService = imageUploadService;
     }
 
     [HttpGet]
@@ -53,27 +55,19 @@ public class SupportRequestController : Controller
             }
             else
             {
-                // File hợp lệ, lưu file
+                // File hợp lệ, upload lên Cloudinary
                 try
                 {
-                    var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
-                    var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/profiles");
-                    if (!Directory.Exists(uploadDir))
-                    {
-                        Directory.CreateDirectory(uploadDir);
-                    }
-
-                    var filePath = Path.Combine(uploadDir, uniqueFileName);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await ImageFile.CopyToAsync(stream);
-                    }
-
-                    model.ImageUrl = "/images/profiles/" + uniqueFileName;
+                    var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "support-requests");
+                    model.ImageUrl = imageUrl;
+                }
+                catch (ArgumentException ex)
+                {
+                    ModelState.AddModelError("ImageFile", ex.Message);
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
+                    ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
                 }
             }
         }
