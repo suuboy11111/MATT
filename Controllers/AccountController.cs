@@ -17,6 +17,7 @@ namespace MaiAmTinhThuong.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly EmailService _emailService;
         private readonly VerificationCodeService _verificationCodeService;
+        private readonly IImageUploadService _imageUploadService;
         private readonly ILogger<AccountController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
@@ -26,6 +27,7 @@ namespace MaiAmTinhThuong.Controllers
                                  RoleManager<IdentityRole> roleManager,
                                  EmailService emailService,
                                  VerificationCodeService verificationCodeService,
+                                 IImageUploadService imageUploadService,
                                  ILogger<AccountController> logger,
                                  IConfiguration configuration,
                                  IWebHostEnvironment environment)
@@ -35,6 +37,7 @@ namespace MaiAmTinhThuong.Controllers
             _roleManager = roleManager;
             _emailService = emailService;
             _verificationCodeService = verificationCodeService;
+            _imageUploadService = imageUploadService;
             _logger = logger;
             _configuration = configuration;
             _environment = environment;
@@ -252,41 +255,30 @@ namespace MaiAmTinhThuong.Controllers
             // Xử lý upload ảnh riêng biệt (không phụ thuộc vào ModelState.IsValid)
             if (profilePicture != null && profilePicture.Length > 0)
             {
-                // Validate file type
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                var fileExtension = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
-                if (!allowedExtensions.Contains(fileExtension))
+                try
                 {
-                    ModelState.AddModelError("profilePicture", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
-                }
-                // Validate file size (max 5MB)
-                else if (profilePicture.Length > 5 * 1024 * 1024)
-                {
-                    ModelState.AddModelError("profilePicture", "Kích thước file không được vượt quá 5MB");
-                }
-                else
-                {
-                    // File hợp lệ, lưu file
-                    try
+                    // Xóa ảnh cũ trên Cloudinary nếu có (nếu là Cloudinary URL)
+                    if (!string.IsNullOrEmpty(user.ProfilePicture) && 
+                        user.ProfilePicture.StartsWith("https://res.cloudinary.com"))
                     {
-                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
-                        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
-                        if (!Directory.Exists(uploadDir))
-                        {
-                            Directory.CreateDirectory(uploadDir);
-                        }
+                        await _imageUploadService.DeleteImageAsync(user.ProfilePicture);
+                    }
 
-                        var filePath = Path.Combine(uploadDir, uniqueFileName);
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await profilePicture.CopyToAsync(stream);
-                        }
-                        user.ProfilePicture = "/images/profiles/" + uniqueFileName;
-                    }
-                    catch (Exception ex)
-                    {
-                        ModelState.AddModelError("profilePicture", $"Lỗi khi lưu file: {ex.Message}");
-                    }
+                    // Upload ảnh mới lên Cloudinary
+                    var imageUrl = await _imageUploadService.UploadImageAsync(profilePicture, "profiles");
+                    user.ProfilePicture = imageUrl;
+                    _logger.LogInformation($"Profile picture uploaded to Cloudinary: {imageUrl}");
+                }
+                catch (ArgumentException ex)
+                {
+                    // Lỗi validation (file type, size)
+                    ModelState.AddModelError("profilePicture", ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    // Lỗi khác (network, Cloudinary API)
+                    _logger.LogError(ex, "Error uploading profile picture to Cloudinary");
+                    ModelState.AddModelError("profilePicture", $"Lỗi khi upload ảnh: {ex.Message}");
                 }
             }
 
