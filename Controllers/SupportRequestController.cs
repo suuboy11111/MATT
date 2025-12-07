@@ -1,6 +1,7 @@
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc;
@@ -13,14 +14,14 @@ public class SupportRequestController : Controller
     private readonly ApplicationDbContext _context;
     private readonly NotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IImageUploadService _imageUploadService;
+    private readonly IWebHostEnvironment _environment;
 
-    public SupportRequestController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager, IImageUploadService imageUploadService)
+    public SupportRequestController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
     {
         _context = context;
         _notificationService = notificationService;
         _userManager = userManager;
-        _imageUploadService = imageUploadService;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -55,19 +56,27 @@ public class SupportRequestController : Controller
             }
             else
             {
-                // File hợp lệ, upload lên Cloudinary
+                // File hợp lệ, lưu file
                 try
                 {
-                    var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "support-requests");
-                    model.ImageUrl = imageUrl;
-                }
-                catch (ArgumentException ex)
-                {
-                    ModelState.AddModelError("ImageFile", ex.Message);
+                    var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                    var uploadDir = Path.Combine(_environment.WebRootPath, "images", "profiles");
+                    if (!Directory.Exists(uploadDir))
+                    {
+                        Directory.CreateDirectory(uploadDir);
+                    }
+
+                    var filePath = Path.Combine(uploadDir, uniqueFileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(stream);
+                    }
+
+                    model.ImageUrl = "/images/profiles/" + uniqueFileName;
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
+                    ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
                 }
             }
         }

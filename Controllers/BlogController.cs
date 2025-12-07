@@ -17,14 +17,14 @@ namespace MaiAmTinhThuong.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly NotificationService _notificationService;
-        private readonly IImageUploadService _imageUploadService;
+        private readonly IWebHostEnvironment _environment;
 
-        public BlogController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, NotificationService notificationService, IImageUploadService imageUploadService)
+        public BlogController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, NotificationService notificationService, IWebHostEnvironment environment)
         {
             _context = context;
             _userManager = userManager;
             _notificationService = notificationService;
-            _imageUploadService = imageUploadService;
+            _environment = environment;
         }
 
         // GET: Blog
@@ -186,18 +186,38 @@ namespace MaiAmTinhThuong.Controllers
 
                 if (image != null && image.Length > 0)
                 {
-                    try
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                    var fileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                    if (!allowedExtensions.Contains(fileExtension))
                     {
-                        var imageUrl = await _imageUploadService.UploadImageAsync(image, "blog");
-                        blogPost.ImageUrl = imageUrl;
+                        ModelState.AddModelError("image", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
                     }
-                    catch (ArgumentException ex)
+                    else if (image.Length > 5 * 1024 * 1024)
                     {
-                        ModelState.AddModelError("image", ex.Message);
+                        ModelState.AddModelError("image", "Kích thước file không được vượt quá 5MB");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        ModelState.AddModelError("image", $"Lỗi khi upload ảnh: {ex.Message}");
+                        try
+                        {
+                            var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                            var uploadDir = Path.Combine(_environment.WebRootPath, "images");
+                            if (!Directory.Exists(uploadDir))
+                            {
+                                Directory.CreateDirectory(uploadDir);
+                            }
+                            
+                            var imagePath = Path.Combine(uploadDir, uniqueFileName);
+                            using (var stream = new FileStream(imagePath, FileMode.Create))
+                            {
+                                await image.CopyToAsync(stream);
+                            }
+                            blogPost.ImageUrl = "/images/" + uniqueFileName;
+                        }
+                        catch (Exception ex)
+                        {
+                            ModelState.AddModelError("image", $"Lỗi khi lưu file: {ex.Message}");
+                        }
                     }
                 }
 

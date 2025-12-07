@@ -4,6 +4,7 @@ using System;
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
@@ -14,14 +15,14 @@ public class SupporterController : Controller
     private readonly ApplicationDbContext _context;
     private readonly NotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IImageUploadService _imageUploadService;
+    private readonly IWebHostEnvironment _environment;
 
-    public SupporterController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager, IImageUploadService imageUploadService)
+    public SupporterController(ApplicationDbContext context, NotificationService notificationService, UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
     {
         _context = context;
         _notificationService = notificationService;
         _userManager = userManager;
-        _imageUploadService = imageUploadService;
+        _environment = environment;
     }
 
     [HttpGet]
@@ -60,19 +61,28 @@ public class SupporterController : Controller
             }
             else
             {
-                // File hợp lệ, upload lên Cloudinary
+                // File hợp lệ, lưu file
                 try
                 {
-                    var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "supporters");
-                    model.ImageUrl = imageUrl;
-                }
-                catch (ArgumentException ex)
-                {
-                    ModelState.AddModelError("ImageFile", ex.Message);
+                    var uploadDir = Path.Combine(_environment.WebRootPath, "images", "supporters");
+                    if (!Directory.Exists(uploadDir))
+                    {
+                        Directory.CreateDirectory(uploadDir);
+                    }
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                    var filePath = Path.Combine(uploadDir, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await ImageFile.CopyToAsync(stream);
+                    }
+
+                    model.ImageUrl = "/images/supporters/" + uniqueFileName;
                 }
                 catch (Exception ex)
                 {
-                    ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
+                    ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
                 }
             }
         }

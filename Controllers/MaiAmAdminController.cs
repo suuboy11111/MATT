@@ -2,11 +2,13 @@ using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
 using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,12 +18,12 @@ namespace MaiAmTinhThuong.Controllers.Admin
     public class MaiAmAdminController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly IImageUploadService _imageUploadService;
+        private readonly IWebHostEnvironment _environment;
 
-        public MaiAmAdminController(ApplicationDbContext context, IImageUploadService imageUploadService)
+        public MaiAmAdminController(ApplicationDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
-            _imageUploadService = imageUploadService;
+            _environment = environment;
         }
 
         // ======= Quản lý Mái ấm =======
@@ -220,18 +222,38 @@ namespace MaiAmTinhThuong.Controllers.Admin
             // Xử lý upload ảnh (ngay cả khi ModelState không hoàn toàn valid)
             if (ImageFile != null && ImageFile.Length > 0)
             {
-                try
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(ImageFile.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(fileExtension))
                 {
-                    var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "support-requests");
-                    model.ImageUrl = imageUrl;
+                    ModelState.AddModelError("ImageFile", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
                 }
-                catch (ArgumentException ex)
+                else if (ImageFile.Length > 5 * 1024 * 1024)
                 {
-                    ModelState.AddModelError("ImageFile", ex.Message);
+                    ModelState.AddModelError("ImageFile", "Kích thước file không được vượt quá 5MB");
                 }
-                catch (Exception ex)
+                else
                 {
-                    ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
+                    try
+                    {
+                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                        var uploadDir = Path.Combine(_environment.WebRootPath, "images", "profiles");
+                        if (!Directory.Exists(uploadDir))
+                        {
+                            Directory.CreateDirectory(uploadDir);
+                        }
+
+                        var filePath = Path.Combine(uploadDir, uniqueFileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await ImageFile.CopyToAsync(stream);
+                        }
+                        model.ImageUrl = "/images/profiles/" + uniqueFileName;
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
+                    }
                 }
             }
             else
@@ -321,26 +343,26 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     }
                     else
                     {
-                        // File hợp lệ, upload lên Cloudinary
+                        // File hợp lệ, lưu file
                         try
                         {
-                            // Xóa ảnh cũ nếu có (nếu là Cloudinary URL)
-                            if (existing != null && !string.IsNullOrEmpty(existing.ImageUrl) && 
-                                existing.ImageUrl.StartsWith("https://res.cloudinary.com"))
+                            var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                            var uploadDir = Path.Combine(_environment.WebRootPath, "images", "profiles");
+                            if (!Directory.Exists(uploadDir))
                             {
-                                await _imageUploadService.DeleteImageAsync(existing.ImageUrl);
+                                Directory.CreateDirectory(uploadDir);
                             }
 
-                            var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "support-requests");
-                            model.ImageUrl = imageUrl;
-                        }
-                        catch (ArgumentException ex)
-                        {
-                            ModelState.AddModelError("ImageFile", ex.Message);
+                            var filePath = Path.Combine(uploadDir, uniqueFileName);
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await ImageFile.CopyToAsync(stream);
+                            }
+                            model.ImageUrl = "/images/profiles/" + uniqueFileName;
                         }
                         catch (Exception ex)
                         {
-                            ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
+                            ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
                         }
                     }
                 }
@@ -689,25 +711,38 @@ namespace MaiAmTinhThuong.Controllers.Admin
             // Xử lý upload ảnh nếu có (ngay cả khi ModelState không hoàn toàn valid)
             if (ImageFile != null && ImageFile.Length > 0)
             {
-                try
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(ImageFile.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(fileExtension))
                 {
-                    // Xóa ảnh cũ nếu có (nếu là Cloudinary URL)
-                    if (!string.IsNullOrEmpty(existing.ImageUrl) && 
-                        existing.ImageUrl.StartsWith("https://res.cloudinary.com"))
+                    ModelState.AddModelError("ImageFile", "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif)");
+                }
+                else if (ImageFile.Length > 5 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("ImageFile", "Kích thước file không được vượt quá 5MB");
+                }
+                else
+                {
+                    try
                     {
-                        await _imageUploadService.DeleteImageAsync(existing.ImageUrl);
-                    }
+                        var uploadDir = Path.Combine(_environment.WebRootPath, "images", "supporters");
+                        if (!Directory.Exists(uploadDir))
+                            Directory.CreateDirectory(uploadDir);
 
-                    var imageUrl = await _imageUploadService.UploadImageAsync(ImageFile, "supporters");
-                    model.ImageUrl = imageUrl;
-                }
-                catch (ArgumentException ex)
-                {
-                    ModelState.AddModelError("ImageFile", ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("ImageFile", $"Lỗi khi upload ảnh: {ex.Message}");
+                        var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+                        var filePath = Path.Combine(uploadDir, uniqueFileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await ImageFile.CopyToAsync(stream);
+                        }
+
+                        model.ImageUrl = "/images/supporters/" + uniqueFileName;
+                    }
+                    catch (Exception ex)
+                    {
+                        ModelState.AddModelError("ImageFile", $"Lỗi khi lưu file: {ex.Message}");
+                    }
                 }
             }
             else
