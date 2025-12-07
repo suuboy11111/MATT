@@ -69,12 +69,12 @@ namespace MaiAmTinhThuong.Services
                 var publicId = $"{folder}/{Guid.NewGuid()}";
 
                 // Upload to Cloudinary
+                // Note: ResourceType is read-only and defaults to Image for ImageUploadParams
                 var uploadParams = new ImageUploadParams()
                 {
                     File = new FileDescription(file.FileName, new MemoryStream(fileBytes)),
                     PublicId = publicId,
                     Overwrite = false,
-                    ResourceType = ResourceType.Image,
                     Transformation = new Transformation()
                         .Quality("auto") // Auto optimize quality
                         .FetchFormat("auto") // Auto format (webp if supported)
