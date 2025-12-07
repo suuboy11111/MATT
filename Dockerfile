@@ -20,3 +20,6 @@ EXPOSE 8080
 
 # Start the application (PORT will be set by Railway)
 ENTRYPOINT ["dotnet", "MaiAmTinhThuong.dll"]
+
+
+

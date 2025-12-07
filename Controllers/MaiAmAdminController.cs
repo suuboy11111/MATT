@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -481,50 +482,76 @@ namespace MaiAmTinhThuong.Controllers.Admin
         [HttpPost]
         public async Task<IActionResult> ApproveSupportRequest(int id)
         {
-            var request = await _context.SupportRequests.FindAsync(id);
-            if (request == null) return NotFound();
-
-            request.IsApproved = true;
-            await _context.SaveChangesAsync();
-
-            // Gửi thông báo cho user nếu có user liên kết
-            var notificationService = HttpContext.RequestServices.GetRequiredService<MaiAmTinhThuong.Services.NotificationService>();
-            var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
-            
-            // Tìm user theo phone number (chính xác hoặc chứa)
-            var user = await userManager.Users.FirstOrDefaultAsync(u => 
-                (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber == request.PhoneNumber) ||
-                (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2 == request.PhoneNumber) ||
-                (!string.IsNullOrEmpty(request.PhoneNumber) && !string.IsNullOrEmpty(u.Email) && u.Email.Contains(request.PhoneNumber)));
-            
-            // Nếu không tìm thấy, thử tìm theo tên
-            if (user == null && !string.IsNullOrEmpty(request.PhoneNumber))
+            try
             {
-                user = await userManager.Users.FirstOrDefaultAsync(u => 
-                    u.FullName == request.Name && 
-                    (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber.Contains(request.PhoneNumber) || request.PhoneNumber.Contains(u.PhoneNumber))));
-            }
-            
-            if (user != null)
-            {
-                await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name);
-            }
-            else
-            {
-                // Nếu không tìm thấy user, thử tìm các user có phone number tương tự
-                var similarUsers = await userManager.Users
-                    .Where(u => !string.IsNullOrEmpty(request.PhoneNumber) && 
-                               ((!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber.Contains(request.PhoneNumber.Substring(Math.Max(0, request.PhoneNumber.Length - 4)))) ||
-                                (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2.Contains(request.PhoneNumber.Substring(Math.Max(0, request.PhoneNumber.Length - 4))))))
-                    .ToListAsync();
-                
-                foreach (var similarUser in similarUsers)
+                var request = await _context.SupportRequests.FindAsync(id);
+                if (request == null)
                 {
-                    await notificationService.NotifySupportRequestApprovedAsync(similarUser.Id, request.Name);
+                    return Json(new { success = false, message = "Không tìm thấy hồ sơ cần duyệt." });
                 }
-            }
 
-            return Json(new { success = true });
+                if (request.IsApproved)
+                {
+                    return Json(new { success = true, message = "Hồ sơ này đã được duyệt trước đó." });
+                }
+
+                request.IsApproved = true;
+                await _context.SaveChangesAsync();
+
+                // Gửi thông báo cho user nếu có user liên kết
+                try
+                {
+                    var notificationService = HttpContext.RequestServices.GetRequiredService<MaiAmTinhThuong.Services.NotificationService>();
+                    var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
+                    
+                    // Tìm user theo phone number (chính xác hoặc chứa)
+                    var user = await userManager.Users.FirstOrDefaultAsync(u => 
+                        (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber == request.PhoneNumber) ||
+                        (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2 == request.PhoneNumber) ||
+                        (!string.IsNullOrEmpty(request.PhoneNumber) && !string.IsNullOrEmpty(u.Email) && u.Email.Contains(request.PhoneNumber)));
+                    
+                    // Nếu không tìm thấy, thử tìm theo tên
+                    if (user == null && !string.IsNullOrEmpty(request.PhoneNumber))
+                    {
+                        user = await userManager.Users.FirstOrDefaultAsync(u => 
+                            u.FullName == request.Name && 
+                            (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber.Contains(request.PhoneNumber) || request.PhoneNumber.Contains(u.PhoneNumber))));
+                    }
+                    
+                    if (user != null)
+                    {
+                        await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name ?? "Hồ sơ");
+                    }
+                    else if (!string.IsNullOrEmpty(request.PhoneNumber) && request.PhoneNumber.Length >= 4)
+                    {
+                        // Nếu không tìm thấy user, thử tìm các user có phone number tương tự
+                        var phoneSuffix = request.PhoneNumber.Substring(Math.Max(0, request.PhoneNumber.Length - 4));
+                        var similarUsers = await userManager.Users
+                            .Where(u => (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber.Contains(phoneSuffix)) ||
+                                       (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2.Contains(phoneSuffix)))
+                            .ToListAsync();
+                        
+                        foreach (var similarUser in similarUsers)
+                        {
+                            await notificationService.NotifySupportRequestApprovedAsync(similarUser.Id, request.Name ?? "Hồ sơ");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi nhưng không làm gián đoạn quá trình duyệt
+                    var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
+                    logger.LogWarning(ex, $"Không thể gửi thông báo khi duyệt hồ sơ {id}");
+                }
+
+                return Json(new { success = true, message = "Hồ sơ đã được duyệt thành công!" });
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
+                logger.LogError(ex, $"Lỗi khi duyệt hồ sơ {id}");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi duyệt hồ sơ. Vui lòng thử lại sau." });
+            }
         }
         public async Task<IActionResult> ManageSupporters(int? id, string searchString, string filterApproved, string filterSupportType, string sortBy)
         {
@@ -782,50 +809,76 @@ namespace MaiAmTinhThuong.Controllers.Admin
         [HttpPost]
         public async Task<IActionResult> ApproveSupporter(int supporterId)
         {
-            var supporter = await _context.Supporters.FindAsync(supporterId);
-            if (supporter == null) return NotFound();
-
-            supporter.IsApproved = true;
-            await _context.SaveChangesAsync();
-
-            // Gửi thông báo cho user nếu có user liên kết
-            var notificationService = HttpContext.RequestServices.GetRequiredService<MaiAmTinhThuong.Services.NotificationService>();
-            var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
-            
-            // Tìm user theo phone number (chính xác hoặc chứa)
-            var user = await userManager.Users.FirstOrDefaultAsync(u => 
-                (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber == supporter.PhoneNumber) ||
-                (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2 == supporter.PhoneNumber) ||
-                (!string.IsNullOrEmpty(supporter.PhoneNumber) && !string.IsNullOrEmpty(u.Email) && u.Email.Contains(supporter.PhoneNumber)));
-            
-            // Nếu không tìm thấy, thử tìm theo tên
-            if (user == null && !string.IsNullOrEmpty(supporter.PhoneNumber))
+            try
             {
-                user = await userManager.Users.FirstOrDefaultAsync(u => 
-                    u.FullName == supporter.Name && 
-                    (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber.Contains(supporter.PhoneNumber) || supporter.PhoneNumber.Contains(u.PhoneNumber))));
-            }
-            
-            if (user != null)
-            {
-                await notificationService.NotifySupporterApprovedAsync(user.Id, supporter.Name);
-            }
-            else
-            {
-                // Nếu không tìm thấy user, thử tìm các user có phone number tương tự
-                var similarUsers = await userManager.Users
-                    .Where(u => !string.IsNullOrEmpty(supporter.PhoneNumber) && 
-                               ((!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber.Contains(supporter.PhoneNumber.Substring(Math.Max(0, supporter.PhoneNumber.Length - 4)))) ||
-                                (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2.Contains(supporter.PhoneNumber.Substring(Math.Max(0, supporter.PhoneNumber.Length - 4))))))
-                    .ToListAsync();
-                
-                foreach (var similarUser in similarUsers)
+                var supporter = await _context.Supporters.FindAsync(supporterId);
+                if (supporter == null)
                 {
-                    await notificationService.NotifySupporterApprovedAsync(similarUser.Id, supporter.Name);
+                    return Json(new { success = false, message = "Không tìm thấy người hỗ trợ cần duyệt." });
                 }
-            }
 
-            return Json(new { success = true });
+                if (supporter.IsApproved)
+                {
+                    return Json(new { success = true, message = "Người hỗ trợ này đã được duyệt trước đó." });
+                }
+
+                supporter.IsApproved = true;
+                await _context.SaveChangesAsync();
+
+                // Gửi thông báo cho user nếu có user liên kết
+                try
+                {
+                    var notificationService = HttpContext.RequestServices.GetRequiredService<MaiAmTinhThuong.Services.NotificationService>();
+                    var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
+                    
+                    // Tìm user theo phone number (chính xác hoặc chứa)
+                    var user = await userManager.Users.FirstOrDefaultAsync(u => 
+                        (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber == supporter.PhoneNumber) ||
+                        (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2 == supporter.PhoneNumber) ||
+                        (!string.IsNullOrEmpty(supporter.PhoneNumber) && !string.IsNullOrEmpty(u.Email) && u.Email.Contains(supporter.PhoneNumber)));
+                    
+                    // Nếu không tìm thấy, thử tìm theo tên
+                    if (user == null && !string.IsNullOrEmpty(supporter.PhoneNumber))
+                    {
+                        user = await userManager.Users.FirstOrDefaultAsync(u => 
+                            u.FullName == supporter.Name && 
+                            (!string.IsNullOrEmpty(u.PhoneNumber) && (u.PhoneNumber.Contains(supporter.PhoneNumber) || supporter.PhoneNumber.Contains(u.PhoneNumber))));
+                    }
+                    
+                    if (user != null)
+                    {
+                        await notificationService.NotifySupporterApprovedAsync(user.Id, supporter.Name ?? "Người hỗ trợ");
+                    }
+                    else if (!string.IsNullOrEmpty(supporter.PhoneNumber) && supporter.PhoneNumber.Length >= 4)
+                    {
+                        // Nếu không tìm thấy user, thử tìm các user có phone number tương tự
+                        var phoneSuffix = supporter.PhoneNumber.Substring(Math.Max(0, supporter.PhoneNumber.Length - 4));
+                        var similarUsers = await userManager.Users
+                            .Where(u => (!string.IsNullOrEmpty(u.PhoneNumber) && u.PhoneNumber.Contains(phoneSuffix)) ||
+                                       (!string.IsNullOrEmpty(u.PhoneNumber2) && u.PhoneNumber2.Contains(phoneSuffix)))
+                            .ToListAsync();
+                        
+                        foreach (var similarUser in similarUsers)
+                        {
+                            await notificationService.NotifySupporterApprovedAsync(similarUser.Id, supporter.Name ?? "Người hỗ trợ");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi nhưng không làm gián đoạn quá trình duyệt
+                    var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
+                    logger.LogWarning(ex, $"Không thể gửi thông báo khi duyệt người hỗ trợ {supporterId}");
+                }
+
+                return Json(new { success = true, message = "Người hỗ trợ đã được duyệt thành công!" });
+            }
+            catch (Exception ex)
+            {
+                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
+                logger.LogError(ex, $"Lỗi khi duyệt người hỗ trợ {supporterId}");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi duyệt người hỗ trợ. Vui lòng thử lại sau." });
+            }
         }
     }
 }

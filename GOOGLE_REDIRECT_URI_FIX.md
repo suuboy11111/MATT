@@ -79,3 +79,6 @@ Sau khi deploy code mới, kiểm tra Railway logs:
 - [ ] Đã kiểm tra logs và thấy redirect URI là HTTPS
 - [ ] Đã test đăng nhập bằng Google
 - [ ] Nếu thành công, đã xóa redirect URI HTTP khỏi Google Cloud Console
+
+
+

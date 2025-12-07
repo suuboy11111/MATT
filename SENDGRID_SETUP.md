@@ -120,3 +120,6 @@ Email__SmtpPassword (có thể xóa)
 - [ ] Đã deploy code mới
 - [ ] Đã test đăng ký và nhận được email
 
+
+
+

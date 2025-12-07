@@ -57,3 +57,6 @@ Sau khi thêm, trong tab **"Variables"** của Web service, bạn sẽ thấy:
 2. Đảm bảo PostgreSQL service đã được tạo
 3. Đảm bảo `DATABASE_URL` đã được set trong Web service
 4. Kiểm tra format connection string (phải bắt đầu bằng `postgresql://`)
+
+
+

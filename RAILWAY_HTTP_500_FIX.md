@@ -148,3 +148,6 @@ Kiểm tra từng mục:
 - Server "Online" chỉ có nghĩa là container đang chạy
 - Nhưng application bên trong có thể crash khi startup
 - **Logs là nguồn thông tin quan trọng nhất!**
+
+
+

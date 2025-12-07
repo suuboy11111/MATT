@@ -83,3 +83,6 @@ Sau khi redeploy, kiểm tra logs:
 - **Public URL** có thể dùng từ bên ngoài nhưng chậm hơn và tốn băng thông
 - Code đã được cập nhật với retry logic (5 lần thử, mỗi lần tăng delay)
 - Migration sẽ chạy trong background, không block startup
+
+
+

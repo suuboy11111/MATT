@@ -83,3 +83,6 @@ SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 **Nếu database trống hoặc có thể reset:** Dùng Option 1 (xóa và tạo lại)
 
 **Nếu có dữ liệu quan trọng:** Dùng Option 2 (sửa thủ công) hoặc backup → reset → restore
+
+
+

@@ -71,3 +71,6 @@ Railway tự động set biến `PORT`. Code đã được cấu hình để s�
 - **Database connection error**: Kiểm tra Connection String và biến môi trường
 - **Static files không load**: Đảm bảo `wwwroot` folder được commit
 - **Port error**: Kiểm tra `railway.json` và biến `PORT`
+
+
+

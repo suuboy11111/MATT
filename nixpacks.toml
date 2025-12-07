@@ -9,3 +9,6 @@ cmds = ["dotnet publish -c Release -o /app/output"]
 
 [start]
 cmd = "dotnet /app/output/MaiAmTinhThuong.dll --urls http://0.0.0.0:${{PORT}}"
+
+
+

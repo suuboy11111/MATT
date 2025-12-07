@@ -19,3 +19,6 @@ if (Test-Path $migrationsPath) {
 } else {
     Write-Host "Migrations folder not found!" -ForegroundColor Red
 }
+
+
+

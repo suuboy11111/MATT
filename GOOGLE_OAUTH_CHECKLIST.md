@@ -202,3 +202,6 @@ Thêm vào **Authorized JavaScript origins**:
 3. Thêm Authorized JavaScript origins (optional)
 4. Đợi 5-10 phút sau khi cấu hình
 5. Test lại Google OAuth login
+
+
+
