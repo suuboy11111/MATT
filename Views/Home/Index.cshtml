@@ -4,13 +4,7 @@
 <!-- AOS CSS -->
 <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
-<!-- Phần hiển thị thông báo -->
-@if (TempData["Message"] != null)
-{
-    <div class="alert alert-success text-center">
-        @TempData["Message"]
-    </div>
-}
+@* Toast notifications được xử lý trong _Layout *@
 
 <!-- Hero Section with Carousel -->
 <section class="hero-section" style="position: relative; min-height: 90vh; overflow: hidden;">

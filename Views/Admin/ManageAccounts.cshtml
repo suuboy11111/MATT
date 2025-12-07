@@ -13,12 +13,7 @@
             <p>Quản lý và theo dõi tất cả tài khoản người dùng trong hệ thống</p>
         </div>
 
-        @if (TempData["Message"] != null)
-        {
-            <div class="admin-alert admin-alert-info">
-                <i class="fas fa-info-circle me-2"></i>@TempData["Message"]
-            </div>
-        }
+        @* Toast notifications được xử lý trong _Layout *@
 
         <!-- Search & Filter Form -->
         <div class="admin-search-form">

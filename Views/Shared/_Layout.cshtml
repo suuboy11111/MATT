@@ -292,6 +292,9 @@
 
     </header>
     <main role="main" class="pb-3" style="min-height: calc(100vh - 200px);">
+        @* Toast Notifications *@
+        @await Html.PartialAsync("_ToastNotifications")
+        
         @RenderBody()
     </main>
 

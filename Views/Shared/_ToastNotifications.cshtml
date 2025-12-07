@@ -1,0 +1,297 @@
+@* Toast Notification System - Hiển thị thông báo chuyên nghiệp *@
+<div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000;"></div>
+
+@{
+    // Đọc và lưu TempData vào biến local, sau đó xóa ngay để tránh hiển thị lại
+    var message = TempData["Message"]?.ToString();
+    var error = TempData["Error"]?.ToString();
+    var warning = TempData["Warning"]?.ToString();
+    var info = TempData["Info"]?.ToString();
+    
+    // Xóa TempData ngay sau khi đọc để đảm bảo không hiển thị lại
+    TempData["Message"] = null;
+    TempData["Error"] = null;
+    TempData["Warning"] = null;
+    TempData["Info"] = null;
+}
+
+@if (!string.IsNullOrEmpty(message) || !string.IsNullOrEmpty(error) || !string.IsNullOrEmpty(warning) || !string.IsNullOrEmpty(info))
+{
+    <script>
+        (function() {
+            // Sử dụng IIFE để tránh conflict và đảm bảo chỉ chạy một lần
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showNotifications);
+            } else {
+                showNotifications();
+            }
+            
+            function showNotifications() {
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <text>
+                    setTimeout(function() {
+                        showToast('@Html.Raw(message.Replace("'", "\\'").Replace("\r", "").Replace("\n", " "))', 'success');
+                    }, 100);
+                    </text>
+                }
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <text>
+                    setTimeout(function() {
+                        showToast('@Html.Raw(error.Replace("'", "\\'").Replace("\r", "").Replace("\n", " "))', 'error');
+                    }, 100);
+                    </text>
+                }
+                @if (!string.IsNullOrEmpty(warning))
+                {
+                    <text>
+                    setTimeout(function() {
+                        showToast('@Html.Raw(warning.Replace("'", "\\'").Replace("\r", "").Replace("\n", " "))', 'warning');
+                    }, 100);
+                    </text>
+                }
+                @if (!string.IsNullOrEmpty(info))
+                {
+                    <text>
+                    setTimeout(function() {
+                        showToast('@Html.Raw(info.Replace("'", "\\'").Replace("\r", "").Replace("\n", " "))', 'info');
+                    }, 100);
+                    </text>
+                }
+            }
+        })();
+    </script>
+}
+
+<script>
+    // Đảm bảo chỉ khởi tạo một lần
+    if (typeof window.toastInitialized === 'undefined') {
+        window.toastInitialized = true;
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) {
+                // Nếu container chưa có, tạo mới
+                const newContainer = document.createElement('div');
+                newContainer.id = 'toast-container';
+                newContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                newContainer.style.zIndex = '11000';
+                document.body.appendChild(newContainer);
+                return showToast(message, type); // Retry
+            }
+
+            // Tạo ID duy nhất cho toast
+            const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            const icons = {
+                success: '<i class="fas fa-check-circle"></i>',
+                error: '<i class="fas fa-exclamation-circle"></i>',
+                warning: '<i class="fas fa-exclamation-triangle"></i>',
+                info: '<i class="fas fa-info-circle"></i>'
+            };
+
+            const bgColors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+
+            const icon = icons[type] || icons.info;
+            const bgColor = bgColors[type] || bgColors.info;
+
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = 'toast-notification';
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            toast.style.backgroundColor = bgColor;
+            
+            // Escape HTML để tránh XSS
+            const escapedMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <div class="toast-icon">${icon}</div>
+                    <div class="toast-message">${escapedMessage}</div>
+                    <button type="button" class="toast-close" onclick="closeToast('${toastId}')" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="toast-progress"></div>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger animation sau khi DOM đã render
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Auto close after 4 seconds (giảm từ 5 xuống 4 để nhanh hơn)
+            const progressBar = toast.querySelector('.toast-progress');
+            progressBar.style.animation = 'toast-progress 4s linear forwards';
+
+            // Đảm bảo toast sẽ bị xóa sau 4.5 giây (4s animation + 0.5s buffer)
+            const timeoutId = setTimeout(() => {
+                closeToast(toastId);
+            }, 4000);
+
+            // Lưu timeout ID vào toast để có thể clear nếu đóng sớm
+            toast.dataset.timeoutId = timeoutId;
+        }
+
+        function closeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                // Clear timeout nếu có
+                if (toast.dataset.timeoutId) {
+                    clearTimeout(parseInt(toast.dataset.timeoutId));
+                }
+                
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                
+                // Xóa khỏi DOM sau animation
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }
+        }
+
+        // Global functions
+        window.showToast = showToast;
+        window.closeToast = closeToast;
+        
+        // Cleanup: Xóa tất cả toast khi chuyển trang (nếu có)
+        window.addEventListener('beforeunload', function() {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                container.innerHTML = '';
+            }
+        });
+    }
+</script>
+
+<style>
+    .toast-container {
+        max-width: 400px;
+        width: 100%;
+    }
+
+    .toast-notification {
+        min-width: 300px;
+        max-width: 100%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        margin-bottom: 15px;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        position: relative;
+    }
+
+    .toast-notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .toast-notification.hide {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    .toast-content {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        color: white;
+        position: relative;
+        z-index: 2;
+    }
+
+    .toast-icon {
+        font-size: 1.5rem;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .toast-message {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.5;
+        word-wrap: break-word;
+    }
+
+    .toast-close {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        margin-left: 12px;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+        color: white;
+        padding: 0;
+    }
+
+    .toast-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
+
+    .toast-close i {
+        font-size: 12px;
+    }
+
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.3);
+        width: 100%;
+        transform-origin: left;
+        transform: scaleX(1);
+    }
+
+    @@keyframes toast-progress {
+        from {
+            transform: scaleX(1);
+        }
+        to {
+            transform: scaleX(0);
+        }
+    }
+    
+    /* Đảm bảo toast bị xóa hoàn toàn khi ẩn */
+    .toast-notification.hide {
+        pointer-events: none;
+    }
+
+    /* Responsive */
+    @@media (max-width: 576px) {
+        .toast-container {
+            max-width: calc(100% - 20px);
+            left: 10px;
+            right: 10px;
+        }
+
+        .toast-notification {
+            min-width: 100%;
+        }
+    }
+</style>
+

@@ -16,21 +16,7 @@
                     <p class="text-center text-muted mt-2">Chào mừng bạn trở lại!</p>
                 </div>
 
-                @if (TempData["Message"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        @TempData["Message"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
-
-                @if (TempData["Error"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        @TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
+                @* Toast notifications được xử lý trong _Layout *@
 
                 @if (ViewBag.ShowResendEmail == true && !string.IsNullOrEmpty(ViewBag.UserEmail as string))
                 {

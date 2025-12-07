@@ -12,12 +12,7 @@
             <p>Xem và quản lý các phản hồi từ form liên hệ của người dùng</p>
         </div>
 
-        @if (TempData["Message"] != null)
-        {
-            <div class="admin-alert admin-alert-success">
-                <i class="fas fa-check-circle me-2"></i>@TempData["Message"]
-            </div>
-        }
+        @* Toast notifications được xử lý trong _Layout *@
 
         <!-- Table -->
         <div class="admin-table-wrapper">

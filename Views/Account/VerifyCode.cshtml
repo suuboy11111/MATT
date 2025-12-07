@@ -15,29 +15,7 @@
                     <p class="text-center text-muted mt-2">Nhập mã xác nhận đã được gửi đến email của bạn</p>
                 </div>
 
-                @if (TempData["Message"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        @TempData["Message"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
-
-                @if (TempData["Error"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        @TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
-
-                @if (TempData["Warning"] != null)
-                {
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        @TempData["Warning"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                }
+                @* Toast notifications được xử lý trong _Layout *@
 
                 <div class="alert alert-info">
                     <i class="fas fa-envelope me-2"></i>
