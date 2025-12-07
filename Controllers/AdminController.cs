@@ -273,6 +273,7 @@ namespace MaiAmTinhThuong.Controllers
       
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteRequest(int id)
         {
             var request = await _context.SupportRequests.FindAsync(id);
@@ -285,6 +286,7 @@ namespace MaiAmTinhThuong.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id)
         {
             try
@@ -306,7 +308,7 @@ namespace MaiAmTinhThuong.Controllers
                 }
 
                 request.IsApproved = true;
-                _context.Update(request);
+                request.UpdatedDate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 
                 // Gửi thông báo cho user nếu có user liên kết
@@ -413,6 +415,7 @@ namespace MaiAmTinhThuong.Controllers
 
         // Duyệt bài viết
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBlogPost(int id)
         {
             try
@@ -467,6 +470,7 @@ namespace MaiAmTinhThuong.Controllers
 
         // Xóa bài viết
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteBlogPost(int id)
         {
             var blogPost = await _context.BlogPosts.FindAsync(id);

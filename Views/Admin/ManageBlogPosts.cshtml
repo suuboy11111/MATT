@@ -103,14 +103,14 @@
                                     <div class="d-flex gap-2 justify-content-center">
                                         @if (!post.IsApproved)
                                         {
-                                            <form method="post" action="@Url.Action("ApproveBlogPost", "Admin")">
+                                            <form method="post" action="@Url.Action("ApproveBlogPost", "Admin")" asp-antiforgery="true">
                                                 <input type="hidden" name="id" value="@post.Id" />
                                                 <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">
                                                     <i class="fas fa-check"></i> Duyệt
                                                 </button>
                                             </form>
                                         }
-                                        <form method="post" action="@Url.Action("DeleteBlogPost", "Admin")" 
+                                        <form method="post" action="@Url.Action("DeleteBlogPost", "Admin")" asp-antiforgery="true" 
                                               onsubmit="return confirm('Bạn có chắc muốn xóa?');">
                                             <input type="hidden" name="id" value="@post.Id" />
                                             <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm">

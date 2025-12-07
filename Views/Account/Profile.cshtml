@@ -10,132 +10,227 @@
     }
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4" style="color: #2c3e50; font-size: 2.5rem; font-weight: 600;">CẬP NHẬT THÔNG TIN TÀI KHOẢN</h2>
+@* Hiển thị thông báo từ TempData *@
+@await Html.PartialAsync("_TempDataMessages")
 
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-success">
-            @TempData["Message"]
-        </div>
-    }
-
-    <form method="post" enctype="multipart/form-data" class="profile-form">
-        <div asp-validation-summary="All" class="alert alert-danger"></div>
-
-        <!-- Họ và Tên -->
-        <div class="mb-4">
-            <label asp-for="FullName" class="form-label">Họ và Tên</label>
-            <input asp-for="FullName" class="form-control" />
-            <span asp-validation-for="FullName" class="text-danger"></span>
+<div class="profile-page-container">
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-header-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <h1 class="profile-title">CẬP NHẬT THÔNG TIN TÀI KHOẢN</h1>
+            <p class="profile-subtitle">Quản lý thông tin cá nhân của bạn</p>
         </div>
 
-        <!-- Email (readonly) -->
-        <div class="mb-4">
-            <label asp-for="Email" class="form-label">Email</label>
-            <input asp-for="Email" class="form-control" readonly />
-            <small class="form-text text-muted">Email không thể thay đổi</small>
-        </div>
-
-        <!-- Giới tính -->
-        <div class="mb-4">
-            <label asp-for="Gender" class="form-label">Giới tính</label>
-            <select asp-for="Gender" class="form-control">
-                <option value="">-- Chọn giới tính --</option>
-                <option value="Nam">Nam</option>
-                <option value="Nu">Nữ</option>
-                <option value="Khac">Khác</option>
-            </select>
-            <span asp-validation-for="Gender" class="text-danger"></span>
-        </div>
-
-        <!-- Ngày sinh -->
-        <div class="mb-4">
-            <label asp-for="DateOfBirth" class="form-label">Ngày sinh</label>
-            <input asp-for="DateOfBirth" type="date" class="form-control" />
-            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
-        </div>
-
-        <!-- Địa chỉ -->
-        <div class="mb-4">
-            <label asp-for="Address" class="form-label">Địa chỉ</label>
-            <input asp-for="Address" class="form-control" />
-            <span asp-validation-for="Address" class="text-danger"></span>
-        </div>
-
-        <!-- Số điện thoại -->
-        <div class="mb-4">
-            <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
-            <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678 hoặc +84912345678" />
-            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-        </div>
-
-        <!-- Ảnh đại diện -->
-        <div class="mb-4 text-center">
-            <label for="profilePicture" class="form-label">Ảnh đại diện</label>
-            <div class="d-flex flex-column align-items-center mb-3">
-                @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+        <div class="profile-form-wrapper">
+            <form method="post" enctype="multipart/form-data" class="profile-form">
+                @* Validation Summary - chỉ hiển thị khi có lỗi *@
+                @if (!ViewData.ModelState.IsValid)
                 {
-                    <img src="@Model.ProfilePicture" class="img-thumbnail rounded-circle profile-img" width="180" height="180" />
+                    <div class="validation-summary">
+                        <div class="validation-summary-header">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Vui lòng kiểm tra lại thông tin:</strong>
+                        </div>
+                        <div asp-validation-summary="All" class="validation-summary-list"></div>
+                    </div>
                 }
-                else
-                {
-                    <img src="/images/default1-avatar.png" class="img-thumbnail rounded-circle profile-img" width="180" height="180" />
-                }
-                <input type="file" class="form-control mt-3" id="profilePicture" name="profilePicture" />
-            </div>
-            <button type="button" class="btn btn-outline-danger mt-2" onclick="deleteProfilePicture()">Xóa ảnh đại diện</button>
+
+                <div class="row">
+                    <!-- Cột trái: Thông tin cơ bản -->
+                    <div class="col-lg-8">
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Thông tin cơ bản
+                            </h3>
+
+                            <!-- Họ và Tên -->
+                            <div class="form-group">
+                                <label asp-for="FullName" class="form-label">
+                                    <i class="fas fa-user me-2"></i>Họ và Tên <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="FullName" class="form-control" placeholder="Nhập họ và tên của bạn" />
+                                <span asp-validation-for="FullName" class="text-danger validation-message"></span>
+                            </div>
+
+                            <!-- Email (readonly) -->
+                            <div class="form-group">
+                                <label asp-for="Email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>Email
+                                </label>
+                                <input asp-for="Email" class="form-control" readonly />
+                                <small class="form-text">
+                                    <i class="fas fa-lock me-1"></i>Email không thể thay đổi
+                                </small>
+                            </div>
+
+                            <!-- Giới tính và Ngày sinh -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label asp-for="Gender" class="form-label">
+                                            <i class="fas fa-venus-mars me-2"></i>Giới tính
+                                        </label>
+                                        <select asp-for="Gender" class="form-control">
+                                            <option value="">-- Chọn giới tính --</option>
+                                            <option value="Nam">Nam</option>
+                                            <option value="Nu">Nữ</option>
+                                            <option value="Khac">Khác</option>
+                                        </select>
+                                        <span asp-validation-for="Gender" class="text-danger validation-message"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label asp-for="DateOfBirth" class="form-label">
+                                            <i class="fas fa-calendar-alt me-2"></i>Ngày sinh
+                                        </label>
+                                        <input asp-for="DateOfBirth" type="date" class="form-control" />
+                                        <span asp-validation-for="DateOfBirth" class="text-danger validation-message"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Địa chỉ -->
+                            <div class="form-group">
+                                <label asp-for="Address" class="form-label">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Địa chỉ
+                                </label>
+                                <input asp-for="Address" class="form-control" placeholder="Nhập địa chỉ của bạn" />
+                                <span asp-validation-for="Address" class="text-danger validation-message"></span>
+                            </div>
+
+                            <!-- Số điện thoại -->
+                            <div class="form-group">
+                                <label asp-for="PhoneNumber" class="form-label">
+                                    <i class="fas fa-phone me-2"></i>Số điện thoại
+                                </label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678 hoặc +84912345678" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger validation-message"></span>
+                            </div>
+                        </div>
+
+                        <!-- Phần thay đổi mật khẩu -->
+                        <div class="form-section">
+                            <div class="password-toggle-section">
+                                <button type="button" class="btn btn-outline-secondary btn-toggle-password" onclick="togglePasswordFields()">
+                                    <i class="fas fa-key me-2"></i>
+                                    <span id="togglePasswordText">Thay đổi mật khẩu</span>
+                                </button>
+                            </div>
+
+                            <div id="passwordFields" class="password-fields" style="display:none;">
+                                <h4 class="password-section-title">
+                                    <i class="fas fa-lock me-2"></i>
+                                    Thay đổi mật khẩu
+                                </h4>
+                                
+                                <div class="form-group">
+                                    <label asp-for="CurrentPassword" class="form-label">
+                                        <i class="fas fa-lock me-2"></i>Mật khẩu hiện tại
+                                    </label>
+                                    <input asp-for="CurrentPassword" type="password" class="form-control" placeholder="Nhập mật khẩu hiện tại" />
+                                    <span asp-validation-for="CurrentPassword" class="text-danger validation-message"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label asp-for="NewPassword" class="form-label">
+                                        <i class="fas fa-key me-2"></i>Mật khẩu mới
+                                    </label>
+                                    <input asp-for="NewPassword" type="password" class="form-control" placeholder="Nhập mật khẩu mới" />
+                                    <span asp-validation-for="NewPassword" class="text-danger validation-message"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label asp-for="ConfirmPassword" class="form-label">
+                                        <i class="fas fa-check-circle me-2"></i>Xác nhận mật khẩu mới
+                                    </label>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Nhập lại mật khẩu mới" />
+                                    <span asp-validation-for="ConfirmPassword" class="text-danger validation-message"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột phải: Ảnh đại diện -->
+                    <div class="col-lg-4">
+                        <div class="form-section profile-picture-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-image me-2"></i>
+                                Ảnh đại diện
+                            </h3>
+                            
+                            <div class="profile-picture-wrapper">
+                                @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                                {
+                                    <img src="@Model.ProfilePicture" class="profile-img" id="profileImagePreview" alt="Ảnh đại diện" />
+                                }
+                                else
+                                {
+                                    <img src="/images/default1-avatar.png" class="profile-img" id="profileImagePreview" alt="Ảnh đại diện" />
+                                }
+                                
+                                <div class="profile-picture-overlay">
+                                    <label for="profilePicture" class="profile-picture-label">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Chọn ảnh</span>
+                                    </label>
+                                    <input type="file" class="d-none" id="profilePicture" name="profilePicture" accept="image/*" onchange="previewImage(this)" />
+                                </div>
+                            </div>
+
+                            <div class="profile-picture-actions">
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="deleteProfilePicture()">
+                                    <i class="fas fa-trash-alt me-2"></i>
+                                    Xóa ảnh đại diện
+                                </button>
+                            </div>
+
+                            <small class="form-text text-muted text-center d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Chấp nhận: JPG, PNG, GIF (tối đa 5MB)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nút Cập nhật thông tin -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-submit">
+                        <i class="fas fa-save me-2"></i>
+                        Cập nhật thông tin
+                    </button>
+                </div>
+            </form>
         </div>
-        <style>
-            .profile-img {
-                object-fit: cover; /* Đảm bảo ảnh luôn đầy trong khung mà không bị méo */
-                border-radius: 50%; /* Bo tròn ảnh */
-                width: 180px; /* Đặt chiều rộng ảnh */
-                height: 180px; /* Đặt chiều cao ảnh */
-            }
-        </style>
-
-        <!-- Nút thay đổi mật khẩu -->
-        <div class="mb-3">
-            <button type="button" class="btn btn-outline-secondary w-100 mt-3" onclick="togglePasswordFields()">Thay đổi mật khẩu</button>
-        </div>
-
-        <!-- Thay đổi mật khẩu (ẩn/hiện) -->
-        <div id="passwordFields" style="display:none;">
-            <div class="mb-3">
-                <label asp-for="CurrentPassword" class="form-label">Mật khẩu hiện tại</label>
-                <input asp-for="CurrentPassword" type="password" class="form-control" />
-                <span asp-validation-for="CurrentPassword" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="NewPassword" class="form-label">Mật khẩu mới</label>
-                <input asp-for="NewPassword" type="password" class="form-control" />
-                <span asp-validation-for="NewPassword" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="ConfirmPassword" class="form-label">Xác nhận mật khẩu mới</label>
-                <input asp-for="ConfirmPassword" type="password" class="form-control" />
-                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-            </div>
-        </div>
-
-        <!-- Nút Cập nhật thông tin -->
-        <div class="mb-3">
-            <button type="submit" class="btn btn-primary btn-lg w-100 mt-3">Cập nhật thông tin</button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <script>
     // Hàm ẩn/hiện phần thay đổi mật khẩu
     function togglePasswordFields() {
         var passwordFields = document.getElementById('passwordFields');
-        if (passwordFields.style.display === "none") {
+        var toggleText = document.getElementById('togglePasswordText');
+        
+        if (passwordFields.style.display === "none" || passwordFields.style.display === "") {
             passwordFields.style.display = "block";
+            toggleText.textContent = "Ẩn phần thay đổi mật khẩu";
         } else {
             passwordFields.style.display = "none";
+            toggleText.textContent = "Thay đổi mật khẩu";
+        }
+    }
+
+    // Hàm preview ảnh trước khi upload
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('profileImagePreview').src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
         }
     }
 
@@ -146,82 +241,344 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                 },
                 body: JSON.stringify({})
             })
             .then(response => {
                 if (response.ok) {
-                    location.reload(); // Tải lại trang để cập nhật ảnh đại diện
+                    location.reload();
                 } else {
                     alert("Xóa ảnh đại diện thất bại!");
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Có lỗi xảy ra khi xóa ảnh đại diện!");
             });
         }
     }
 </script>
 
 <style>
-    /* Cải thiện giao diện của form */
-    .profile-form {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 30px;
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    .profile-page-container {
+        min-height: calc(100vh - 200px);
+        padding: 40px 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     }
 
-    h2 {
+    .profile-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px 0;
+    }
+
+    .profile-header-icon {
+        font-size: 4rem;
+        color: #ff6b9d;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .profile-title {
         font-size: 2.5rem;
+        font-weight: 700;
         color: #2c3e50;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+    }
+
+    .profile-subtitle {
+        font-size: 1.1rem;
+        color: #7f8c8d;
+        margin: 0;
+    }
+
+    .profile-form-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .profile-form {
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        margin-bottom: 30px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        border: 1px solid #e9ecef;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
         font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #ff6b9d;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
     }
 
     .form-label {
         font-weight: 600;
-        color: #333333;
+        color: #34495e;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.95rem;
+    }
+
+    .form-label i {
+        color: #ff6b9d;
+        width: 20px;
     }
 
     .form-control {
         border-radius: 10px;
-        padding: 15px;
+        padding: 12px 15px;
         font-size: 1rem;
-        border: 1px solid #ddd;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        background-color: #fff;
     }
 
-        .form-control:focus {
-            border-color: #87cefa;
-            box-shadow: 0 0 5px rgba(135, 206, 250, 0.6);
-            outline: none;
-        }
+    .form-control:focus {
+        border-color: #ff6b9d;
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+        outline: none;
+    }
+
+    .form-control:read-only {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    .validation-summary {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+    }
+
+    .validation-summary-header {
+        color: #856404;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .validation-summary-list {
+        margin: 0;
+        padding-left: 20px;
+        color: #856404;
+    }
+
+    .validation-summary-list ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .validation-message {
+        font-size: 0.875rem;
+        margin-top: 5px;
+        display: block;
+    }
+
+    /* Profile Picture Section */
+    .profile-picture-section {
+        text-align: center;
+    }
+
+    .profile-picture-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 20px;
+    }
 
     .profile-img {
-        object-fit: cover;
+        width: 200px;
+        height: 200px;
         border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid #ff6b9d;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
     }
 
-    /* Các nút */
-    .btn-outline-secondary, .btn-outline-danger {
-        border-radius: 30px;
-        padding: 12px 25px;
-        font-weight: 500;
-        text-transform: uppercase;
+    .profile-img:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-picture-overlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: #ff6b9d;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-picture-overlay:hover {
+        background: #ff4d7a;
+        transform: scale(1.1);
+    }
+
+    .profile-picture-label {
+        color: white;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 0.8rem;
+    }
+
+    .profile-picture-label i {
+        font-size: 1.2rem;
+        margin-bottom: 2px;
+    }
+
+    .profile-picture-actions {
+        margin-top: 15px;
+    }
+
+    /* Password Section */
+    .password-toggle-section {
+        margin-bottom: 20px;
+    }
+
+    .btn-toggle-password {
         width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
     }
 
-    .btn-primary {
-        background-color: #87cefa;
-        border-color: #87cefa;
+    .btn-toggle-password:hover {
+        background-color: #ff6b9d;
+        border-color: #ff6b9d;
+        color: white;
     }
 
-        .btn-primary:hover {
-            background-color: #f1b6b3;
-            border-color: #f1b6b3;
+    .password-fields {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 2px solid #e9ecef;
+    }
+
+    .password-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+
+    /* Buttons */
+    .form-actions {
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 2px solid #e9ecef;
+        text-align: center;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+        border: none;
+        border-radius: 50px;
+        padding: 15px 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: white;
+        box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 107, 157, 0.6);
+        background: linear-gradient(135deg, #ff4d7a 0%, #ff6b9d 100%);
+    }
+
+    .btn-submit:active {
+        transform: translateY(0);
+    }
+
+    .btn-outline-danger {
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .profile-form {
+            padding: 25px;
         }
 
-    /* Hover effects */
-    .btn-outline-secondary:hover, .btn-outline-danger:hover {
-        background-color: #f1b6b3;
-        border-color: #f1b6b3;
+        .profile-title {
+            font-size: 2rem;
+        }
+
+        .profile-img {
+            width: 150px;
+            height: 150px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .profile-page-container {
+            padding: 20px 0;
+        }
+
+        .profile-form {
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .form-section {
+            padding: 20px;
+        }
+
+        .profile-title {
+            font-size: 1.75rem;
+        }
+
+        .profile-header-icon {
+            font-size: 3rem;
+        }
     }
 </style>

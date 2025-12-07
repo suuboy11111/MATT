@@ -113,7 +113,7 @@
                                         </a>
                                         @if (!request.IsApproved)
                                         {
-                                            <form asp-action="Approve" method="post" style="display:inline;">
+                                            <form asp-action="Approve" method="post" style="display:inline;" asp-antiforgery="true">
                                                 <input type="hidden" name="id" value="@request.Id" />
                                                 <button type="submit" class="admin-btn admin-btn-success admin-btn-sm">
                                                     <i class="fas fa-check"></i> Duyệt
@@ -121,6 +121,7 @@
                                             </form>
                                         }
                                         <form asp-action="DeleteRequest" method="post" style="display:inline;" 
+                                              asp-antiforgery="true"
                                               onsubmit="return confirm('Bạn có chắc muốn xóa?');">
                                             <input type="hidden" name="id" value="@request.Id" />
                                             <button type="submit" class="admin-btn admin-btn-danger admin-btn-sm">

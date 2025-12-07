@@ -345,6 +345,8 @@ namespace MaiAmTinhThuong.Controllers
                     }
                     else
                     {
+                        var errorMessages = updateResult.Errors.Select(e => e.Description).ToList();
+                        TempData["Error"] = string.Join(" ", errorMessages);
                         foreach (var error in updateResult.Errors)
                         {
                             ModelState.AddModelError("", error.Description);
@@ -355,6 +357,7 @@ namespace MaiAmTinhThuong.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error updating user profile");
+                    TempData["Error"] = "Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.";
                     ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.");
                 }
             }
