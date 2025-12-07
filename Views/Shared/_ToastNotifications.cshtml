@@ -116,7 +116,7 @@
                 <div class="toast-content">
                     <div class="toast-icon">${icon}</div>
                     <div class="toast-message">${escapedMessage}</div>
-                    <button type="button" class="toast-close" onclick="closeToast('${toastId}')" aria-label="Close">
+                    <button type="button" class="toast-close" aria-label="Close">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -124,6 +124,16 @@
             `;
 
             container.appendChild(toast);
+            
+            // Gắn event listener cho nút close sau khi append vào DOM
+            const closeButton = toast.querySelector('.toast-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeToast(toastId);
+                });
+            }
 
             // Trigger animation sau khi DOM đã render
             requestAnimationFrame(() => {
@@ -144,22 +154,37 @@
         }
 
         function closeToast(toastId) {
-            const toast = document.getElementById(toastId);
-            if (toast) {
+            try {
+                const toast = document.getElementById(toastId);
+                if (!toast) {
+                    console.warn(`Toast với ID ${toastId} không tồn tại`);
+                    return;
+                }
+                
                 // Clear timeout nếu có
                 if (toast.dataset.timeoutId) {
                     clearTimeout(parseInt(toast.dataset.timeoutId));
+                    toast.dataset.timeoutId = null;
                 }
                 
+                // Ngăn chặn việc đóng nhiều lần
+                if (toast.dataset.closing === 'true') {
+                    return;
+                }
+                toast.dataset.closing = 'true';
+                
+                // Thêm class hide để trigger animation
                 toast.classList.remove('show');
                 toast.classList.add('hide');
                 
                 // Xóa khỏi DOM sau animation
                 setTimeout(() => {
-                    if (toast.parentNode) {
+                    if (toast && toast.parentNode) {
                         toast.remove();
                     }
                 }, 300);
+            } catch (error) {
+                console.error('Lỗi khi đóng toast:', error);
             }
         }
 
@@ -245,11 +270,17 @@
         transition: all 0.2s ease;
         color: white;
         padding: 0;
+        z-index: 10;
+        position: relative;
     }
 
     .toast-close:hover {
         background: rgba(255, 255, 255, 0.3);
         transform: scale(1.1);
+    }
+    
+    .toast-close:active {
+        transform: scale(0.95);
     }
 
     .toast-close i {

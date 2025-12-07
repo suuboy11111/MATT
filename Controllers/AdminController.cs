@@ -518,51 +518,79 @@ namespace MaiAmTinhThuong.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveBlogPost(int id)
         {
+            var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
+            
             try
             {
+                logger.LogInformation($"Bắt đầu duyệt bài viết {id}");
+                
                 var blogPost = await _context.BlogPosts
                     .Include(b => b.Author)
                     .FirstOrDefaultAsync(b => b.Id == id);
                 
                 if (blogPost == null)
                 {
+                    logger.LogWarning($"Không tìm thấy bài viết với ID {id}");
                     TempData["Error"] = "Không tìm thấy bài viết cần duyệt.";
                     return RedirectToAction("ManageBlogPosts");
                 }
 
                 if (blogPost.IsApproved)
                 {
+                    logger.LogInformation($"Bài viết {id} đã được duyệt trước đó");
                     TempData["Message"] = "Bài viết này đã được duyệt trước đó.";
                     return RedirectToAction("ManageBlogPosts");
                 }
 
+                logger.LogInformation($"Đang cập nhật trạng thái duyệt cho bài viết {id}");
                 blogPost.IsApproved = true;  // Cập nhật trạng thái duyệt
                 _context.Update(blogPost);
+                
+                logger.LogInformation($"Đang lưu thay đổi vào database cho bài viết {id}");
                 await _context.SaveChangesAsync();
+                logger.LogInformation($"Đã lưu thành công bài viết {id}");
 
                 // Gửi thông báo cho tác giả bài viết
                 if (blogPost.AuthorId != null)
                 {
                     try
                     {
+                        logger.LogInformation($"Đang gửi thông báo cho tác giả {blogPost.AuthorId}");
                         var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
                         await notificationService.NotifyBlogPostApprovedAsync(blogPost.AuthorId, blogPost.Title ?? "Bài viết");
+                        logger.LogInformation($"Đã gửi thông báo thành công cho tác giả {blogPost.AuthorId}");
                     }
                     catch (Exception ex)
                     {
                         // Log lỗi nhưng không làm gián đoạn quá trình duyệt
-                        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
-                        logger.LogWarning(ex, $"Không thể gửi thông báo khi duyệt bài viết {id}");
+                        logger.LogWarning(ex, $"Không thể gửi thông báo khi duyệt bài viết {id}. Lỗi: {ex.Message}");
                     }
                 }
+                else
+                {
+                    logger.LogWarning($"Bài viết {id} không có AuthorId");
+                }
 
-                TempData["Message"] = "Bài viết đã được duyệt!";
+                logger.LogInformation($"Duyệt bài viết {id} thành công");
+                TempData["Message"] = "Bài viết đã được duyệt thành công!";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                logger.LogError(dbEx, $"Lỗi database khi duyệt bài viết {id}. Chi tiết: {dbEx.Message}");
+                if (dbEx.InnerException != null)
+                {
+                    logger.LogError($"Inner exception: {dbEx.InnerException.Message}");
+                }
+                TempData["Error"] = $"Có lỗi xảy ra khi duyệt bài viết: {dbEx.Message}. Vui lòng thử lại sau.";
             }
             catch (Exception ex)
             {
-                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
-                logger.LogError(ex, $"Lỗi khi duyệt bài viết {id}");
-                TempData["Error"] = "Có lỗi xảy ra khi duyệt bài viết. Vui lòng thử lại sau.";
+                logger.LogError(ex, $"Lỗi không xác định khi duyệt bài viết {id}. Chi tiết: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                }
+                TempData["Error"] = $"Có lỗi xảy ra khi duyệt bài viết: {ex.Message}. Vui lòng thử lại sau.";
             }
             
             return RedirectToAction("ManageBlogPosts");
