@@ -40,6 +40,18 @@ namespace MaiAmTinhThuong.Controllers
             return View();
         }
 
+        // GET: Payment/TestPayOS - URL test nhanh để test PayOS
+        [HttpGet]
+        public IActionResult TestPayOS()
+        {
+            // Test với giá trị mặc định
+            ViewBag.Amount = 20000;
+            ViewBag.DonorName = "Người hỗ trợ";
+            ViewBag.PhoneNumber = "";
+            ViewBag.MaiAmId = 1;
+            return View("PayOSCheckout");
+        }
+
         // GET: Payment/PayOSCheckout - Trang thanh toán PayOS đơn giản
         [HttpGet]
         public IActionResult PayOSCheckout(decimal amount, string donorName, string? phoneNumber = null, int? maiAmId = null)
