@@ -194,7 +194,7 @@ namespace MaiAmTinhThuong.Controllers
                 _context.ChungNhanQuyenGops.Add(cn);
                 await _context.SaveChangesAsync();
 
-                // Đăng ký CodePagesEncodingProvider để hỗ trợ encoding
+                // Đăng ký CodePagesEncodingProvider để hỗ trợ encoding Unicode
                 try
                 {
                     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -225,15 +225,32 @@ namespace MaiAmTinhThuong.Controllers
                     "/System/Library/Fonts/Supplemental/Arial.ttf"
                 };
 
-                // Tìm font Regular - dùng CP1252 (tương thích với mọi phiên bản iTextSharp)
+                // Tìm font Regular - dùng Identity-H (Unicode) để hỗ trợ đầy đủ tiếng Việt
                 foreach (var fontPath in fontPaths)
                 {
                     try
                     {
                         if (System.IO.File.Exists(fontPath) && !fontPath.Contains("Bold"))
                         {
-                            // Dùng CP1252 với font Unicode - vẫn hỗ trợ tiếng Việt tốt
-                            baseFont = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
+                            // Thử dùng Identity-H (Unicode) - tốt nhất cho tiếng Việt
+                            try
+                            {
+                                // Dùng string "Identity-H" thay vì constant để tránh lỗi
+                                baseFont = BaseFont.CreateFont(fontPath, "Identity-H", BaseFont.EMBEDDED);
+                            }
+                            catch
+                            {
+                                // Nếu Identity-H không được, thử dùng UTF-8 encoding
+                                try
+                                {
+                                    baseFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                                }
+                                catch
+                                {
+                                    // Fallback cuối cùng: CP1252 (vẫn hỗ trợ một phần tiếng Việt)
+                                    baseFont = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
+                                }
+                            }
                             break;
                         }
                     }
@@ -256,7 +273,21 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         if (System.IO.File.Exists(fontPath))
                         {
-                            baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
+                            try
+                            {
+                                baseFontBold = BaseFont.CreateFont(fontPath, "Identity-H", BaseFont.EMBEDDED);
+                            }
+                            catch
+                            {
+                                try
+                                {
+                                    baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                                }
+                                catch
+                                {
+                                    baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
+                                }
+                            }
                             break;
                         }
                     }
@@ -274,7 +305,14 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     try
                     {
-                        baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.CP1252, BaseFont.EMBEDDED);
+                        try
+                        {
+                            baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "Identity-H", BaseFont.EMBEDDED);
+                        }
+                        catch
+                        {
+                            baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.CP1252, BaseFont.EMBEDDED);
+                        }
                         baseFontBold = baseFont;
                     }
                     catch
