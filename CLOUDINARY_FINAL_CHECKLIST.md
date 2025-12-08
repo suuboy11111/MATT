@@ -58,3 +58,4 @@ Sau khi tất cả đã hoạt động:
 - ✅ Ảnh sẽ không bị mất khi redeploy Railway
 - ✅ Ảnh được serve từ CDN, load nhanh hơn
 - ✅ Tự động optimize format và quality
+

@@ -677,7 +677,7 @@ namespace MaiAmTinhThuong.Controllers.Admin
 
             // Lấy danh sách mái ấm và loại hỗ trợ để dropdown/checkbox trong view
             ViewBag.MaiAms = new SelectList(await _context.MaiAms.ToListAsync(), "Id", "Name");
-            ViewBag.SupportTypes = new SelectList(await _context.SupportTypes.ToListAsync(), "Id", "Name");
+            ViewBag.SupportTypes = await _context.SupportTypes.ToListAsync();
 
             return View("~/Views/Admin/EditSupporter.cshtml", supporter);
         }
@@ -810,7 +810,7 @@ namespace MaiAmTinhThuong.Controllers.Admin
             }
 
             ViewBag.MaiAms = new SelectList(await _context.MaiAms.ToListAsync(), "Id", "Name");
-            ViewBag.SupportTypes = new SelectList(await _context.SupportTypes.ToListAsync(), "Id", "Name");
+            ViewBag.SupportTypes = await _context.SupportTypes.ToListAsync();
             return View(model);
         }
 

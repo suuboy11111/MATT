@@ -117,3 +117,4 @@ Sau khi thêm variables và redeploy thành công:
 - API Secret là thông tin nhạy cảm, không share với ai
 - Nếu API Secret bị lộ, tạo API Key mới trong Cloudinary Dashboard
 - Variables trong Railway được mã hóa và an toàn
+

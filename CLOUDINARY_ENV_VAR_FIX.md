@@ -108,3 +108,4 @@ Nếu vẫn thấy `EMPTY or NULL`, kiểm tra lại:
 - Upload ảnh sẽ lưu lên Cloudinary
 - URL trong database sẽ là Cloudinary URL
 - Ảnh sẽ không bị mất khi redeploy
+

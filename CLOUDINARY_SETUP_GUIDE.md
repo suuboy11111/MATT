@@ -385,3 +385,4 @@ Sau khi setup, test bằng cách:
 2. Kiểm tra URL trong database (phải là Cloudinary URL)
 3. Kiểm tra ảnh hiển thị trên website
 4. Kiểm tra ảnh trong Cloudinary Dashboard → Media Library
+

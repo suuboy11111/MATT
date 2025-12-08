@@ -22,3 +22,4 @@
 - [ ] Kiểm tra URL trong database phải là Cloudinary URL
 - [ ] Kiểm tra ảnh hiển thị trên website
 - [ ] Kiểm tra ảnh trong Cloudinary Dashboard
+

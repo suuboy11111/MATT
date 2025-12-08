@@ -92,3 +92,4 @@ Thay `Directory.GetCurrentDirectory() + "wwwroot/images"` bằng `ImageUploadSer
 - ✅ Hiển thị placeholder khi ảnh lỗi
 
 **Nhưng đây chỉ là giải pháp tạm thời. Cần migrate sang cloud storage sớm nhất có thể.**
+
