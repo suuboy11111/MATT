@@ -98,7 +98,7 @@ namespace MaiAmTinhThuong.Controllers
                 
                 // Log để debug signature (chỉ log partial để không expose secret)
                 _logger.LogInformation($"PayOS Debug - ClientId: {clientId?.Substring(0, Math.Min(10, clientId?.Length ?? 0))}..., ApiKey: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0))}..., ChecksumKey length: {checksumKey?.Length ?? 0}");
-                _logger.LogInformation($"PayOS Debug - Signature data: amount={signDict["amount"]}, orderCode={signDict["orderCode"]}, signature={signature?.Substring(0, Math.Min(16, signature?.Length ?? 0))}...");
+                _logger.LogInformation($"PayOS Debug - Signature data: amount={signDict["amount"]}, orderCode={orderCode}, signature={signature?.Substring(0, Math.Min(16, signature?.Length ?? 0))}...");
 
                 var paymentRequest = new
                 {
