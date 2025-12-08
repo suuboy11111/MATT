@@ -261,21 +261,51 @@ namespace MaiAmTinhThuong.Controllers
                     }
                 }
 
-                // Khai báo font
-                var fontTitle = new iTextSharp.text.Font(baseFont, 20, iTextSharp.text.Font.BOLD);
-                fontTitle.Color = new BaseColor(255, 0, 0); // đỏ sáng
+                // Khai báo các font với kích thước và màu sắc chuyên nghiệp
+                var fontTitle = new iTextSharp.text.Font(baseFont, 28, iTextSharp.text.Font.BOLD);
+                fontTitle.Color = new BaseColor(184, 0, 0); // Đỏ đậm chuyên nghiệp
 
-                var fontHeader = new iTextSharp.text.Font(baseFont, 14, iTextSharp.text.Font.BOLD);
-                fontHeader.Color = new BaseColor(139, 0, 0); // dark red
+                var fontSubtitle = new iTextSharp.text.Font(baseFont, 14, iTextSharp.text.Font.NORMAL);
+                fontSubtitle.Color = new BaseColor(100, 100, 100); // Xám đậm
 
-                var fontNormal = new iTextSharp.text.Font(baseFont, 12, iTextSharp.text.Font.NORMAL);
-                fontNormal.Color = BaseColor.Black;
+                var fontHeader = new iTextSharp.text.Font(baseFont, 11, iTextSharp.text.Font.BOLD);
+                fontHeader.Color = new BaseColor(60, 60, 60); // Xám đen
+
+                var fontValue = new iTextSharp.text.Font(baseFont, 11, iTextSharp.text.Font.NORMAL);
+                fontValue.Color = BaseColor.Black;
+
+                var fontValueBold = new iTextSharp.text.Font(baseFont, 12, iTextSharp.text.Font.BOLD);
+                fontValueBold.Color = new BaseColor(0, 100, 0); // Xanh lá đậm cho số tiền
+
+                var fontThanks = new iTextSharp.text.Font(baseFont, 13, iTextSharp.text.Font.ITALIC);
+                fontThanks.Color = new BaseColor(80, 80, 80);
+
+                var fontFooter = new iTextSharp.text.Font(baseFont, 10, iTextSharp.text.Font.NORMAL);
+                fontFooter.Color = new BaseColor(120, 120, 120);
 
                 using (var ms = new MemoryStream())
                 {
-                    Document doc = new Document(PageSize.A4, 50, 50, 50, 50);
-                    PdfWriter.GetInstance(doc, ms);
+                    Document doc = new Document(PageSize.A4, 60, 60, 80, 60);
+                    PdfWriter writer = PdfWriter.GetInstance(doc, ms);
                     doc.Open();
+
+                    // Tạo border trang trí cho toàn bộ trang
+                    var borderColor = new BaseColor(200, 200, 200);
+                    var borderWidth = 2f;
+                    var pageSize = doc.PageSize;
+                    
+                    // Vẽ border đẹp
+                    var canvas = writer.DirectContent;
+                    canvas.SetColorStroke(borderColor);
+                    canvas.SetLineWidth(borderWidth);
+                    canvas.Rectangle(40, 40, pageSize.Width - 80, pageSize.Height - 80);
+                    canvas.Stroke();
+
+                    // Vẽ border trong nhỏ hơn
+                    canvas.SetLineWidth(1f);
+                    canvas.SetColorStroke(new BaseColor(220, 220, 220));
+                    canvas.Rectangle(50, 50, pageSize.Width - 100, pageSize.Height - 100);
+                    canvas.Stroke();
 
                     // Logo Mái Ấm (nếu có)
                     try
@@ -285,7 +315,7 @@ namespace MaiAmTinhThuong.Controllers
                         {
                             var logo = Image.GetInstance(logoPath);
                             logo.Alignment = Element.ALIGN_CENTER;
-                            logo.ScaleToFit(80f, 80f);
+                            logo.ScaleToFit(100f, 100f);
                             doc.Add(logo);
                             doc.Add(new Paragraph("\n"));
                         }
@@ -295,54 +325,101 @@ namespace MaiAmTinhThuong.Controllers
                         // Bỏ qua nếu logo không tồn tại
                     }
 
-                    // Tiêu đề
-                    Paragraph title = new Paragraph("CHỨNG NHẬN QUYÊN GÓP", fontTitle);
-                    title.Alignment = Element.ALIGN_CENTER;
-                    doc.Add(title);
-
+                    // Thêm khoảng trống
                     doc.Add(new Paragraph("\n"));
 
-                    // Table thông tin
-                    PdfPTable table = new PdfPTable(2);
-                    table.WidthPercentage = 80;
-                    table.HorizontalAlignment = Element.ALIGN_CENTER;
-                    table.SetWidths(new float[] { 1f, 2f });
+                    // Tiêu đề chính - CHỨNG NHẬN QUYÊN GÓP
+                    Paragraph title = new Paragraph("CHỨNG NHẬN QUYÊN GÓP", fontTitle);
+                    title.Alignment = Element.ALIGN_CENTER;
+                    title.SpacingAfter = 5f;
+                    doc.Add(title);
 
-                    void AddRow(string key, string value)
+                    // Phụ đề
+                    Paragraph subtitle = new Paragraph("Mái Ấm Tình Thương", fontSubtitle);
+                    subtitle.Alignment = Element.ALIGN_CENTER;
+                    subtitle.SpacingAfter = 30f;
+                    doc.Add(subtitle);
+
+                    // Vẽ đường kẻ trang trí dưới tiêu đề
+                    canvas.SetColorStroke(new BaseColor(184, 0, 0));
+                    canvas.SetLineWidth(2f);
+                    canvas.MoveTo(150, doc.Top - 180);
+                    canvas.LineTo(pageSize.Width - 150, doc.Top - 180);
+                    canvas.Stroke();
+
+                    doc.Add(new Paragraph("\n\n"));
+
+                    // Table thông tin với thiết kế đẹp hơn
+                    PdfPTable table = new PdfPTable(2);
+                    table.WidthPercentage = 75;
+                    table.HorizontalAlignment = Element.ALIGN_CENTER;
+                    table.SetWidths(new float[] { 1.2f, 2.8f });
+                    table.SpacingBefore = 20f;
+                    table.SpacingAfter = 30f;
+
+                    void AddRow(string key, string value, bool isValueBold = false)
                     {
+                        // Cell label
                         var cellKey = new PdfPCell(new Phrase(key, fontHeader))
                         {
-                            Border = Rectangle.NO_BORDER,
-                            BackgroundColor = new BaseColor(255, 235, 235), // màu hồng nhạt
-                            Padding = 5
+                            Border = Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER,
+                            BorderColor = new BaseColor(230, 230, 230),
+                            BorderWidth = 1f,
+                            BackgroundColor = new BaseColor(250, 250, 250),
+                            Padding = 12f,
+                            PaddingLeft = 15f,
+                            VerticalAlignment = Element.ALIGN_MIDDLE
                         };
-                        var cellValue = new PdfPCell(new Phrase(value, fontNormal))
+
+                        // Cell value
+                        var valueFont = isValueBold ? fontValueBold : fontValue;
+                        var cellValue = new PdfPCell(new Phrase(value, valueFont))
                         {
-                            Border = Rectangle.NO_BORDER,
-                            Padding = 5
+                            Border = Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER,
+                            BorderColor = new BaseColor(230, 230, 230),
+                            BorderWidth = 1f,
+                            Padding = 12f,
+                            PaddingLeft = 15f,
+                            VerticalAlignment = Element.ALIGN_MIDDLE
                         };
+
                         table.AddCell(cellKey);
                         table.AddCell(cellValue);
                     }
 
-                    AddRow("Số CN", cn.SoChungNhan);
-                    AddRow("Họ tên", vinhDanh.HoTen ?? "N/A");
-                    AddRow("Số tiền đã ủng hộ", $"{vinhDanh.SoTienUngHo.Value.ToString("N0")} VNĐ");
-                    AddRow("Ngày", DateTime.Now.ToString("dd/MM/yyyy"));
+                    AddRow("Số chứng nhận", cn.SoChungNhan);
+                    AddRow("Họ và tên", vinhDanh.HoTen ?? "N/A");
+                    AddRow("Số tiền đã ủng hộ", $"{vinhDanh.SoTienUngHo.Value.ToString("N0")} VNĐ", true);
+                    AddRow("Ngày cấp", DateTime.Now.ToString("dd/MM/yyyy"));
 
                     doc.Add(table);
-                    doc.Add(new Paragraph("\n"));
 
-                    // Lời cảm ơn căn giữa
-                    Paragraph thanks = new Paragraph("Xin chân thành cảm ơn sự đóng góp của Quý vị!", fontNormal);
+                    // Lời cảm ơn với thiết kế đẹp hơn
+                    doc.Add(new Paragraph("\n"));
+                    Paragraph thanks = new Paragraph("Xin chân thành cảm ơn sự đóng góp quý báu của Quý vị!", fontThanks);
                     thanks.Alignment = Element.ALIGN_CENTER;
+                    thanks.SpacingBefore = 20f;
+                    thanks.SpacingAfter = 10f;
                     doc.Add(thanks);
 
-                    doc.Add(new Paragraph("\n"));
+                    // Thêm dấu ngoặc kép trang trí
+                    Paragraph quote = new Paragraph("\"Tình yêu thương là ngôn ngữ mà người điếc có thể nghe và người mù có thể thấy.\"", fontFooter);
+                    quote.Alignment = Element.ALIGN_CENTER;
+                    quote.SpacingAfter = 30f;
+                    doc.Add(quote);
 
-                    // Line separator trang trí
-                    var line = new iTextSharp.text.pdf.draw.LineSeparator(1f, 100f, new BaseColor(255, 0, 0), Element.ALIGN_CENTER, -2);
-                    doc.Add(new Chunk(line));
+                    // Footer với thông tin
+                    Paragraph footer = new Paragraph("Mái Ấm Tình Thương - Nơi trao gửi yêu thương", fontFooter);
+                    footer.Alignment = Element.ALIGN_CENTER;
+                    footer.SpacingBefore = 40f;
+                    doc.Add(footer);
+
+                    // Vẽ đường kẻ trang trí trên footer
+                    canvas.SetColorStroke(new BaseColor(200, 200, 200));
+                    canvas.SetLineWidth(1f);
+                    canvas.MoveTo(150, doc.Bottom + 50);
+                    canvas.LineTo(pageSize.Width - 150, doc.Bottom + 50);
+                    canvas.Stroke();
 
                     doc.Close();
 
