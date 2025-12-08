@@ -55,9 +55,21 @@ namespace MaiAmTinhThuong.Controllers
                 var clientId = _configuration["PayOS:ClientId"];
                 var apiKey = _configuration["PayOS:ApiKey"];
                 var checksumKey = _configuration["PayOS:ChecksumKey"];
+                
+                // Debug: Log để kiểm tra config có được đọc đúng không
+                _logger.LogWarning($"PayOS Config Check - ClientId: {clientId?.Length ?? 0} chars, ApiKey: {apiKey?.Length ?? 0} chars, ChecksumKey: {checksumKey?.Length ?? 0} chars");
+                _logger.LogWarning($"PayOS Config Values - ClientId: {clientId?.Substring(0, Math.Min(20, clientId?.Length ?? 0))}..., ChecksumKey: {checksumKey?.Substring(0, Math.Min(20, checksumKey?.Length ?? 0))}...");
+                
                 if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
                 {
+                    _logger.LogError($"PayOS Config Missing - ClientId: {!string.IsNullOrEmpty(clientId)}, ApiKey: {!string.IsNullOrEmpty(apiKey)}, ChecksumKey: {!string.IsNullOrEmpty(checksumKey)}");
                     return Json(new { success = false, message = "Thiếu cấu hình PayOS: ClientId/ApiKey/ChecksumKey" });
+                }
+                
+                // Kiểm tra ChecksumKey có vẻ hợp lệ không (thường là 64 hex chars = 32 bytes)
+                if (checksumKey.Length < 32)
+                {
+                    _logger.LogWarning($"PayOS ChecksumKey seems too short: {checksumKey.Length} chars");
                 }
                 
                 using var httpClient = new HttpClient();
@@ -75,6 +87,10 @@ namespace MaiAmTinhThuong.Controllers
                     { "returnUrl", $"{baseUrl}/Payment/Success?orderCode={orderCode}" }
                 };
                 var signature = ComputeSignature(signDict, checksumKey);
+                
+                // Log để debug signature (chỉ log partial để không expose secret)
+                _logger.LogInformation($"PayOS Debug - ClientId: {clientId?.Substring(0, Math.Min(10, clientId?.Length ?? 0))}..., ApiKey: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0))}..., ChecksumKey length: {checksumKey?.Length ?? 0}");
+                _logger.LogInformation($"PayOS Debug - Signature data: amount={signDict["amount"]}, orderCode={signDict["orderCode"]}, signature={signature?.Substring(0, Math.Min(16, signature?.Length ?? 0))}...");
 
                 var paymentRequest = new
                 {
