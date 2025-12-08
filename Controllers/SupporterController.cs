@@ -178,6 +178,38 @@ public class SupporterController : Controller
                 }
             }
 
+            // Liên kết các giao dịch thanh toán gần đây (trong 24h) với cùng số điện thoại và MaiAmId
+            if (supportTypes != null && supportTypes.Contains(1) && // 1 = Tài chính
+                !string.IsNullOrEmpty(model.PhoneNumber))
+            {
+                var last24Hours = DateTime.UtcNow.AddHours(-24);
+                var phoneSearch = $"SĐT: {model.PhoneNumber}";
+                
+                // Tìm các transaction thành công hoặc pending trong 24h, chưa có SupporterId, cùng MaiAmId (nếu có), và có số điện thoại trùng
+                var recentTransactions = await _context.TransactionHistories
+                    .Where(t => (t.Status == "Success" || t.Status == "Pending"))
+                    .Where(t => t.TransactionDate >= last24Hours)
+                    .Where(t => t.SupporterId == null)
+                    .Where(t => !MaiAmId.HasValue || t.MaiAmId == MaiAmId.Value)
+                    .Where(t => t.Description.Contains(phoneSearch) || 
+                               (t.Description.Contains(model.Name) && t.Description.Contains("Ủng hộ tài chính")))
+                    .ToListAsync();
+
+                if (recentTransactions.Any())
+                {
+                    foreach (var transaction in recentTransactions)
+                    {
+                        transaction.SupporterId = model.Id;
+                        // Cập nhật description để bao gồm thông tin supporter
+                        if (!transaction.Description.Contains($"SupporterId: {model.Id}"))
+                        {
+                            transaction.Description += $" - SupporterId: {model.Id}";
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             // Gửi thông báo cho tất cả admin
             await _notificationService.NotifyAdminNewSupporterAsync(model.Name, model.Id);
 

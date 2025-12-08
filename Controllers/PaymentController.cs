@@ -74,13 +74,20 @@ namespace MaiAmTinhThuong.Controllers
                 var paymentLink = JsonSerializer.Deserialize<JsonElement>(responseBody);
 
                 // Lưu thông tin giao dịch vào database
+                var description = $"Ủng hộ tài chính - {request.DonorName}";
+                if (!string.IsNullOrEmpty(request.PhoneNumber))
+                {
+                    description += $" - SĐT: {request.PhoneNumber}";
+                }
+                description += $" - OrderCode: {orderCode}";
+
                 var transaction = new TransactionHistory
                 {
                     MaiAmId = request.MaiAmId ?? 1, // Mặc định mái ấm đầu tiên nếu không chọn
                     Amount = request.Amount,
                     TransactionDate = DateTime.UtcNow,
                     Status = "Pending",
-                    Description = $"Ủng hộ tài chính - {request.DonorName} - OrderCode: {orderCode}"
+                    Description = description
                 };
 
                 _context.TransactionHistories.Add(transaction);
@@ -89,8 +96,14 @@ namespace MaiAmTinhThuong.Controllers
                 // Lưu orderCode vào session để tra cứu sau
                 HttpContext.Session.SetString($"OrderCode_{orderCode}", transaction.Id.ToString());
                 
-                // Lưu orderCode vào Description để tra cứu từ webhook
-                transaction.Description = $"Ủng hộ tài chính - {request.DonorName} - OrderCode: {orderCode} - TransactionId: {transaction.Id}";
+                // Lưu orderCode và transactionId vào Description để tra cứu từ webhook
+                var updatedDescription = $"Ủng hộ tài chính - {request.DonorName}";
+                if (!string.IsNullOrEmpty(request.PhoneNumber))
+                {
+                    updatedDescription += $" - SĐT: {request.PhoneNumber}";
+                }
+                updatedDescription += $" - OrderCode: {orderCode} - TransactionId: {transaction.Id}";
+                transaction.Description = updatedDescription;
                 await _context.SaveChangesAsync();
 
                 // Lấy CheckoutUrl từ response
