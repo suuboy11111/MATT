@@ -154,7 +154,7 @@ namespace MaiAmTinhThuong.Controllers
                 var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
                 var amountStr = ((int)request.Amount).ToString();
                 
-                // Tạo items JSON string cho signature - không escape Unicode
+                // Tạo items JSON string cho signature - không escape Unicode, không có spaces
                 var itemsArray = new[]
                 {
                     new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
@@ -165,6 +165,8 @@ namespace MaiAmTinhThuong.Controllers
                     WriteIndented = false
                 };
                 var itemsJson = JsonSerializer.Serialize(itemsArray, itemsJsonOptions);
+                // Loại bỏ tất cả spaces trong JSON để đảm bảo format chính xác
+                itemsJson = itemsJson.Replace(" ", "");
                 
                 // Tạo chuỗi signature: sắp xếp alphabetical, dùng raw values (KHÔNG URL encode)
                 // Format: amount=...&cancelUrl=...&description=...&items=[...]&returnUrl=...

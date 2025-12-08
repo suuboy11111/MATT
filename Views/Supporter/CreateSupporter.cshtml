@@ -373,6 +373,15 @@
         margin-top: 1.5rem;
     }
 
+    /* Đảm bảo tab ẩn/hiện đúng cách */
+    #supportTabsContent .tab-pane {
+        display: none;
+    }
+
+    #supportTabsContent .tab-pane.show.active {
+        display: block !important;
+    }
+
     .support-guide-card {
         background: white;
         padding: 1.5rem;
@@ -603,32 +612,39 @@
             // Hàm hiển thị tab theo loại hỗ trợ
             function showSupportTab(selectedValue) {
                 console.log('showSupportTab called with:', selectedValue);
-                // Ẩn tất cả tabs
-                $('#supportTabsContent .tab-pane').removeClass('show active').hide();
+                
+                // Ẩn tất cả tabs (Bootstrap 5 cách)
+                $('#supportTabsContent .tab-pane').each(function() {
+                    $(this).removeClass('show active');
+                });
 
                 // Hiển thị tab tương ứng
                 var targetTab = null;
-                if (selectedValue == '1') {
+                if (selectedValue == '1' || selectedValue == 'Tài chính') {
                     targetTab = $('#financial');
                     console.log('Showing financial tab');
-                } else if (selectedValue == '2') {
+                } else if (selectedValue == '2' || selectedValue == 'Vật tư') {
                     targetTab = $('#material');
                     console.log('Showing material tab');
-                } else if (selectedValue == '3') {
+                } else if (selectedValue == '3' || selectedValue == 'Chỗ ở') {
                     targetTab = $('#housing');
                     console.log('Showing housing tab');
                 }
                 
                 if (targetTab && targetTab.length > 0) {
-                    targetTab.addClass('show active').show();
+                    targetTab.addClass('show active');
+                    // Force display để đảm bảo hiển thị
+                    targetTab.css('display', 'block');
                     console.log('Tab shown:', targetTab.attr('id'));
                 } else {
                     console.error('Tab not found for value:', selectedValue);
+                    // Fallback: hiển thị financial tab
+                    $('#financial').addClass('show active').css('display', 'block');
                 }
             }
 
-            // Xử lý thay đổi loại hỗ trợ
-            $('#supportType').on('change', function () {
+            // Xử lý thay đổi loại hỗ trợ - dùng event delegation để đảm bảo hoạt động
+            $(document).on('change', '#supportType', function () {
                 var selectedValue = $(this).val();
                 console.log('supportType changed to:', selectedValue);
                 if (selectedValue) {
@@ -636,10 +652,10 @@
                 }
             });
             
-            // Hiển thị tab khi trang load
-            $(window).on('load', function() {
+            // Hiển thị tab khi DOM ready
+            setTimeout(function() {
                 var initialValue = $('#supportType').val();
-                console.log('Page loaded. Initial supportType value:', initialValue);
+                console.log('Initial supportType value:', initialValue);
                 if (initialValue) {
                     showSupportTab(initialValue);
                 } else {
@@ -647,16 +663,17 @@
                     $('#supportType').val('1');
                     showSupportTab('1');
                 }
-            });
+            }, 100);
             
-            // Backup: Trigger ngay khi DOM ready
-            var initialValue = $('#supportType').val();
-            if (initialValue) {
-                showSupportTab(initialValue);
-            } else {
-                $('#supportType').val('1');
-                showSupportTab('1');
-            }
+            // Backup khi window load
+            $(window).on('load', function() {
+                setTimeout(function() {
+                    var initialValue = $('#supportType').val();
+                    if (initialValue) {
+                        showSupportTab(initialValue);
+                    }
+                }, 50);
+            });
 
             // Xử lý nút thanh toán PayOS
             $(document).on('click', '#btnPayNow', function (e) {
