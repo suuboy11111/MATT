@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade" id="financial" role="tabpanel">
+                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -371,25 +371,6 @@
 
     .support-guide-wrapper {
         margin-top: 1.5rem;
-    }
-
-    /* Force ẩn tab financial khi không active - đảm bảo không bị cố định */
-    #supportTabsContent .tab-pane {
-        display: none !important;
-    }
-
-    #supportTabsContent .tab-pane.active,
-    #supportTabsContent .tab-pane.show.active {
-        display: block !important;
-    }
-
-    /* Đảm bảo financial ẩn khi không active */
-    #supportTabsContent #financial:not(.active) {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
     }
 
     .support-guide-card {
@@ -619,20 +600,18 @@
     }
     <script>
         $(document).ready(function () {
-            // Hàm hiển thị tab theo loại hỗ trợ - force ẩn financial khi không chọn
+            // Hàm hiển thị tab theo loại hỗ trợ - đơn giản nhất
             function showSupportTab(selectedValue) {
-                // FORCE Ẩn TẤT CẢ tabs (bao gồm financial) - dùng cả removeClass và css
-                $('#financial').removeClass('show active').removeClass('active').css('display', 'none');
-                $('#material').removeClass('show active').removeClass('active').css('display', 'none');
-                $('#housing').removeClass('show active').removeClass('active').css('display', 'none');
+                // Ẩn tất cả tabs
+                $('#supportTabsContent .tab-pane').removeClass('show active');
 
                 // Hiển thị tab tương ứng
                 if (selectedValue == '1') {
-                    $('#financial').addClass('show active').addClass('active').css('display', 'block');
+                    $('#financial').addClass('show active');
                 } else if (selectedValue == '2') {
-                    $('#material').addClass('show active').addClass('active').css('display', 'block');
+                    $('#material').addClass('show active');
                 } else if (selectedValue == '3') {
-                    $('#housing').addClass('show active').addClass('active').css('display', 'block');
+                    $('#housing').addClass('show active');
                 }
             }
 
@@ -648,11 +627,6 @@
             var initialValue = $('#supportType').val();
             if (initialValue) {
                 showSupportTab(initialValue);
-            } else {
-                // Nếu chưa chọn gì, mặc định hiển thị tab financial
-                $('#financial').addClass('show active').addClass('active').css('display', 'block');
-                $('#material').removeClass('show active').removeClass('active').css('display', 'none');
-                $('#housing').removeClass('show active').removeClass('active').css('display', 'none');
             }
 
             // Xử lý nút thanh toán PayOS
