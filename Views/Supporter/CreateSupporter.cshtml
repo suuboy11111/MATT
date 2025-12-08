@@ -600,38 +600,44 @@
     }
     <script>
         $(document).ready(function () {
-            // Xử lý thay đổi loại hỗ trợ
-            $('#supportType').on('change', function () {
-                var selectedValue = $(this).val();
+            // Hàm hiển thị tab theo loại hỗ trợ
+            function showSupportTab(selectedValue) {
+                console.log('showSupportTab called with:', selectedValue);
                 // Ẩn tất cả tabs
                 $('#supportTabsContent .tab-pane').removeClass('show active');
 
                 // Hiển thị tab tương ứng
                 if (selectedValue == '1') {
                     $('#financial').addClass('show active');
+                    console.log('Showing financial tab');
                 } else if (selectedValue == '2') {
                     $('#material').addClass('show active');
+                    console.log('Showing material tab');
                 } else if (selectedValue == '3') {
                     $('#housing').addClass('show active');
-                } else {
-                    // Nếu không chọn gì hoặc giá trị khác, ẩn tất cả
-                    $('#supportTabsContent .tab-pane').removeClass('show active');
+                    console.log('Showing housing tab');
                 }
+            }
+
+            // Xử lý thay đổi loại hỗ trợ
+            $('#supportType').on('change', function () {
+                var selectedValue = $(this).val();
+                console.log('supportType changed to:', selectedValue);
+                showSupportTab(selectedValue);
             });
             
-            // Trigger change khi trang load để hiển thị tab đúng
-            var initialValue = $('#supportType').val();
-            if (initialValue == '1') {
-                $('#financial').addClass('show active');
-            } else if (initialValue == '2') {
-                $('#material').addClass('show active');
-            } else if (initialValue == '3') {
-                $('#housing').addClass('show active');
-            } else {
-                // Mặc định hiển thị tab Tài chính nếu chưa chọn
-                $('#supportType').val('1');
-                $('#financial').addClass('show active');
-            }
+            // Hiển thị tab khi trang load - đảm bảo chạy sau khi DOM ready
+            setTimeout(function() {
+                var initialValue = $('#supportType').val();
+                console.log('Initial supportType value:', initialValue);
+                if (initialValue) {
+                    showSupportTab(initialValue);
+                } else {
+                    // Mặc định hiển thị tab Tài chính nếu chưa chọn
+                    $('#supportType').val('1');
+                    showSupportTab('1');
+                }
+            }, 100);
 
             // Xử lý nút thanh toán PayOS
             $(document).on('click', '#btnPayNow', function (e) {

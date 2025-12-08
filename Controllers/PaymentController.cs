@@ -146,14 +146,23 @@ namespace MaiAmTinhThuong.Controllers
                 httpClient.DefaultRequestHeaders.Add("x-client-id", clientId);
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
-                // Tạo signature: amount, cancelUrl, description, returnUrl (không có orderCode)
+                // Tạo signature: Theo PayOS v2, signature bao gồm: amount, cancelUrl, description, items, returnUrl
+                // items phải được serialize thành JSON string và include trong signature!
                 var cancelUrl = $"{baseUrl}/Payment/Cancel";
                 var returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}";
                 var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
                 var amountStr = ((int)request.Amount).ToString();
                 
+                // Tạo items JSON string cho signature
+                var itemsArray = new[]
+                {
+                    new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
+                };
+                var itemsJson = JsonSerializer.Serialize(itemsArray);
+                
                 // Tạo chuỗi signature: sắp xếp alphabetical, dùng raw values (KHÔNG URL encode)
-                var signatureString = $"amount={amountStr}&cancelUrl={cancelUrl}&description={paymentDescription}&returnUrl={returnUrl}";
+                // Format: amount=...&cancelUrl=...&description=...&items=[...]&returnUrl=...
+                var signatureString = $"amount={amountStr}&cancelUrl={cancelUrl}&description={paymentDescription}&items={itemsJson}&returnUrl={returnUrl}";
                 
                 // Tính HMAC-SHA256
                 if (string.IsNullOrEmpty(checksumKey))
