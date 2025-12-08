@@ -329,13 +329,18 @@ namespace MaiAmTinhThuong.Controllers
                     
                     if (int.TryParse(transactionIdStr, out int transactionId))
                     {
-                        transaction = await _context.TransactionHistories.FindAsync(transactionId);
+                        transaction = await _context.TransactionHistories
+                            .Include(t => t.MaiAm)
+                            .Include(t => t.Supporter)
+                            .FirstOrDefaultAsync(t => t.Id == transactionId);
                     }
                     
                     // Fallback: Tìm transaction từ description nếu không tìm thấy từ session
                     if (transaction == null)
                     {
                         transaction = await _context.TransactionHistories
+                            .Include(t => t.MaiAm)
+                            .Include(t => t.Supporter)
                             .FirstOrDefaultAsync(t => t.Description.Contains($"OrderCode: {orderCode}"));
                     }
                     
@@ -343,6 +348,9 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         transaction.Status = "Success";
                         await _context.SaveChangesAsync();
+                        
+                        // Cập nhật quỹ tài trợ và VinhDanh
+                        await UpdateFundAndVinhDanhAsync(transaction);
                         
                         // Tự động duyệt supporter nếu số tiền >= 200,000 VNĐ
                         if (transaction.Amount >= 200000)
@@ -497,6 +505,7 @@ namespace MaiAmTinhThuong.Controllers
                         // Tìm transaction theo orderCode trong description
                         var transaction = await _context.TransactionHistories
                             .Include(t => t.Supporter)
+                            .Include(t => t.MaiAm)
                             .FirstOrDefaultAsync(t => t.Description.Contains($"OrderCode: {orderCodeInt}"));
                         
                         if (transaction != null)
@@ -507,6 +516,9 @@ namespace MaiAmTinhThuong.Controllers
                                 await _context.SaveChangesAsync();
                                 
                                 _logger.LogInformation($"✅ Đã cập nhật transaction {transaction.Id} thành công cho orderCode {orderCodeInt}");
+                                
+                                // Cập nhật quỹ tài trợ và VinhDanh
+                                await UpdateFundAndVinhDanhAsync(transaction);
                                 
                                 // Tự động duyệt supporter nếu số tiền >= 200,000 VNĐ
                                 if (transaction.Amount >= 200000)
@@ -587,6 +599,95 @@ namespace MaiAmTinhThuong.Controllers
             {
                 _logger.LogError(ex, "Lỗi khi xử lý webhook");
                 return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            }
+        }
+
+        // Helper method: Cập nhật quỹ tài trợ và VinhDanh từ transaction
+        // Có thể gọi từ bất kỳ đâu để cập nhật transaction cũ
+        private async Task UpdateFundAndVinhDanhAsync(TransactionHistory transaction)
+        {
+            try
+            {
+                // Cập nhật quỹ tài trợ của MaiAm
+                if (transaction.MaiAm != null)
+                {
+                    transaction.MaiAm.Fund += transaction.Amount;
+                    transaction.MaiAm.UpdatedDate = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"✅ Đã cập nhật quỹ tài trợ của MaiAm {transaction.MaiAm.Id} (Name: {transaction.MaiAm.Name}): +{transaction.Amount:N0} VNĐ → Tổng: {transaction.MaiAm.Fund:N0} VNĐ");
+                }
+                
+                // Tạo/cập nhật VinhDanh
+                await CreateOrUpdateVinhDanhAsync(transaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi cập nhật quỹ tài trợ và VinhDanh cho transaction {transaction.Id}");
+            }
+        }
+
+        // Helper method: Tạo hoặc cập nhật VinhDanh từ transaction
+        private async Task CreateOrUpdateVinhDanhAsync(TransactionHistory transaction)
+        {
+            try
+            {
+                // Lấy tên người ủng hộ từ transaction
+                string donorName = "Người ủng hộ ẩn danh";
+                
+                if (transaction.Supporter != null)
+                {
+                    donorName = transaction.Supporter.Name;
+                }
+                else if (!string.IsNullOrEmpty(transaction.Description))
+                {
+                    // Extract name từ description (format: "Ủng hộ tài chính - Tên")
+                    var nameMatch = System.Text.RegularExpressions.Regex.Match(transaction.Description, @"Ủng hộ.*?-\s*([^-]+?)(?:\s*-|$)");
+                    if (nameMatch.Success)
+                    {
+                        donorName = nameMatch.Groups[1].Value.Trim();
+                    }
+                }
+                
+                // Tìm VinhDanh đã tồn tại cho người này (trong 30 ngày gần đây)
+                var last30Days = DateTime.UtcNow.AddDays(-30);
+                var existingVinhDanh = await _context.VinhDanhs
+                    .Where(v => v.HoTen == donorName && v.Loai == "NHT")
+                    .Where(v => v.NgayVinhDanh >= last30Days)
+                    .OrderByDescending(v => v.NgayVinhDanh)
+                    .FirstOrDefaultAsync();
+                
+                if (existingVinhDanh != null)
+                {
+                    // Cập nhật số tiền ủng hộ (cộng dồn)
+                    existingVinhDanh.SoTienUngHo = (existingVinhDanh.SoTienUngHo ?? 0) + transaction.Amount;
+                    existingVinhDanh.NgayVinhDanh = DateTime.UtcNow;
+                    existingVinhDanh.GhiChu = $"Tổng ủng hộ: {existingVinhDanh.SoTienUngHo:N0} VNĐ";
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"✅ Đã cập nhật VinhDanh {existingVinhDanh.Id} cho {donorName}: Tổng = {existingVinhDanh.SoTienUngHo:N0} VNĐ");
+                }
+                else
+                {
+                    // Tạo VinhDanh mới
+                    var vinhDanh = new VinhDanh
+                    {
+                        HoTen = donorName,
+                        Loai = "NHT", // Nhà hảo tâm
+                        SoTienUngHo = transaction.Amount,
+                        NgayVinhDanh = DateTime.UtcNow,
+                        GhiChu = $"Ủng hộ {transaction.Amount:N0} VNĐ cho Mái ấm {(transaction.MaiAm?.Name ?? "Tình Thương")}"
+                    };
+                    
+                    _context.VinhDanhs.Add(vinhDanh);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"✅ Đã tạo VinhDanh mới cho {donorName}: {transaction.Amount:N0} VNĐ");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Lỗi khi tạo/cập nhật VinhDanh cho transaction {transaction.Id}");
             }
         }
 
