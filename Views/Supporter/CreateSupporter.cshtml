@@ -142,9 +142,9 @@
                     </div>
 
                     <!-- Hướng dẫn hỗ trợ -->
-                    <div class="support-guide-wrapper">
+                    <div class="support-guide-wrapper" id="supportGuideWrapper" style="display: none;">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
+                            <div class="tab-pane fade" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -605,6 +605,15 @@
                 // Ẩn tất cả tabs
                 $('#supportTabsContent .tab-pane').removeClass('show active');
 
+                // Nếu không chọn gì, ẩn toàn bộ phần hướng dẫn
+                if (!selectedValue || selectedValue === '') {
+                    $('#supportGuideWrapper').hide();
+                    return;
+                }
+
+                // Hiển thị phần hướng dẫn
+                $('#supportGuideWrapper').show();
+
                 // Hiển thị tab tương ứng
                 if (selectedValue == '1') {
                     $('#financial').addClass('show active');
@@ -618,9 +627,7 @@
             // Xử lý thay đổi loại hỗ trợ
             $('#supportType').on('change', function () {
                 var selectedValue = $(this).val();
-                if (selectedValue) {
-                    showSupportTab(selectedValue);
-                }
+                showSupportTab(selectedValue);
             });
             
             // Hiển thị tab khi trang load
