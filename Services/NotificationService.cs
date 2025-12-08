@@ -106,6 +106,21 @@ namespace MaiAmTinhThuong.Services
 
         public async Task NotifySupportRequestApprovedAsync(string userId, string requestName)
         {
+            // Xóa thông báo cũ "chờ duyệt" của hồ sơ này (nếu có) - xóa cả đã đọc và chưa đọc
+            var oldNotifications = await _context.Notifications
+                .Where(n => n.UserId == userId 
+                    && n.Title == "Đăng ký hồ sơ thành công"
+                    && n.Message != null 
+                    && n.Message.Contains(requestName))
+                .ToListAsync();
+            
+            if (oldNotifications.Any())
+            {
+                _context.Notifications.RemoveRange(oldNotifications);
+                await _context.SaveChangesAsync();
+            }
+
+            // Tạo thông báo mới "đã duyệt"
             await CreateAsync(new Notification
             {
                 UserId = userId,

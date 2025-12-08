@@ -507,44 +507,66 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     var userManager = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<MaiAmTinhThuong.Models.ApplicationUser>>();
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
                     
-                    // Chuẩn hóa phone number để so sánh (loại bỏ khoảng trắng, dấu +, dấu -, và chuẩn hóa format)
-                    var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
-                    // Chuẩn hóa thêm: nếu bắt đầu bằng 0, giữ nguyên; nếu bắt đầu bằng 84, đổi thành 0
-                    if (!string.IsNullOrEmpty(normalizedRequestPhone) && normalizedRequestPhone.StartsWith("84"))
-                    {
-                        normalizedRequestPhone = "0" + normalizedRequestPhone.Substring(2);
-                    }
-                    
                     MaiAmTinhThuong.Models.ApplicationUser user = null;
                     
-                    // Tìm user theo phone number (chính xác hoặc chuẩn hóa)
-                    if (!string.IsNullOrEmpty(normalizedRequestPhone))
+                    // Bước 1: Tìm user theo phone number (chính xác hoặc chuẩn hóa)
+                    if (!string.IsNullOrEmpty(request.PhoneNumber))
                     {
-                        var allUsers = await userManager.Users.ToListAsync();
-                        user = allUsers.FirstOrDefault(u => 
+                        var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                        // Chuẩn hóa: nếu bắt đầu bằng 84, đổi thành 0
+                        if (!string.IsNullOrEmpty(normalizedRequestPhone) && normalizedRequestPhone.StartsWith("84"))
                         {
-                            var normalizedUserPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
-                            var normalizedUserPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
-                            
-                            // Chuẩn hóa user phone numbers
-                            if (!string.IsNullOrEmpty(normalizedUserPhone1) && normalizedUserPhone1.StartsWith("84"))
+                            normalizedRequestPhone = "0" + normalizedRequestPhone.Substring(2);
+                        }
+                        
+                        if (!string.IsNullOrEmpty(normalizedRequestPhone))
+                        {
+                            var allUsers = await userManager.Users.ToListAsync();
+                            user = allUsers.FirstOrDefault(u => 
                             {
-                                normalizedUserPhone1 = "0" + normalizedUserPhone1.Substring(2);
-                            }
-                            if (!string.IsNullOrEmpty(normalizedUserPhone2) && normalizedUserPhone2.StartsWith("84"))
-                            {
-                                normalizedUserPhone2 = "0" + normalizedUserPhone2.Substring(2);
-                            }
-                            
-                            return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
-                        });
+                                var normalizedUserPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                                var normalizedUserPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                                
+                                // Chuẩn hóa user phone numbers
+                                if (!string.IsNullOrEmpty(normalizedUserPhone1) && normalizedUserPhone1.StartsWith("84"))
+                                {
+                                    normalizedUserPhone1 = "0" + normalizedUserPhone1.Substring(2);
+                                }
+                                if (!string.IsNullOrEmpty(normalizedUserPhone2) && normalizedUserPhone2.StartsWith("84"))
+                                {
+                                    normalizedUserPhone2 = "0" + normalizedUserPhone2.Substring(2);
+                                }
+                                
+                                return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
+                            });
+                        }
                     }
                     
-                    // Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
+                    // Bước 2: Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
                     if (user == null && !string.IsNullOrEmpty(request.Name))
                     {
                         user = await userManager.Users.FirstOrDefaultAsync(u => 
                             u.FullName != null && u.FullName.Trim().Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+                    }
+                    
+                    // Bước 3: Nếu vẫn không tìm thấy, tìm tất cả user có thông báo "chờ duyệt" cho hồ sơ này
+                    if (user == null && !string.IsNullOrEmpty(request.Name))
+                    {
+                        var allNotifications = await _context.Notifications
+                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                && n.Message != null
+                                && n.Message.Contains(request.Name))
+                            .ToListAsync();
+                        
+                        if (allNotifications.Any())
+                        {
+                            var userIds = allNotifications.Select(n => n.UserId).Distinct().Where(id => !string.IsNullOrEmpty(id)).ToList();
+                            if (userIds.Any())
+                            {
+                                // Lấy user đầu tiên có thông báo về hồ sơ này
+                                user = await userManager.Users.FirstOrDefaultAsync(u => userIds.Contains(u.Id));
+                            }
+                        }
                     }
                     
                     if (user != null)
@@ -554,7 +576,7 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     }
                     else
                     {
-                        logger.LogWarning($"Không tìm thấy user cho hồ sơ {id} (Phone: {request.PhoneNumber}, Name: {request.Name})");
+                        logger.LogWarning($"Không tìm thấy user cho hồ sơ {id} (Phone: {request.PhoneNumber}, Name: {request.Name}). Không thể gửi thông báo.");
                     }
                 }
                 catch (Exception ex)
