@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
+                            <div class="tab-pane fade" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -598,38 +598,57 @@
             // Xử lý thay đổi loại hỗ trợ
             $('#supportType').on('change', function () {
                 var selectedValue = $(this).val();
+                // Ẩn tất cả tabs
                 $('#supportTabsContent .tab-pane').removeClass('show active');
 
-                if (selectedValue == '1' || selectedValue == '') {
-                    // Hiển thị tab Tài chính nếu chọn "Tài chính" hoặc chưa chọn gì
+                // Hiển thị tab tương ứng
+                if (selectedValue == '1') {
                     $('#financial').addClass('show active');
                 } else if (selectedValue == '2') {
                     $('#material').addClass('show active');
                 } else if (selectedValue == '3') {
                     $('#housing').addClass('show active');
+                } else {
+                    // Nếu không chọn gì hoặc giá trị khác, ẩn tất cả
+                    $('#supportTabsContent .tab-pane').removeClass('show active');
                 }
             });
             
             // Trigger change khi trang load để hiển thị tab đúng
-            if ($('#supportType').val() == '' || $('#supportType').val() == '1') {
+            var initialValue = $('#supportType').val();
+            if (initialValue == '1') {
                 $('#financial').addClass('show active');
+            } else if (initialValue == '2') {
+                $('#material').addClass('show active');
+            } else if (initialValue == '3') {
+                $('#housing').addClass('show active');
             } else {
-                $('#supportType').trigger('change');
+                // Mặc định hiển thị tab Tài chính nếu chưa chọn
+                $('#supportType').val('1');
+                $('#financial').addClass('show active');
             }
 
-            // Xử lý nút thanh toán PayOS - Giải pháp nhanh: Redirect đến trang thanh toán PayOS riêng
-            $('#btnPayNow').on('click', function (e) {
+            // Xử lý nút thanh toán PayOS
+            $(document).on('click', '#btnPayNow', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 var amount = parseFloat($('#donationAmount').val());
+                if (isNaN(amount) || amount < 10000) {
+                    alert('Vui lòng nhập số tiền tối thiểu 10,000 VNĐ');
+                    return false;
+                }
+
                 var supporterName = $('#Name').val() || 'Người hỗ trợ';
                 var supporterPhone = $('#PhoneNumber').val() || '';
                 var maiAmId = $('#MaiAmId').val() || null;
 
-                if (!amount || amount < 10000) {
-                    alert('Vui lòng nhập số tiền tối thiểu 10,000 VNĐ');
-                    return;
-                }
+                // Disable button để tránh double click
+                var $btn = $(this);
+                var originalHtml = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...');
 
-                // Redirect đến trang thanh toán PayOS với thông tin qua URL
+                // Redirect đến trang thanh toán PayOS
                 var params = new URLSearchParams({
                     amount: amount,
                     donorName: supporterName,
@@ -638,6 +657,7 @@
                 });
                 
                 window.location.href = '/Payment/PayOSCheckout?' + params.toString();
+                return false;
                     },
                     error: function (xhr) {
                         var errorMsg = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
