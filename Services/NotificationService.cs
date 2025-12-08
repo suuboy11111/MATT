@@ -106,12 +106,29 @@ namespace MaiAmTinhThuong.Services
 
         public async Task NotifySupportRequestApprovedAsync(string userId, string requestName)
         {
+            // Kiểm tra xem đã có thông báo "đã duyệt" cho hồ sơ này chưa (tránh gửi trùng)
+            var searchPattern = $"'{requestName}'";
+            var existingApprovedNotification = await _context.Notifications
+                .Where(n => n.UserId == userId 
+                    && n.Title == "Hồ sơ đã được duyệt"
+                    && n.Message != null 
+                    && (n.Message.Contains(searchPattern) || n.Message.Contains(requestName)))
+                .OrderByDescending(n => n.CreatedAt)
+                .FirstOrDefaultAsync();
+            
+            // Nếu đã có thông báo "đã duyệt" gần đây (trong 7 ngày), không gửi lại
+            if (existingApprovedNotification != null && 
+                existingApprovedNotification.CreatedAt >= DateTime.UtcNow.AddDays(-7))
+            {
+                return; // Đã có thông báo rồi, không gửi lại
+            }
+            
             // Xóa thông báo cũ "chờ duyệt" của hồ sơ này (nếu có) - xóa cả đã đọc và chưa đọc
             var oldNotifications = await _context.Notifications
                 .Where(n => n.UserId == userId 
                     && n.Title == "Đăng ký hồ sơ thành công"
                     && n.Message != null 
-                    && n.Message.Contains(requestName))
+                    && (n.Message.Contains(searchPattern) || n.Message.Contains(requestName)))
                 .ToListAsync();
             
             if (oldNotifications.Any())
