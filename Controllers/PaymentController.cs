@@ -48,8 +48,15 @@ namespace MaiAmTinhThuong.Controllers
                 var baseUrl = _configuration["PayOS:BaseUrl"];
                 if (string.IsNullOrEmpty(baseUrl))
                 {
-                    baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    // Đảm bảo dùng HTTPS trong production
+                    var scheme = Request.IsHttps || Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase) 
+                        ? "https" 
+                        : "https"; // Force HTTPS cho production
+                    baseUrl = $"{scheme}://{Request.Host}";
                 }
+                
+                // Log baseUrl để debug
+                _logger.LogWarning($"PayOS BaseUrl: {baseUrl}");
                 
                 // Tạo payment link - sử dụng HttpClient trực tiếp (đơn giản hơn SDK)
                 var clientId = _configuration["PayOS:ClientId"];
@@ -77,16 +84,17 @@ namespace MaiAmTinhThuong.Controllers
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
                 // Body theo chuẩn PayOS (camelCase, có items)
-                // Tạo chuỗi data để ký (theo payOS): amount, cancelUrl, description, orderCode, returnUrl (alphabetical by key, giá trị URL-encode)
+                // Tạo chuỗi data để ký (theo PayOS v2): amount, cancelUrl, description, returnUrl (alphabetical by key)
+                // LƯU Ý: orderCode KHÔNG được include trong signature calculation!
                 var signDict = new Dictionary<string, string>
                 {
                     { "amount", ((int)request.Amount).ToString() },
                     { "cancelUrl", $"{baseUrl}/Payment/Cancel" },
                     { "description", $"Ủng hộ tài chính - {request.DonorName}" },
-                    { "orderCode", orderCode.ToString() },
                     { "returnUrl", $"{baseUrl}/Payment/Success?orderCode={orderCode}" }
+                    // orderCode KHÔNG được thêm vào đây!
                 };
-                var signature = ComputeSignature(signDict, checksumKey);
+                var signature = ComputeSignature(signDict, checksumKey, _logger);
                 
                 // Log để debug signature (chỉ log partial để không expose secret)
                 _logger.LogInformation($"PayOS Debug - ClientId: {clientId?.Substring(0, Math.Min(10, clientId?.Length ?? 0))}..., ApiKey: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0))}..., ChecksumKey length: {checksumKey?.Length ?? 0}");
@@ -314,12 +322,15 @@ namespace MaiAmTinhThuong.Controllers
             }
         }
 
-        private static string ComputeSignature(Dictionary<string, string> data, string secretKey)
+        private static string ComputeSignature(Dictionary<string, string> data, string secretKey, ILogger? logger = null)
         {
             // Sắp xếp key theo alphabet, URL-encode value rồi join bằng &
             var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
             var query = string.Join("&", sorted.Select(kv =>
                 $"{kv.Key}={Uri.EscapeDataString(kv.Value ?? string.Empty)}"));
+            
+            // Debug: Log string được dùng để tính signature (không log secretKey)
+            logger?.LogWarning($"PayOS Signature String: {query}");
 
             using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
             var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
