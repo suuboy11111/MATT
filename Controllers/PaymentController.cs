@@ -165,23 +165,38 @@ namespace MaiAmTinhThuong.Controllers
                 var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
                 var amountStr = ((int)request.Amount).ToString();
                 
-                // Tạo items JSON string cho signature - không escape Unicode, không có spaces
+                // Tạo items JSON string cho signature
+                // QUAN TRỌNG: Keys trong items object phải được sort alphabetical: name, price, quantity
+                // Và JSON phải consistent (không có spaces, không escape Unicode)
+                // Sử dụng SortedDictionary để đảm bảo keys được sort
                 var itemsArray = new[]
                 {
-                    new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
+                    new SortedDictionary<string, object>
+                    {
+                        { "name", "Ủng hộ tài chính" },
+                        { "price", (int)request.Amount },
+                        { "quantity", 1 }
+                    }
                 };
+                
+                // Serialize items với format đúng: không escape Unicode, không có spaces
                 var itemsJsonOptions = new JsonSerializerOptions
                 {
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // Không escape Unicode
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
                     WriteIndented = false
                 };
                 var itemsJson = JsonSerializer.Serialize(itemsArray, itemsJsonOptions);
-                // Loại bỏ tất cả spaces trong JSON để đảm bảo format chính xác
-                itemsJson = itemsJson.Replace(" ", "");
                 
-                // Tạo chuỗi signature: sắp xếp alphabetical, dùng raw values (KHÔNG URL encode)
+                // PayOS v2 yêu cầu URL encode các giá trị trong signature string
+                // Nhưng items JSON thì KHÔNG encode (vì đã là JSON string)
+                var encodedCancelUrl = Uri.EscapeDataString(cancelUrl);
+                var encodedDescription = Uri.EscapeDataString(paymentDescription);
+                var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+                
+                // Tạo chuỗi signature: sắp xếp alphabetical theo keys
                 // Format: amount=...&cancelUrl=...&description=...&items=[...]&returnUrl=...
-                var signatureString = $"amount={amountStr}&cancelUrl={cancelUrl}&description={paymentDescription}&items={itemsJson}&returnUrl={returnUrl}";
+                // Lưu ý: PayOS yêu cầu keys được sort alphabetical: amount, cancelUrl, description, items, returnUrl
+                var signatureString = $"amount={amountStr}&cancelUrl={encodedCancelUrl}&description={encodedDescription}&items={itemsJson}&returnUrl={encodedReturnUrl}";
                 
                 // Tính HMAC-SHA256
                 if (string.IsNullOrEmpty(checksumKey))
