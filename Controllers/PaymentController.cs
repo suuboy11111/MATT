@@ -269,6 +269,7 @@ namespace MaiAmTinhThuong.Controllers
                 var transaction = new TransactionHistory
                 {
                     MaiAmId = request.MaiAmId ?? 1,
+                    SupporterId = request.SupporterId, // Lưu SupporterId nếu có
                     Amount = request.Amount,
                     TransactionDate = DateTime.UtcNow,
                     Status = "Pending",
@@ -342,6 +343,60 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         transaction.Status = "Success";
                         await _context.SaveChangesAsync();
+                        
+                        // Tự động duyệt supporter nếu số tiền >= 200,000 VNĐ
+                        if (transaction.Amount >= 200000)
+                        {
+                            Supporter? supporter = null;
+                            
+                            // Tìm supporter theo SupporterId nếu có
+                            if (transaction.SupporterId.HasValue)
+                            {
+                                supporter = await _context.Supporters.FindAsync(transaction.SupporterId.Value);
+                            }
+                            
+                            // Nếu không tìm thấy, tìm theo phone number và name từ description
+                            if (supporter == null && !string.IsNullOrEmpty(transaction.Description))
+                            {
+                                // Extract phone number từ description
+                                var phoneMatch = System.Text.RegularExpressions.Regex.Match(transaction.Description, @"SĐT:\s*([0-9+\-\s]+)");
+                                if (phoneMatch.Success)
+                                {
+                                    var phoneNumber = phoneMatch.Groups[1].Value.Trim();
+                                    
+                                    // Extract name từ description
+                                    var nameMatch = System.Text.RegularExpressions.Regex.Match(transaction.Description, @"Ủng hộ.*?-\s*([^-]+?)(?:\s*-|$)");
+                                    var donorName = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : null;
+                                    
+                                    // Tìm supporter theo phone number và name (trong 24h gần đây)
+                                    var last24Hours = DateTime.UtcNow.AddHours(-24);
+                                    supporter = await _context.Supporters
+                                        .Where(s => s.PhoneNumber == phoneNumber || s.PhoneNumber.Replace(" ", "").Replace("+", "").Replace("-", "") == phoneNumber.Replace(" ", "").Replace("+", "").Replace("-", ""))
+                                        .Where(s => string.IsNullOrEmpty(donorName) || s.Name.Contains(donorName) || donorName.Contains(s.Name))
+                                        .Where(s => s.CreatedDate >= last24Hours)
+                                        .OrderByDescending(s => s.CreatedDate)
+                                        .FirstOrDefaultAsync();
+                                    
+                                    // Nếu tìm thấy, cập nhật SupporterId vào transaction
+                                    if (supporter != null)
+                                    {
+                                        transaction.SupporterId = supporter.Id;
+                                        await _context.SaveChangesAsync();
+                                    }
+                                }
+                            }
+                            
+                            // Tự động duyệt nếu tìm thấy supporter
+                            if (supporter != null && !supporter.IsApproved)
+                            {
+                                supporter.IsApproved = true;
+                                supporter.UpdatedDate = DateTime.UtcNow;
+                                await _context.SaveChangesAsync();
+                                
+                                _logger.LogInformation($"✅ Đã tự động duyệt supporter {supporter.Id} (Name: {supporter.Name}) vì số tiền ủng hộ >= 200,000 VNĐ");
+                                ViewBag.AutoApproved = true;
+                            }
+                        }
                     }
 
                     ViewBag.Success = true;
@@ -441,6 +496,7 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         // Tìm transaction theo orderCode trong description
                         var transaction = await _context.TransactionHistories
+                            .Include(t => t.Supporter)
                             .FirstOrDefaultAsync(t => t.Description.Contains($"OrderCode: {orderCodeInt}"));
                         
                         if (transaction != null)
@@ -451,6 +507,59 @@ namespace MaiAmTinhThuong.Controllers
                                 await _context.SaveChangesAsync();
                                 
                                 _logger.LogInformation($"✅ Đã cập nhật transaction {transaction.Id} thành công cho orderCode {orderCodeInt}");
+                                
+                                // Tự động duyệt supporter nếu số tiền >= 200,000 VNĐ
+                                if (transaction.Amount >= 200000)
+                                {
+                                    Supporter? supporter = null;
+                                    
+                                    // Tìm supporter theo SupporterId nếu có
+                                    if (transaction.SupporterId.HasValue)
+                                    {
+                                        supporter = await _context.Supporters.FindAsync(transaction.SupporterId.Value);
+                                    }
+                                    
+                                    // Nếu không tìm thấy, tìm theo phone number và name từ description
+                                    if (supporter == null && !string.IsNullOrEmpty(transaction.Description))
+                                    {
+                                        // Extract phone number từ description (format: "SĐT: 0912345678")
+                                        var phoneMatch = System.Text.RegularExpressions.Regex.Match(transaction.Description, @"SĐT:\s*([0-9+\-\s]+)");
+                                        if (phoneMatch.Success)
+                                        {
+                                            var phoneNumber = phoneMatch.Groups[1].Value.Trim();
+                                            
+                                            // Extract name từ description (format: "Ủng hộ tài chính - Tên")
+                                            var nameMatch = System.Text.RegularExpressions.Regex.Match(transaction.Description, @"Ủng hộ.*?-\s*([^-]+?)(?:\s*-|$)");
+                                            var donorName = nameMatch.Success ? nameMatch.Groups[1].Value.Trim() : null;
+                                            
+                                            // Tìm supporter theo phone number và name (trong 24h gần đây)
+                                            var last24Hours = DateTime.UtcNow.AddHours(-24);
+                                            supporter = await _context.Supporters
+                                                .Where(s => s.PhoneNumber == phoneNumber || s.PhoneNumber.Replace(" ", "").Replace("+", "").Replace("-", "") == phoneNumber.Replace(" ", "").Replace("+", "").Replace("-", ""))
+                                                .Where(s => string.IsNullOrEmpty(donorName) || s.Name.Contains(donorName) || donorName.Contains(s.Name))
+                                                .Where(s => s.CreatedDate >= last24Hours)
+                                                .OrderByDescending(s => s.CreatedDate)
+                                                .FirstOrDefaultAsync();
+                                            
+                                            // Nếu tìm thấy, cập nhật SupporterId vào transaction
+                                            if (supporter != null)
+                                            {
+                                                transaction.SupporterId = supporter.Id;
+                                                await _context.SaveChangesAsync();
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Tự động duyệt nếu tìm thấy supporter
+                                    if (supporter != null && !supporter.IsApproved)
+                                    {
+                                        supporter.IsApproved = true;
+                                        supporter.UpdatedDate = DateTime.UtcNow;
+                                        await _context.SaveChangesAsync();
+                                        
+                                        _logger.LogInformation($"✅ Đã tự động duyệt supporter {supporter.Id} (Name: {supporter.Name}) vì số tiền ủng hộ >= 200,000 VNĐ");
+                                    }
+                                }
                             }
                             else
                             {
@@ -490,6 +599,7 @@ namespace MaiAmTinhThuong.Controllers
         public string DonorName { get; set; } = "";
         public string? PhoneNumber { get; set; }
         public int? MaiAmId { get; set; }
+        public int? SupporterId { get; set; } // ID của supporter nếu thanh toán từ form đăng ký
     }
 }
 

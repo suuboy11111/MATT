@@ -148,8 +148,7 @@
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
-                                    <!-- Tạm thời ẩn PayOS do lỗi signature - sẽ fix sau -->
-                                    @* 
+                                    <!-- Thanh toán trực tuyến qua PayOS -->
                                     <div class="payment-online-section mb-4">
                                         <div class="payment-header">
                                             <h6><i class="fas fa-credit-card me-2"></i>Thanh toán trực tuyến</h6>
@@ -163,6 +162,9 @@
                                                 <small class="form-text text-muted">
                                                     <i class="fas fa-info-circle me-1"></i>
                                                     Số tiền tối thiểu: 10,000 VNĐ
+                                                    <br />
+                                                    <i class="fas fa-star me-1 text-warning"></i>
+                                                    <strong>Ưu đãi:</strong> Ủng hộ từ 200,000 VNĐ sẽ được tự động duyệt!
                                                 </small>
                                             </div>
                                             <button type="button" class="btn-pay-now" id="btnPayNow">
@@ -175,7 +177,6 @@
                                     <div class="payment-divider">
                                         <span>HOẶC</span>
                                     </div>
-                                    *@
 
                                     <!-- Chuyển khoản truyền thống -->
                                     <div class="bank-transfer-section">
@@ -650,24 +651,56 @@
                     return false;
                 }
 
+                // Validate form trước
+                var form = $('#supporterForm')[0];
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return false;
+                }
+
                 var supporterName = $('#Name').val() || 'Người hỗ trợ';
                 var supporterPhone = $('#PhoneNumber').val() || '';
                 var maiAmId = $('#MaiAmId').val() || null;
+                var supportType = $('#supportType').val();
 
                 // Disable button để tránh double click
                 var $btn = $(this);
                 var originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...');
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> Đang tạo hồ sơ...');
 
-                // Redirect đến trang thanh toán PayOS
-                var params = new URLSearchParams({
-                    amount: amount,
-                    donorName: supporterName,
-                    phoneNumber: supporterPhone || '',
-                    maiAmId: maiAmId || ''
+                // Tạo form data để submit
+                var formData = new FormData($('#supporterForm')[0]);
+                
+                // Submit form để tạo Supporter trước
+                $.ajax({
+                    url: '/Supporter/CreateSupporter',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        // Parse response để lấy SupporterId từ redirect hoặc response
+                        // Nếu thành công, redirect đến PayOS với SupporterId
+                        // Tạm thời dùng cách khác: tạo payment link trực tiếp với thông tin form
+                        // và lưu SupporterId sau khi thanh toán thành công
+                        
+                        // Redirect đến PayOS với thông tin
+                        var params = new URLSearchParams({
+                            amount: amount,
+                            donorName: supporterName,
+                            phoneNumber: supporterPhone || '',
+                            maiAmId: maiAmId || '',
+                            supportType: supportType || ''
+                        });
+                        
+                        window.location.href = '/Payment/PayOSCheckout?' + params.toString();
+                    },
+                    error: function(xhr) {
+                        alert('Có lỗi xảy ra khi tạo hồ sơ. Vui lòng thử lại.');
+                        $btn.prop('disabled', false).html(originalHtml);
+                    }
                 });
                 
-                window.location.href = '/Payment/PayOSCheckout?' + params.toString();
                 return false;
             });
 
