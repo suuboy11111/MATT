@@ -69,7 +69,9 @@ namespace MaiAmTinhThuong.Controllers
                 
                 var json = JsonSerializer.Serialize(paymentRequest);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync("https://api.payos.vn/v2/payment-requests", content);
+                // PayOS production endpoint (một số môi trường chặn DNS api.payos.vn -> dùng api-merchant.payos.vn)
+                var payOsEndpoint = _configuration["PayOS:Endpoint"] ?? "https://api-merchant.payos.vn";
+                var response = await httpClient.PostAsync($"{payOsEndpoint}/v2/payment-requests", content);
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var paymentLink = JsonSerializer.Deserialize<JsonElement>(responseBody);
 
@@ -137,7 +139,8 @@ namespace MaiAmTinhThuong.Controllers
                 httpClient.DefaultRequestHeaders.Add("x-client-id", clientId);
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
-                var response = await httpClient.GetAsync($"https://api.payos.vn/v2/payment-requests/{orderCode}");
+                var payOsEndpoint = _configuration["PayOS:Endpoint"] ?? "https://api-merchant.payos.vn";
+                var response = await httpClient.GetAsync($"{payOsEndpoint}/v2/payment-requests/{orderCode}");
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var paymentInfo = JsonSerializer.Deserialize<JsonElement>(responseBody);
 
