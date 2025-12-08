@@ -112,7 +112,7 @@
                                             <a class="admin-btn admin-btn-danger admin-btn-sm" asp-action="Delete" asp-route-id="@item.Id" title="Xóa">
                                                 <i class="fas fa-trash-alt"></i> Xóa
                                             </a>
-                                            @if (item.Loai != null && item.Loai.ToLower().Contains("hảo tâm"))
+                                            @if (item.Loai != null && (item.Loai.ToLower().Contains("hảo tâm") || item.Loai == "NHT") && item.SoTienUngHo.HasValue && item.SoTienUngHo.Value > 0)
                                             {
                                                 <a class="admin-btn admin-btn-success admin-btn-sm" 
                                                    asp-controller="VinhDanhs" asp-action="TaoChungNhan" asp-route-id="@item.Id" title="Tạo chứng nhận">
