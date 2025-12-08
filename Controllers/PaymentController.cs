@@ -162,7 +162,14 @@ namespace MaiAmTinhThuong.Controllers
                 // items phải được serialize thành JSON string và include trong signature!
                 var cancelUrl = $"{baseUrl}/Payment/Cancel";
                 var returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}";
-                var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
+                
+                // PayOS chỉ cho phép description tối đa 25 ký tự
+                // Rút ngắn description nếu quá dài
+                var fullDescription = $"Ủng hộ - {request.DonorName}";
+                var paymentDescription = fullDescription.Length > 25 
+                    ? fullDescription.Substring(0, 25) 
+                    : fullDescription;
+                
                 var amountStr = ((int)request.Amount).ToString();
                 
                 // QUAN TRỌNG: PayOS v2 KHÔNG bao gồm items trong signature string!
