@@ -193,95 +193,113 @@ namespace MaiAmTinhThuong.Controllers
                 _context.ChungNhanQuyenGops.Add(cn);
                 await _context.SaveChangesAsync();
 
-                // Font hỗ trợ tiếng Việt - ưu tiên font có sẵn trong project, sau đó tìm trên hệ thống
+                // Font hỗ trợ tiếng Việt - ưu tiên Noto Sans trong project (đã tải sẵn)
                 BaseFont baseFont = null;
+                BaseFont baseFontBold = null;
+                
                 string[] fontPaths = {
-                    // Font trong project (nếu có) - ưu tiên cao nhất
+                    // Font trong project - ưu tiên cao nhất (Noto Sans hỗ trợ tiếng Việt hoàn hảo)
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "NotoSans-Regular.ttf"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "NotoSans-Bold.ttf"),
                     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "arial.ttf"),
                     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "Arial.ttf"),
                     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "times.ttf"),
-                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "TimesNewRoman.ttf"),
-                    // Windows fonts - Times New Roman hỗ trợ tiếng Việt tốt
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "times.ttf"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "timesi.ttf"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "timesbd.ttf"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "Arial.ttf"),
-                    // Linux/Railway fonts - DejaVu và Liberation hỗ trợ Unicode tốt
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+                    // Linux/Railway fonts - Noto Sans thường có sẵn
                     "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-                    "/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                    // Windows fonts
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "times.ttf"),
                     // macOS fonts
-                    "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
                     "/System/Library/Fonts/Supplemental/Arial.ttf"
                 };
 
+                // Tìm font Regular
                 foreach (var fontPath in fontPaths)
                 {
                     try
                     {
-                        if (System.IO.File.Exists(fontPath))
+                        if (System.IO.File.Exists(fontPath) && !fontPath.Contains("Bold"))
                         {
-                            // Dùng IDENTITY_H để hỗ trợ Unicode tiếng Việt đầy đủ
-                            // EMBEDDED để đảm bảo font được embed vào PDF
                             baseFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
                             break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Log lỗi nhưng tiếp tục thử font khác
                         System.Diagnostics.Debug.WriteLine($"Không thể load font {fontPath}: {ex.Message}");
                     }
                 }
 
-                // Nếu không tìm thấy font, thử tạo font từ resource hoặc dùng fallback
+                // Tìm font Bold
+                string[] boldFontPaths = {
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "NotoSans-Bold.ttf"),
+                    "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                };
+
+                foreach (var fontPath in boldFontPaths)
+                {
+                    try
+                    {
+                        if (System.IO.File.Exists(fontPath))
+                        {
+                            baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                            break;
+                        }
+                    }
+                    catch { }
+                }
+
+                // Nếu không tìm thấy Bold, dùng Regular làm Bold
+                if (baseFontBold == null && baseFont != null)
+                {
+                    baseFontBold = baseFont;
+                }
+
+                // Fallback cuối cùng
                 if (baseFont == null)
                 {
-                    // Thử tìm DejaVu Sans trên Linux (thường có sẵn)
                     try
                     {
                         baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                        baseFontBold = baseFont;
                     }
                     catch
                     {
-                        // Fallback: Dùng font mặc định nhưng vẫn cố gắng dùng IDENTITY_H
-                        // Lưu ý: Font này có thể không hiển thị tiếng Việt đúng
-                        try
-                        {
-                            baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                        }
-                        catch
-                        {
-                            baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
-                        }
+                        // Cuối cùng dùng font mặc định
+                        baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                        baseFontBold = baseFont;
                     }
                 }
 
-                // Khai báo các font với kích thước và màu sắc chuyên nghiệp
-                var fontTitle = new iTextSharp.text.Font(baseFont, 28, iTextSharp.text.Font.BOLD);
-                fontTitle.Color = new BaseColor(184, 0, 0); // Đỏ đậm chuyên nghiệp
+                // Khai báo các font với kích thước và màu sắc chuyên nghiệp - dùng baseFontBold cho Bold
+                var fontTitle = new iTextSharp.text.Font(baseFontBold ?? baseFont, 32, iTextSharp.text.Font.BOLD);
+                fontTitle.Color = new BaseColor(200, 30, 30); // Đỏ đậm chuyên nghiệp
 
-                var fontSubtitle = new iTextSharp.text.Font(baseFont, 14, iTextSharp.text.Font.NORMAL);
-                fontSubtitle.Color = new BaseColor(100, 100, 100); // Xám đậm
+                var fontSubtitle = new iTextSharp.text.Font(baseFont, 16, iTextSharp.text.Font.NORMAL);
+                fontSubtitle.Color = new BaseColor(120, 120, 120); // Xám đậm
 
-                var fontHeader = new iTextSharp.text.Font(baseFont, 11, iTextSharp.text.Font.BOLD);
-                fontHeader.Color = new BaseColor(60, 60, 60); // Xám đen
+                var fontHeader = new iTextSharp.text.Font(baseFontBold ?? baseFont, 12, iTextSharp.text.Font.BOLD);
+                fontHeader.Color = new BaseColor(50, 50, 50); // Xám đen
 
-                var fontValue = new iTextSharp.text.Font(baseFont, 11, iTextSharp.text.Font.NORMAL);
+                var fontValue = new iTextSharp.text.Font(baseFont, 12, iTextSharp.text.Font.NORMAL);
                 fontValue.Color = BaseColor.Black;
 
-                var fontValueBold = new iTextSharp.text.Font(baseFont, 12, iTextSharp.text.Font.BOLD);
-                fontValueBold.Color = new BaseColor(0, 100, 0); // Xanh lá đậm cho số tiền
+                var fontValueBold = new iTextSharp.text.Font(baseFontBold ?? baseFont, 13, iTextSharp.text.Font.BOLD);
+                fontValueBold.Color = new BaseColor(0, 120, 0); // Xanh lá đậm cho số tiền
 
-                var fontThanks = new iTextSharp.text.Font(baseFont, 13, iTextSharp.text.Font.ITALIC);
-                fontThanks.Color = new BaseColor(80, 80, 80);
+                var fontThanks = new iTextSharp.text.Font(baseFont, 14, iTextSharp.text.Font.ITALIC);
+                fontThanks.Color = new BaseColor(70, 70, 70);
+
+                var fontQuote = new iTextSharp.text.Font(baseFont, 11, iTextSharp.text.Font.ITALIC);
+                fontQuote.Color = new BaseColor(100, 100, 100);
 
                 var fontFooter = new iTextSharp.text.Font(baseFont, 10, iTextSharp.text.Font.NORMAL);
-                fontFooter.Color = new BaseColor(120, 120, 120);
+                fontFooter.Color = new BaseColor(130, 130, 130);
 
                 using (var ms = new MemoryStream())
                 {
@@ -340,11 +358,19 @@ namespace MaiAmTinhThuong.Controllers
                     subtitle.SpacingAfter = 30f;
                     doc.Add(subtitle);
 
-                    // Vẽ đường kẻ trang trí dưới tiêu đề
-                    canvas.SetColorStroke(new BaseColor(184, 0, 0));
-                    canvas.SetLineWidth(2f);
-                    canvas.MoveTo(150, doc.Top - 180);
-                    canvas.LineTo(pageSize.Width - 150, doc.Top - 180);
+                    // Vẽ đường kẻ trang trí dưới tiêu đề với gradient effect
+                    var yPos = doc.Top - 200;
+                    canvas.SetColorStroke(new BaseColor(200, 30, 30));
+                    canvas.SetLineWidth(3f);
+                    canvas.MoveTo(120, yPos);
+                    canvas.LineTo(pageSize.Width - 120, yPos);
+                    canvas.Stroke();
+                    
+                    // Vẽ đường kẻ mỏng phía dưới
+                    canvas.SetColorStroke(new BaseColor(220, 150, 150));
+                    canvas.SetLineWidth(1f);
+                    canvas.MoveTo(130, yPos - 3);
+                    canvas.LineTo(pageSize.Width - 130, yPos - 3);
                     canvas.Stroke();
 
                     doc.Add(new Paragraph("\n\n"));
@@ -396,16 +422,25 @@ namespace MaiAmTinhThuong.Controllers
 
                     // Lời cảm ơn với thiết kế đẹp hơn
                     doc.Add(new Paragraph("\n"));
+                    
+                    // Vẽ khung trang trí cho lời cảm ơn
+                    var thanksY = doc.Top - 550;
+                    canvas.SetColorFill(new BaseColor(255, 250, 250));
+                    canvas.SetColorStroke(new BaseColor(240, 200, 200));
+                    canvas.SetLineWidth(1.5f);
+                    canvas.RoundRectangle(100, thanksY - 25, pageSize.Width - 200, 60, 10);
+                    canvas.FillStroke();
+                    
                     Paragraph thanks = new Paragraph("Xin chân thành cảm ơn sự đóng góp quý báu của Quý vị!", fontThanks);
                     thanks.Alignment = Element.ALIGN_CENTER;
-                    thanks.SpacingBefore = 20f;
-                    thanks.SpacingAfter = 10f;
+                    thanks.SpacingBefore = 25f;
+                    thanks.SpacingAfter = 15f;
                     doc.Add(thanks);
 
-                    // Thêm dấu ngoặc kép trang trí
-                    Paragraph quote = new Paragraph("\"Tình yêu thương là ngôn ngữ mà người điếc có thể nghe và người mù có thể thấy.\"", fontFooter);
+                    // Thêm dấu ngoặc kép trang trí với style đẹp hơn
+                    Paragraph quote = new Paragraph("\"Tình yêu thương là ngôn ngữ mà người điếc có thể nghe và người mù có thể thấy.\"", fontQuote);
                     quote.Alignment = Element.ALIGN_CENTER;
-                    quote.SpacingAfter = 30f;
+                    quote.SpacingAfter = 35f;
                     doc.Add(quote);
 
                     // Footer với thông tin
