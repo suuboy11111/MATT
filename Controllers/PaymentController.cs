@@ -3,6 +3,7 @@ using MaiAmTinhThuong.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Reflection;
 
 namespace MaiAmTinhThuong.Controllers
