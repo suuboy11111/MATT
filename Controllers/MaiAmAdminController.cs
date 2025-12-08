@@ -513,19 +513,51 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     // Bước 1: Ưu tiên tìm user từ thông báo "Đăng ký hồ sơ thành công" (cách này chính xác nhất)
                     if (!string.IsNullOrEmpty(request.Name))
                     {
+                        // Tìm thông báo có message chứa tên hồ sơ (tìm chính xác trong dấu nháy đơn)
+                        var searchPattern = $"'{request.Name}'";
                         var matchingNotifications = await _context.Notifications
                             .Where(n => n.Title == "Đăng ký hồ sơ thành công"
                                 && n.Message != null
-                                && n.Message.Contains(request.Name))
+                                && n.Message.Contains(searchPattern)
+                                && !string.IsNullOrEmpty(n.UserId))
                             .OrderByDescending(n => n.CreatedAt)
                             .ToListAsync();
+                        
+                        logger.LogInformation($"Tìm thấy {matchingNotifications.Count} thông báo cho hồ sơ '{request.Name}'");
                         
                         if (matchingNotifications.Any())
                         {
                             // Lấy thông báo gần nhất và lấy UserId
                             var latestNotification = matchingNotifications.First();
                             foundUserId = latestNotification.UserId;
-                            logger.LogInformation($"Tìm thấy thông báo tạo hồ sơ cho '{request.Name}' với UserId: {foundUserId}");
+                            logger.LogInformation($"Thông báo gần nhất có UserId: {foundUserId}, CreatedAt: {latestNotification.CreatedAt}");
+                            
+                            // Nếu có nhiều thông báo, lấy tất cả UserId duy nhất
+                            var allUserIds = matchingNotifications
+                                .Where(n => !string.IsNullOrEmpty(n.UserId))
+                                .Select(n => n.UserId!)
+                                .Distinct()
+                                .ToList();
+                            
+                            logger.LogInformation($"Tổng cộng {allUserIds.Count} user khác nhau có thông báo về hồ sơ này");
+                        }
+                        else
+                        {
+                            // Nếu không tìm thấy với pattern chính xác, thử tìm với Contains
+                            var fallbackNotifications = await _context.Notifications
+                                .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                    && n.Message != null
+                                    && n.Message.Contains(request.Name)
+                                    && !string.IsNullOrEmpty(n.UserId))
+                                .OrderByDescending(n => n.CreatedAt)
+                                .ToListAsync();
+                            
+                            if (fallbackNotifications.Any())
+                            {
+                                var latest = fallbackNotifications.First();
+                                foundUserId = latest.UserId;
+                                logger.LogInformation($"Tìm thấy thông báo (fallback) với UserId: {foundUserId}");
+                            }
                         }
                     }
                     
@@ -536,6 +568,10 @@ namespace MaiAmTinhThuong.Controllers.Admin
                         if (user != null)
                         {
                             logger.LogInformation($"Đã tìm thấy user từ thông báo: {user.Id} ({user.Email})");
+                        }
+                        else
+                        {
+                            logger.LogWarning($"UserId {foundUserId} từ thông báo không tồn tại trong hệ thống");
                         }
                     }
                     
@@ -598,7 +634,43 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     }
                     else
                     {
-                        logger.LogWarning($"KHÔNG TÌM THẤY USER cho hồ sơ {id} (Name: {request.Name}, Phone: {request.PhoneNumber}). Không thể gửi thông báo duyệt.");
+                        // Fallback: Tìm tất cả user có thông báo "Đăng ký hồ sơ thành công" trong 7 ngày gần đây
+                        // và gửi thông báo cho tất cả (nếu có nhiều user có cùng tên hồ sơ)
+                        var recentNotifications = await _context.Notifications
+                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                && n.Message != null
+                                && n.Message.Contains(request.Name ?? "")
+                                && !string.IsNullOrEmpty(n.UserId)
+                                && n.CreatedAt >= DateTime.UtcNow.AddDays(-7))
+                            .Select(n => n.UserId!)
+                            .Distinct()
+                            .ToListAsync();
+                        
+                        if (recentNotifications.Any())
+                        {
+                            logger.LogInformation($"Tìm thấy {recentNotifications.Count} user có thông báo gần đây về hồ sơ '{request.Name}', gửi thông báo cho tất cả");
+                            
+                            foreach (var userId in recentNotifications)
+                            {
+                                try
+                                {
+                                    var targetUser = await userManager.FindByIdAsync(userId);
+                                    if (targetUser != null)
+                                    {
+                                        await notificationService.NotifySupportRequestApprovedAsync(userId, request.Name ?? "Hồ sơ");
+                                        logger.LogInformation($"Đã gửi thông báo duyệt cho user {userId} ({targetUser.Email})");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    logger.LogError(ex, $"Lỗi khi gửi thông báo cho user {userId}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning($"KHÔNG TÌM THẤY USER cho hồ sơ {id} (Name: {request.Name}, Phone: {request.PhoneNumber}). Không thể gửi thông báo duyệt.");
+                        }
                     }
                 }
                 catch (Exception ex)
