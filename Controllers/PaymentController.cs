@@ -64,9 +64,16 @@ namespace MaiAmTinhThuong.Controllers
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
                 // Body theo chuẩn PayOS (camelCase, có items)
-                // Tạo chuỗi data để ký (theo payOS): amount, cancelUrl, description, orderCode, returnUrl (alphabetical by key)
-                var signData = $"amount={(int)request.Amount}&cancelUrl={baseUrl}/Payment/Cancel&description=Ủng hộ tài chính - {request.DonorName}&orderCode={orderCode}&returnUrl={baseUrl}/Payment/Success?orderCode={orderCode}";
-                var signature = ComputeSignature(signData, checksumKey);
+                // Tạo chuỗi data để ký (theo payOS): amount, cancelUrl, description, orderCode, returnUrl (alphabetical by key, giá trị URL-encode)
+                var signDict = new Dictionary<string, string>
+                {
+                    { "amount", ((int)request.Amount).ToString() },
+                    { "cancelUrl", $"{baseUrl}/Payment/Cancel" },
+                    { "description", $"Ủng hộ tài chính - {request.DonorName}" },
+                    { "orderCode", orderCode.ToString() },
+                    { "returnUrl", $"{baseUrl}/Payment/Success?orderCode={orderCode}" }
+                };
+                var signature = ComputeSignature(signDict, checksumKey);
 
                 var paymentRequest = new
                 {
@@ -300,10 +307,15 @@ namespace MaiAmTinhThuong.Controllers
         public int? MaiAmId { get; set; }
     }
 
-    internal static string ComputeSignature(string data, string secretKey)
+    internal static string ComputeSignature(Dictionary<string, string> data, string secretKey)
     {
+        // Sắp xếp key theo alphabet, URL-encode value rồi join bằng &
+        var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
+        var query = string.Join("&", sorted.Select(kv =>
+            $"{kv.Key}={Uri.EscapeDataString(kv.Value ?? string.Empty)}"));
+
         using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
-        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(data));
+        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
