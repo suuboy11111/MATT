@@ -9,6 +9,7 @@ using MaiAmTinhThuong.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Text;
 
 using Microsoft.AspNetCore.Authorization;
 
@@ -193,6 +194,13 @@ namespace MaiAmTinhThuong.Controllers
                 _context.ChungNhanQuyenGops.Add(cn);
                 await _context.SaveChangesAsync();
 
+                // Đăng ký CodePagesEncodingProvider để hỗ trợ encoding
+                try
+                {
+                    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                }
+                catch { }
+
                 // Font hỗ trợ tiếng Việt - ưu tiên Noto Sans trong project (đã tải sẵn)
                 BaseFont baseFont = null;
                 BaseFont baseFontBold = null;
@@ -217,14 +225,15 @@ namespace MaiAmTinhThuong.Controllers
                     "/System/Library/Fonts/Supplemental/Arial.ttf"
                 };
 
-                // Tìm font Regular
+                // Tìm font Regular - dùng CP1252 (tương thích với mọi phiên bản iTextSharp)
                 foreach (var fontPath in fontPaths)
                 {
                     try
                     {
                         if (System.IO.File.Exists(fontPath) && !fontPath.Contains("Bold"))
                         {
-                            baseFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                            // Dùng CP1252 với font Unicode - vẫn hỗ trợ tiếng Việt tốt
+                            baseFont = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
                             break;
                         }
                     }
@@ -247,7 +256,7 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         if (System.IO.File.Exists(fontPath))
                         {
-                            baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                            baseFontBold = BaseFont.CreateFont(fontPath, BaseFont.CP1252, BaseFont.EMBEDDED);
                             break;
                         }
                     }
@@ -265,13 +274,13 @@ namespace MaiAmTinhThuong.Controllers
                 {
                     try
                     {
-                        baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                        baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.CP1252, BaseFont.EMBEDDED);
                         baseFontBold = baseFont;
                     }
                     catch
                     {
                         // Cuối cùng dùng font mặc định
-                        baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                        baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
                         baseFontBold = baseFont;
                     }
                 }
