@@ -399,61 +399,160 @@ namespace MaiAmTinhThuong.Controllers
                     var notificationService = HttpContext.RequestServices.GetRequiredService<Services.NotificationService>();
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
                     
-                    // Chuẩn hóa phone number để so sánh (loại bỏ khoảng trắng, dấu +, dấu -, và chuẩn hóa format)
-                    var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
-                    // Chuẩn hóa thêm: nếu bắt đầu bằng 0, giữ nguyên; nếu bắt đầu bằng 84, đổi thành 0
-                    if (!string.IsNullOrEmpty(normalizedRequestPhone) && normalizedRequestPhone.StartsWith("84"))
-                    {
-                        normalizedRequestPhone = "0" + normalizedRequestPhone.Substring(2);
-                    }
-                    
                     ApplicationUser user = null;
+                    string? foundUserId = null;
                     
-                    // Tìm user theo phone number (chính xác hoặc chuẩn hóa)
-                    if (!string.IsNullOrEmpty(normalizedRequestPhone))
+                    // Bước 1: Ưu tiên tìm user từ thông báo "Đăng ký hồ sơ thành công" (cách này chính xác nhất)
+                    if (!string.IsNullOrEmpty(request.Name))
                     {
-                        var allUsers = await _userManager.Users.ToListAsync();
-                        user = allUsers.FirstOrDefault(u => 
+                        var searchPattern = $"'{request.Name}'";
+                        var matchingNotifications = await _context.Notifications
+                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                && n.Message != null
+                                && n.Message.Contains(searchPattern)
+                                && !string.IsNullOrEmpty(n.UserId))
+                            .OrderByDescending(n => n.CreatedAt)
+                            .ToListAsync();
+                        
+                        logger.LogInformation($"Tìm thấy {matchingNotifications.Count} thông báo cho hồ sơ '{request.Name}'");
+                        
+                        if (matchingNotifications.Any())
                         {
-                            var normalizedUserPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
-                            var normalizedUserPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                            var latestNotification = matchingNotifications.First();
+                            foundUserId = latestNotification.UserId;
+                            logger.LogInformation($"Thông báo gần nhất có UserId: {foundUserId}, CreatedAt: {latestNotification.CreatedAt}");
+                        }
+                        else
+                        {
+                            // Fallback: tìm với Contains
+                            var fallbackNotifications = await _context.Notifications
+                                .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                    && n.Message != null
+                                    && n.Message.Contains(request.Name)
+                                    && !string.IsNullOrEmpty(n.UserId))
+                                .OrderByDescending(n => n.CreatedAt)
+                                .ToListAsync();
                             
-                            // Chuẩn hóa user phone numbers
-                            if (!string.IsNullOrEmpty(normalizedUserPhone1) && normalizedUserPhone1.StartsWith("84"))
+                            if (fallbackNotifications.Any())
                             {
-                                normalizedUserPhone1 = "0" + normalizedUserPhone1.Substring(2);
+                                var latest = fallbackNotifications.First();
+                                foundUserId = latest.UserId;
+                                logger.LogInformation($"Tìm thấy thông báo (fallback) với UserId: {foundUserId}");
                             }
-                            if (!string.IsNullOrEmpty(normalizedUserPhone2) && normalizedUserPhone2.StartsWith("84"))
-                            {
-                                normalizedUserPhone2 = "0" + normalizedUserPhone2.Substring(2);
-                            }
-                            
-                            return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
-                        });
+                        }
                     }
                     
-                    // Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
+                    // Bước 2: Nếu tìm được UserId từ thông báo, lấy user
+                    if (!string.IsNullOrEmpty(foundUserId))
+                    {
+                        user = await _userManager.FindByIdAsync(foundUserId);
+                        if (user != null)
+                        {
+                            logger.LogInformation($"Đã tìm thấy user từ thông báo: {user.Id} ({user.Email})");
+                        }
+                    }
+                    
+                    // Bước 3: Nếu vẫn chưa tìm được, thử tìm theo phone number
+                    if (user == null && !string.IsNullOrEmpty(request.PhoneNumber))
+                    {
+                        var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                        if (!string.IsNullOrEmpty(normalizedRequestPhone) && normalizedRequestPhone.StartsWith("84"))
+                        {
+                            normalizedRequestPhone = "0" + normalizedRequestPhone.Substring(2);
+                        }
+                        
+                        if (!string.IsNullOrEmpty(normalizedRequestPhone))
+                        {
+                            var allUsers = await _userManager.Users.ToListAsync();
+                            user = allUsers.FirstOrDefault(u => 
+                            {
+                                var normalizedUserPhone1 = u.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                                var normalizedUserPhone2 = u.PhoneNumber2?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
+                                
+                                if (!string.IsNullOrEmpty(normalizedUserPhone1) && normalizedUserPhone1.StartsWith("84"))
+                                {
+                                    normalizedUserPhone1 = "0" + normalizedUserPhone1.Substring(2);
+                                }
+                                if (!string.IsNullOrEmpty(normalizedUserPhone2) && normalizedUserPhone2.StartsWith("84"))
+                                {
+                                    normalizedUserPhone2 = "0" + normalizedUserPhone2.Substring(2);
+                                }
+                                
+                                return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
+                            });
+                            
+                            if (user != null)
+                            {
+                                logger.LogInformation($"Đã tìm thấy user theo phone number: {user.Id} ({user.Email})");
+                            }
+                        }
+                    }
+                    
+                    // Bước 4: Nếu vẫn chưa tìm được, thử tìm theo tên
                     if (user == null && !string.IsNullOrEmpty(request.Name))
                     {
                         user = await _userManager.Users.FirstOrDefaultAsync(u => 
                             u.FullName != null && u.FullName.Trim().Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+                        
+                        if (user != null)
+                        {
+                            logger.LogInformation($"Đã tìm thấy user theo tên: {user.Id} ({user.Email})");
+                        }
                     }
                     
+                    // Gửi thông báo nếu tìm được user
                     if (user != null)
                     {
-                        logger.LogInformation($"Đã tìm thấy user {user.Id} ({user.Email}) cho hồ sơ {id}, gửi thông báo duyệt");
+                        logger.LogInformation($"Gửi thông báo duyệt cho user {user.Id} ({user.Email}) - Hồ sơ: {request.Name}");
                         await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name ?? "Hồ sơ");
+                        logger.LogInformation($"Đã gửi thông báo duyệt thành công cho user {user.Id}");
                     }
                     else
                     {
-                        logger.LogWarning($"Không tìm thấy user cho hồ sơ {id} (Phone: {request.PhoneNumber}, Name: {request.Name})");
+                        // Fallback: Tìm tất cả user có thông báo gần đây
+                        var recentNotifications = await _context.Notifications
+                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                && n.Message != null
+                                && n.Message.Contains(request.Name ?? "")
+                                && !string.IsNullOrEmpty(n.UserId)
+                                && n.CreatedAt >= DateTime.UtcNow.AddDays(-7))
+                            .Select(n => n.UserId!)
+                            .Distinct()
+                            .ToListAsync();
+                        
+                        if (recentNotifications.Any())
+                        {
+                            logger.LogInformation($"Tìm thấy {recentNotifications.Count} user có thông báo gần đây về hồ sơ '{request.Name}', gửi thông báo cho tất cả");
+                            
+                            foreach (var userId in recentNotifications)
+                            {
+                                try
+                                {
+                                    var targetUser = await _userManager.FindByIdAsync(userId);
+                                    if (targetUser != null)
+                                    {
+                                        await notificationService.NotifySupportRequestApprovedAsync(userId, request.Name ?? "Hồ sơ");
+                                        logger.LogInformation($"Đã gửi thông báo duyệt cho user {userId} ({targetUser.Email})");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    logger.LogError(ex, $"Lỗi khi gửi thông báo cho user {userId}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning($"KHÔNG TÌM THẤY USER cho hồ sơ {id} (Name: {request.Name}, Phone: {request.PhoneNumber}). Không thể gửi thông báo duyệt.");
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log lỗi nhưng không làm gián đoạn quá trình duyệt
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AdminController>>();
-                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho hồ sơ {id}");
+                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho hồ sơ {id}: {ex.Message}");
+                    logger.LogError(ex, $"Stack trace: {ex.StackTrace}");
                 }
                 
                 TempData["Message"] = "Hồ sơ đã được duyệt!";
