@@ -12,12 +12,15 @@
             <p>Quản lý danh sách vinh danh những người đóng góp cho Mái Ấm Tình Thương</p>
         </div>
 
-        <!-- Action Bar -->
-        <div class="admin-action-bar mb-3">
-            <a class="admin-btn admin-btn-primary" asp-action="Create">
-                <i class="fas fa-plus me-2"></i>Thêm mới
-            </a>
-        </div>
+        <!-- Action Bar - Chỉ hiển thị cho Admin -->
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="admin-action-bar mb-3">
+                <a class="admin-btn admin-btn-primary" asp-action="Create">
+                    <i class="fas fa-plus me-2"></i>Thêm mới
+                </a>
+            </div>
+        }
 
         <!-- Search Form -->
         <div class="admin-search-form mb-3">
@@ -51,7 +54,10 @@
                         <th><i class="fas fa-clock me-2"></i>Số giờ hoạt động</th>
                         <th><i class="fas fa-calendar me-2"></i>Ngày vinh danh</th>
                         <th><i class="fas fa-sticky-note me-2"></i>Ghi chú</th>
-                        <th class="text-center"><i class="fas fa-cog me-2"></i>Hành động</th>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <th class="text-center"><i class="fas fa-cog me-2"></i>Hành động</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -96,30 +102,33 @@
                                     }
                                     <span title="@ghiChu">@ghiChuPreview</span>
                                 </td>
-                                <td>
-                                    <div class="d-flex gap-2 justify-content-center">
-                                        <a class="admin-btn admin-btn-warning admin-btn-sm" asp-action="Edit" asp-route-id="@item.Id" title="Sửa">
-                                            <i class="fas fa-edit"></i> Sửa
-                                        </a>
-                                        <a class="admin-btn admin-btn-danger admin-btn-sm" asp-action="Delete" asp-route-id="@item.Id" title="Xóa">
-                                            <i class="fas fa-trash-alt"></i> Xóa
-                                        </a>
-                                        @if (item.Loai != null && item.Loai.ToLower().Contains("hảo tâm"))
-                                        {
-                                            <a class="admin-btn admin-btn-success admin-btn-sm" 
-                                               asp-controller="VinhDanhs" asp-action="TaoChungNhan" asp-route-id="@item.Id" title="Tạo chứng nhận">
-                                                <i class="fas fa-certificate"></i> Chứng nhận
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <td>
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            <a class="admin-btn admin-btn-warning admin-btn-sm" asp-action="Edit" asp-route-id="@item.Id" title="Sửa">
+                                                <i class="fas fa-edit"></i> Sửa
                                             </a>
-                                        }
-                                    </div>
-                                </td>
+                                            <a class="admin-btn admin-btn-danger admin-btn-sm" asp-action="Delete" asp-route-id="@item.Id" title="Xóa">
+                                                <i class="fas fa-trash-alt"></i> Xóa
+                                            </a>
+                                            @if (item.Loai != null && item.Loai.ToLower().Contains("hảo tâm"))
+                                            {
+                                                <a class="admin-btn admin-btn-success admin-btn-sm" 
+                                                   asp-controller="VinhDanhs" asp-action="TaoChungNhan" asp-route-id="@item.Id" title="Tạo chứng nhận">
+                                                    <i class="fas fa-certificate"></i> Chứng nhận
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                }
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7" class="admin-empty-state">
+                            <td colspan="@(User.IsInRole("Admin") ? "7" : "6")" class="admin-empty-state">
                                 <i class="fas fa-inbox"></i>
                                 <h4>Không có dữ liệu</h4>
                                 <p>Chưa có bản ghi vinh danh nào trong hệ thống.</p>

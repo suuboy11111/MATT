@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace MaiAmTinhThuong.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class VinhDanhsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -24,8 +23,9 @@ namespace MaiAmTinhThuong.Controllers
             _context = context;
         }
 
-        // GET: VinhDanhs
+        // GET: VinhDanhs - Ai cũng xem được
         //[HttpGet("")]
+        [AllowAnonymous]
         public async Task<IActionResult> Index(string searchString)
         {
             var danhSach = from v in _context.VinhDanhs
@@ -39,8 +39,9 @@ namespace MaiAmTinhThuong.Controllers
             return View(await danhSach.ToListAsync());
         }
 
-        // GET: VinhDanhs/Details/5
+        // GET: VinhDanhs/Details/5 - Ai cũng xem được
         [HttpGet("Details/{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -55,16 +56,18 @@ namespace MaiAmTinhThuong.Controllers
             return View(vinhDanh);
         }
 
-        // GET: VinhDanhs/Create
+        // GET: VinhDanhs/Create - Chỉ Admin
         [HttpGet("Create")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: VinhDanhs/Create
+        // POST: VinhDanhs/Create - Chỉ Admin
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,HoTen,Loai,SoTienUngHo,SoGioHoatDong,NgayVinhDanh,GhiChu")] VinhDanh vinhDanh)
         {
             if (ModelState.IsValid)
@@ -76,8 +79,9 @@ namespace MaiAmTinhThuong.Controllers
             return View(vinhDanh);
         }
 
-        // GET: VinhDanhs/Edit/5
+        // GET: VinhDanhs/Edit/5 - Chỉ Admin
         [HttpGet("Edit/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -90,9 +94,10 @@ namespace MaiAmTinhThuong.Controllers
             return View(vinhDanh);
         }
 
-        // POST: VinhDanhs/Edit/5
+        // POST: VinhDanhs/Edit/5 - Chỉ Admin
         [HttpPost("Edit/{id}")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,HoTen,Loai,SoTienUngHo,SoGioHoatDong,NgayVinhDanh,GhiChu")] VinhDanh vinhDanh)
         {
             if (id != vinhDanh.Id)
@@ -117,8 +122,9 @@ namespace MaiAmTinhThuong.Controllers
             return View(vinhDanh);
         }
 
-        // GET: VinhDanhs/Delete/5
+        // GET: VinhDanhs/Delete/5 - Chỉ Admin
         [HttpGet("Delete/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -133,9 +139,10 @@ namespace MaiAmTinhThuong.Controllers
             return View(vinhDanh);
         }
 
-        // POST: VinhDanhs/Delete/5
+        // POST: VinhDanhs/Delete/5 - Chỉ Admin
         [HttpPost("Delete/{id}")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var vinhDanh = await _context.VinhDanhs.FindAsync(id);
@@ -152,8 +159,9 @@ namespace MaiAmTinhThuong.Controllers
             return _context.VinhDanhs.Any(e => e.Id == id);
         }
 
-        // GET: VinhDanhs/TaoChungNhan/5
+        // GET: VinhDanhs/TaoChungNhan/5 - Chỉ Admin
         [HttpGet("TaoChungNhan/{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> TaoChungNhan(int id)
         {
             var vinhDanh = await _context.VinhDanhs.FindAsync(id);

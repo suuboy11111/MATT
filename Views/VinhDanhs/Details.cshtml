@@ -1,4 +1,4 @@
-﻿@model MaiAmTinhThuong.Models.VinhDanh
+@model MaiAmTinhThuong.Models.VinhDanh
 
 @{
     ViewData["Title"] = "Details";
@@ -49,6 +49,17 @@
     </dl>
 </div>
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Sửa
+        </a>
+        <a asp-action="Delete" asp-route-id="@Model?.Id" class="btn btn-danger">
+            <i class="fas fa-trash-alt me-2"></i>Xóa
+        </a>
+        <span class="mx-2">|</span>
+    }
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách
+    </a>
 </div>
