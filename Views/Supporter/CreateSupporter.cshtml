@@ -148,35 +148,6 @@
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
-                                    <!-- Tạm thời ẩn PayOS do lỗi signature - sẽ fix sau -->
-                                    @* 
-                                    <div class="payment-online-section mb-4">
-                                        <div class="payment-header">
-                                            <h6><i class="fas fa-credit-card me-2"></i>Thanh toán trực tuyến</h6>
-                                        </div>
-                                        <div id="paymentForm" class="payment-form">
-                                            <div class="form-group-modern">
-                                                <label for="donationAmount" class="form-label-modern">
-                                                    <i class="fas fa-dollar-sign me-2"></i>Số tiền ủng hộ (VNĐ) <span class="text-danger">*</span>
-                                                </label>
-                                                <input type="number" class="form-control-modern" id="donationAmount" min="10000" step="1000" required placeholder="Tối thiểu 10,000 VNĐ" />
-                                                <small class="form-text text-muted">
-                                                    <i class="fas fa-info-circle me-1"></i>
-                                                    Số tiền tối thiểu: 10,000 VNĐ
-                                                </small>
-                                            </div>
-                                            <button type="button" class="btn-pay-now" id="btnPayNow">
-                                                <i class="fas fa-lock me-2"></i>
-                                                Thanh toán ngay bằng PayOS
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="payment-divider">
-                                        <span>HOẶC</span>
-                                    </div>
-                                    *@
-
                                     <!-- Chuyển khoản truyền thống -->
                                     <div class="bank-transfer-section">
                                         <div class="alert alert-info mb-3">
@@ -485,83 +456,6 @@
         transform: translateY(0);
     }
 
-    .payment-online-section {
-        padding: 1.5rem;
-        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0fe 100%);
-        border-radius: 12px;
-        border: 2px solid #667eea;
-        margin-bottom: 1.5rem;
-    }
-
-    .payment-header {
-        margin-bottom: 1rem;
-    }
-
-    .payment-header h6 {
-        color: #667eea;
-        font-weight: 700;
-        font-size: 1.1rem;
-        margin: 0;
-    }
-
-    .payment-header h6 i {
-        color: #764ba2;
-    }
-
-    .payment-form {
-        margin-top: 1rem;
-    }
-
-    .btn-pay-now {
-        width: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        font-size: 1rem;
-        font-weight: 600;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        margin-top: 1rem;
-    }
-
-    .btn-pay-now:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-pay-now:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .payment-divider {
-        text-align: center;
-        margin: 1.5rem 0;
-        position: relative;
-    }
-
-    .payment-divider::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 50%;
-        right: 0;
-        height: 1px;
-        background: #e0e0e0;
-    }
-
-    .payment-divider span {
-        background: white;
-        padding: 0 1rem;
-        color: #6c757d;
-        font-weight: 600;
-        position: relative;
-    }
-
     .bank-transfer-section {
         padding-top: 1rem;
     }
@@ -586,10 +480,6 @@
 
         .qr-code-img {
             max-width: 200px;
-        }
-
-        .payment-online-section {
-            padding: 1rem;
         }
     }
 </style>
@@ -633,67 +523,20 @@
             });
         });
 
-            // Xử lý nút thanh toán PayOS
-            $(document).on('click', '#btnPayNow', function (e) {
+        // Xử lý submit form chính: kiểm tra HTML5 validity và chặn double submit
+        document.getElementById('supporterForm')?.addEventListener('submit', function (e) {
+            var form = this;
+            if (!form.checkValidity()) {
+                return;
+            }
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn && submitBtn.disabled) {
                 e.preventDefault();
-                e.stopPropagation();
-                
-                var amount = parseFloat($('#donationAmount').val());
-                if (isNaN(amount) || amount < 10000) {
-                    alert('Vui lòng nhập số tiền tối thiểu 10,000 VNĐ');
-                    return false;
-                }
-
-                var supporterName = $('#Name').val() || 'Người hỗ trợ';
-                var supporterPhone = $('#PhoneNumber').val() || '';
-                var maiAmId = $('#MaiAmId').val() || null;
-
-                // Disable button để tránh double click
-                var $btn = $(this);
-                var originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...');
-
-                // Redirect đến trang thanh toán PayOS
-                var params = new URLSearchParams({
-                    amount: amount,
-                    donorName: supporterName,
-                    phoneNumber: supporterPhone || '',
-                    maiAmId: maiAmId || ''
-                });
-                
-                window.location.href = '/Payment/PayOSCheckout?' + params.toString();
                 return false;
-                    },
-                    error: function (xhr) {
-                        var errorMsg = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMsg = xhr.responseJSON.message;
-                        }
-                        alert(errorMsg);
-                        $btn.prop('disabled', false).html(originalHtml);
-                    }
-                });
-            });
-
-            // Xử lý submit form chính: kiểm tra HTML5 validity và chặn double submit
-            $('#supporterForm').on('submit', function (e) {
-                var form = this;
-                if (!form.checkValidity()) {
-                    return;
-                }
-                var $submitBtn = $(form).find('button[type="submit"]');
-                if ($submitBtn.prop('disabled')) {
-                    e.preventDefault();
-                    return false;
-                }
-                $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...');
-            });
-
-            // Kiểm tra nếu quay lại từ thanh toán thành công
-            var pendingForm = sessionStorage.getItem('pendingSupporterForm');
-            if (pendingForm === 'true') {
-                sessionStorage.removeItem('pendingSupporterForm');
-                sessionStorage.removeItem('pendingSupporterMaiAmId');
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...';
             }
         });
 
