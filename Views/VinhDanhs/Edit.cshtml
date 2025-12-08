@@ -1,59 +1,170 @@
-﻿@model MaiAmTinhThuong.Models.VinhDanh
+@model MaiAmTinhThuong.Models.VinhDanh
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Chỉnh sửa vinh danh";
 }
 
-<h1>Edit</h1>
+<div class="admin-container">
+    <div class="container-fluid px-4">
+        <!-- Page Header -->
+        <div class="admin-page-header">
+            <h2><i class="fas fa-edit me-3"></i>Chỉnh sửa vinh danh</h2>
+            <p>Cập nhật thông tin vinh danh trong hệ thống</p>
+        </div>
 
-<h4>VinhDanh</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="HoTen" class="control-label"></label>
-                <input asp-for="HoTen" class="form-control" />
-                <span asp-validation-for="HoTen" class="text-danger"></span>
+        <!-- Form Card -->
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <form asp-action="Edit" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="row">
+                        <!-- Họ tên -->
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="HoTen" class="form-label-modern">
+                                    <i class="fas fa-user text-primary me-2"></i>Họ tên <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="HoTen" class="form-control-modern" placeholder="Nhập họ tên người được vinh danh" />
+                                <span asp-validation-for="HoTen" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Loại -->
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="Loai" class="form-label-modern">
+                                    <i class="fas fa-tag text-info me-2"></i>Loại <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="Loai" class="form-control-modern">
+                                    <option value="">-- Chọn loại vinh danh --</option>
+                                    <option value="Nhà hảo tâm">Nhà hảo tâm</option>
+                                    <option value="Tình nguyện viên">Tình nguyện viên</option>
+                                </select>
+                                <span asp-validation-for="Loai" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Số tiền ủng hộ -->
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="SoTienUngHo" class="form-label-modern">
+                                    <i class="fas fa-money-bill-wave text-success me-2"></i>Số tiền ủng hộ (VNĐ)
+                                </label>
+                                <input asp-for="SoTienUngHo" type="number" step="1000" min="0" class="form-control-modern" placeholder="Nhập số tiền ủng hộ" />
+                                <span asp-validation-for="SoTienUngHo" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Số giờ hoạt động -->
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="SoGioHoatDong" class="form-label-modern">
+                                    <i class="fas fa-clock text-warning me-2"></i>Số giờ hoạt động
+                                </label>
+                                <input asp-for="SoGioHoatDong" type="number" step="0.5" min="0" class="form-control-modern" placeholder="Nhập số giờ hoạt động" />
+                                <span asp-validation-for="SoGioHoatDong" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Ngày vinh danh -->
+                        <div class="col-md-6 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="NgayVinhDanh" class="form-label-modern">
+                                    <i class="fas fa-calendar-alt text-danger me-2"></i>Ngày vinh danh <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="NgayVinhDanh" type="datetime-local" class="form-control-modern" />
+                                <span asp-validation-for="NgayVinhDanh" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Ghi chú -->
+                        <div class="col-12 mb-3">
+                            <div class="form-group-modern">
+                                <label asp-for="GhiChu" class="form-label-modern">
+                                    <i class="fas fa-sticky-note text-secondary me-2"></i>Ghi chú
+                                </label>
+                                <textarea asp-for="GhiChu" class="form-control-modern" rows="4" placeholder="Nhập ghi chú (nếu có)"></textarea>
+                                <span asp-validation-for="GhiChu" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="text-center mt-4">
+                        <button type="submit" class="admin-btn admin-btn-success me-2">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                        <a asp-action="Index" class="admin-btn admin-btn-secondary me-2">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="admin-btn admin-btn-info">
+                            <i class="fas fa-eye"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="Loai" class="control-label"></label>
-                <input asp-for="Loai" class="form-control" />
-                <span asp-validation-for="Loai" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="SoTienUngHo" class="control-label"></label>
-                <input asp-for="SoTienUngHo" class="form-control" />
-                <span asp-validation-for="SoTienUngHo" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="SoGioHoatDong" class="control-label"></label>
-                <input asp-for="SoGioHoatDong" class="form-control" />
-                <span asp-validation-for="SoGioHoatDong" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="NgayVinhDanh" class="control-label"></label>
-                <input asp-for="NgayVinhDanh" class="form-control" />
-                <span asp-validation-for="NgayVinhDanh" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="GhiChu" class="control-label"></label>
-                <input asp-for="GhiChu" class="form-control" />
-                <span asp-validation-for="GhiChu" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+<style>
+    .form-group-modern {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label-modern {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-control-modern {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-control-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .form-control-modern::placeholder {
+        color: #a0aec0;
+    }
+
+    select.form-control-modern {
+        cursor: pointer;
+    }
+
+    textarea.form-control-modern {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    @@media (max-width: 768px) {
+        .form-group-modern {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-control-modern {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.95rem;
+        }
+    }
+</style>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
