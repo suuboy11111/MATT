@@ -148,7 +148,8 @@
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
-                                    <!-- Form thanh toán trực tuyến PayOS -->
+                                    <!-- Tạm thời ẩn PayOS do lỗi signature - sẽ fix sau -->
+                                    @* 
                                     <div class="payment-online-section mb-4">
                                         <div class="payment-header">
                                             <h6><i class="fas fa-credit-card me-2"></i>Thanh toán trực tuyến</h6>
@@ -171,13 +172,17 @@
                                         </div>
                                     </div>
 
-                                    <!-- Divider -->
                                     <div class="payment-divider">
                                         <span>HOẶC</span>
                                     </div>
+                                    *@
 
                                     <!-- Chuyển khoản truyền thống -->
                                     <div class="bank-transfer-section">
+                                        <div class="alert alert-info mb-3">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Thanh toán qua chuyển khoản:</strong> Vui lòng quét mã QR bên dưới để chuyển khoản.
+                                        </div>
                                         <p class="text-muted mb-3"><i class="fas fa-qrcode me-2"></i>Quét mã QR ngân hàng để chuyển khoản:</p>
                                         <div class="qr-code-wrapper">
                                             <img src="/images/z6625643985564_efd68e38656a89cf3e6a31d961684b8a.jpg" alt="QR chuyển khoản" class="qr-code-img" />
