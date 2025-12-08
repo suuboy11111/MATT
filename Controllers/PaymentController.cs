@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
+using System.Linq;
 
 namespace MaiAmTinhThuong.Controllers
 {
@@ -296,6 +297,18 @@ namespace MaiAmTinhThuong.Controllers
                 return StatusCode(500);
             }
         }
+
+        private static string ComputeSignature(Dictionary<string, string> data, string secretKey)
+        {
+            // Sắp xếp key theo alphabet, URL-encode value rồi join bằng &
+            var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
+            var query = string.Join("&", sorted.Select(kv =>
+                $"{kv.Key}={Uri.EscapeDataString(kv.Value ?? string.Empty)}"));
+
+            using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
+            var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
     }
 
     // DTOs
@@ -306,18 +319,5 @@ namespace MaiAmTinhThuong.Controllers
         public string? PhoneNumber { get; set; }
         public int? MaiAmId { get; set; }
     }
-
-    internal static string ComputeSignature(Dictionary<string, string> data, string secretKey)
-    {
-        // Sắp xếp key theo alphabet, URL-encode value rồi join bằng &
-        var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
-        var query = string.Join("&", sorted.Select(kv =>
-            $"{kv.Key}={Uri.EscapeDataString(kv.Value ?? string.Empty)}"));
-
-        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
-        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-    }
-
 }
 
