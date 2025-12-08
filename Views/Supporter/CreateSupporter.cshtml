@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade" id="financial" role="tabpanel">
+                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -600,14 +600,22 @@
                 var selectedValue = $(this).val();
                 $('#supportTabsContent .tab-pane').removeClass('show active');
 
-                if (selectedValue == '1') {
+                if (selectedValue == '1' || selectedValue == '') {
+                    // Hiển thị tab Tài chính nếu chọn "Tài chính" hoặc chưa chọn gì
                     $('#financial').addClass('show active');
                 } else if (selectedValue == '2') {
                     $('#material').addClass('show active');
                 } else if (selectedValue == '3') {
                     $('#housing').addClass('show active');
                 }
-            }).trigger('change');
+            });
+            
+            // Trigger change khi trang load để hiển thị tab đúng
+            if ($('#supportType').val() == '' || $('#supportType').val() == '1') {
+                $('#financial').addClass('show active');
+            } else {
+                $('#supportType').trigger('change');
+            }
 
             // Xử lý nút thanh toán PayOS - Giải pháp nhanh: Redirect đến trang thanh toán PayOS riêng
             $('#btnPayNow').on('click', function (e) {
