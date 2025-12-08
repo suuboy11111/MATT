@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Reflection;
 using System.Linq;
+using PayOS;
+using PayOS.Models;
 
 namespace MaiAmTinhThuong.Controllers
 {
@@ -14,15 +16,18 @@ namespace MaiAmTinhThuong.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PaymentController> _logger;
+        private readonly PayOSClient? _payOSClient;
 
         public PaymentController(
             ApplicationDbContext context,
             IConfiguration configuration,
-            ILogger<PaymentController> logger)
+            ILogger<PaymentController> logger,
+            PayOSClient? payOSClient = null)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
+            _payOSClient = payOSClient;
         }
 
         // GET: Payment/Donate
@@ -41,91 +46,94 @@ namespace MaiAmTinhThuong.Controllers
         {
             try
             {
-                // Tạo order code duy nhất
-                var orderCode = (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                // Kiểm tra PayOS Client có sẵn không
+                if (_payOSClient == null)
+                {
+                    _logger.LogError("PayOS Client is not configured");
+                    return Json(new { success = false, message = "PayOS chưa được cấu hình. Vui lòng liên hệ quản trị viên." });
+                }
 
-                // Lấy base URL - ưu tiên từ config (ngrok URL), nếu không có thì dùng Request
+                // Tạo order code duy nhất (dùng Unix timestamp)
+                var orderCode = (long)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+
+                // Lấy base URL - ưu tiên từ config, nếu không có thì dùng Request
                 var baseUrl = _configuration["PayOS:BaseUrl"];
                 if (string.IsNullOrEmpty(baseUrl))
                 {
-                    // Đảm bảo dùng HTTPS trong production
                     var scheme = Request.IsHttps || Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase) 
                         ? "https" 
-                        : "https"; // Force HTTPS cho production
+                        : "https";
                     baseUrl = $"{scheme}://{Request.Host}";
                 }
                 
-                // Log baseUrl để debug
-                _logger.LogWarning($"PayOS BaseUrl: {baseUrl}");
-                
-                // Tạo payment link - sử dụng HttpClient trực tiếp (đơn giản hơn SDK)
+                _logger.LogInformation($"PayOS - Creating payment link. BaseUrl: {baseUrl}, Amount: {request.Amount}, OrderCode: {orderCode}");
+
+                // PayOS SDK 2.0.1 có thể không có các class này
+                // Quay lại dùng HttpClient trực tiếp với signature calculation đúng
                 var clientId = _configuration["PayOS:ClientId"];
                 var apiKey = _configuration["PayOS:ApiKey"];
                 var checksumKey = _configuration["PayOS:ChecksumKey"];
-                
-                // Debug: Log để kiểm tra config có được đọc đúng không
-                _logger.LogWarning($"PayOS Config Check - ClientId: {clientId?.Length ?? 0} chars, ApiKey: {apiKey?.Length ?? 0} chars, ChecksumKey: {checksumKey?.Length ?? 0} chars");
-                _logger.LogWarning($"PayOS Config Values - ClientId: {clientId?.Substring(0, Math.Min(20, clientId?.Length ?? 0))}..., ChecksumKey: {checksumKey?.Substring(0, Math.Min(20, checksumKey?.Length ?? 0))}...");
-                
-                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
-                {
-                    _logger.LogError($"PayOS Config Missing - ClientId: {!string.IsNullOrEmpty(clientId)}, ApiKey: {!string.IsNullOrEmpty(apiKey)}, ChecksumKey: {!string.IsNullOrEmpty(checksumKey)}");
-                    return Json(new { success = false, message = "Thiếu cấu hình PayOS: ClientId/ApiKey/ChecksumKey" });
-                }
-                
-                // Kiểm tra ChecksumKey có vẻ hợp lệ không (thường là 64 hex chars = 32 bytes)
-                if (checksumKey.Length < 32)
-                {
-                    _logger.LogWarning($"PayOS ChecksumKey seems too short: {checksumKey.Length} chars");
-                }
                 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-client-id", clientId);
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
-                // Body theo chuẩn PayOS (camelCase, có items)
-                // Tạo chuỗi data để ký (theo PayOS v2): amount, cancelUrl, description, returnUrl (alphabetical by key)
-                // LƯU Ý: orderCode KHÔNG được include trong signature calculation!
-                var signDict = new Dictionary<string, string>
-                {
-                    { "amount", ((int)request.Amount).ToString() },
-                    { "cancelUrl", $"{baseUrl}/Payment/Cancel" },
-                    { "description", $"Ủng hộ tài chính - {request.DonorName}" },
-                    { "returnUrl", $"{baseUrl}/Payment/Success?orderCode={orderCode}" }
-                    // orderCode KHÔNG được thêm vào đây!
-                };
-                var signature = ComputeSignature(signDict, checksumKey, _logger);
+                // Tạo signature: amount, cancelUrl, description, returnUrl (không có orderCode)
+                var cancelUrl = $"{baseUrl}/Payment/Cancel";
+                var returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}";
+                var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
+                var amountStr = ((int)request.Amount).ToString();
                 
-                // Log để debug signature (chỉ log partial để không expose secret)
-                _logger.LogInformation($"PayOS Debug - ClientId: {clientId?.Substring(0, Math.Min(10, clientId?.Length ?? 0))}..., ApiKey: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0))}..., ChecksumKey length: {checksumKey?.Length ?? 0}");
-                _logger.LogInformation($"PayOS Debug - Signature data: amount={signDict["amount"]}, orderCode={orderCode}, signature={signature?.Substring(0, Math.Min(16, signature?.Length ?? 0))}...");
-
-                var paymentRequest = new
+                // Tạo chuỗi signature: sắp xếp alphabetical, dùng raw values (KHÔNG URL encode)
+                var signatureString = $"amount={amountStr}&cancelUrl={cancelUrl}&description={paymentDescription}&returnUrl={returnUrl}";
+                
+                // Tính HMAC-SHA256
+                if (string.IsNullOrEmpty(checksumKey))
+                {
+                    return Json(new { success = false, message = "ChecksumKey không được cấu hình" });
+                }
+                
+                using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(checksumKey));
+                var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(signatureString));
+                var signature = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                
+                _logger.LogInformation($"PayOS Signature String: {signatureString}");
+                
+                // Tạo payment request
+                var paymentRequestObj = new
                 {
                     orderCode = orderCode,
                     amount = (int)request.Amount,
-                    description = $"Ủng hộ tài chính - {request.DonorName}",
+                    description = paymentDescription,
                     items = new[]
                     {
-                        new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
+                        new
+                        {
+                            name = "Ủng hộ tài chính",
+                            quantity = 1,
+                            price = (int)request.Amount
+                        }
                     },
-                    returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}",
-                    cancelUrl = $"{baseUrl}/Payment/Cancel",
+                    cancelUrl = cancelUrl,
+                    returnUrl = returnUrl,
                     buyerName = request.DonorName,
                     buyerPhone = request.PhoneNumber,
                     signature = signature
                 };
 
-                var json = JsonSerializer.Serialize(paymentRequest, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(paymentRequestObj, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 });
+                
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                // PayOS production endpoint (một số môi trường chặn DNS api.payos.vn -> dùng api-merchant.payos.vn)
                 var payOsEndpoint = _configuration["PayOS:Endpoint"] ?? "https://api-merchant.payos.vn";
                 var response = await httpClient.PostAsync($"{payOsEndpoint}/v2/payment-requests", content);
                 var responseBody = await response.Content.ReadAsStringAsync();
+                
+                _logger.LogInformation($"PayOS Response: {responseBody}");
+                
                 using var doc = JsonDocument.Parse(responseBody);
                 var root = doc.RootElement;
 
@@ -141,9 +149,13 @@ namespace MaiAmTinhThuong.Controllers
                             ? msgEl.GetString()
                             : $"PayOS API error (status {(int)response.StatusCode}). Body: {responseBody}";
 
-                    // Rollback transaction insert nếu cần? (để đơn giản giữ lại record Pending)
                     return Json(new { success = false, message = "Có lỗi xảy ra khi tạo liên kết thanh toán: " + errorMessage });
                 }
+
+                var checkoutUrl = checkoutElement.GetString() ?? "";
+                dynamic paymentLinkResponse = new { CheckoutUrl = checkoutUrl };
+                
+                _logger.LogInformation($"PayOS - Payment link created successfully. OrderCode: {orderCode}, CheckoutUrl: {paymentLinkResponse.CheckoutUrl?.Substring(0, Math.Min(50, paymentLinkResponse.CheckoutUrl?.Length ?? 0))}...");
 
                 // Lưu thông tin giao dịch vào database
                 var description = $"Ủng hộ tài chính - {request.DonorName}";
@@ -155,7 +167,7 @@ namespace MaiAmTinhThuong.Controllers
 
                 var transaction = new TransactionHistory
                 {
-                    MaiAmId = request.MaiAmId ?? 1, // Mặc định mái ấm đầu tiên nếu không chọn
+                    MaiAmId = request.MaiAmId ?? 1,
                     Amount = request.Amount,
                     TransactionDate = DateTime.UtcNow,
                     Status = "Pending",
@@ -165,26 +177,17 @@ namespace MaiAmTinhThuong.Controllers
                 _context.TransactionHistories.Add(transaction);
                 await _context.SaveChangesAsync();
 
-                // Lưu orderCode vào session để tra cứu sau
+                // Lưu orderCode vào session
                 HttpContext.Session.SetString($"OrderCode_{orderCode}", transaction.Id.ToString());
                 
-                // Lưu orderCode và transactionId vào Description để tra cứu từ webhook
-                var updatedDescription = $"Ủng hộ tài chính - {request.DonorName}";
-                if (!string.IsNullOrEmpty(request.PhoneNumber))
-                {
-                    updatedDescription += $" - SĐT: {request.PhoneNumber}";
-                }
-                updatedDescription += $" - OrderCode: {orderCode} - TransactionId: {transaction.Id}";
-                transaction.Description = updatedDescription;
+                // Cập nhật description với TransactionId
+                transaction.Description = $"{description} - TransactionId: {transaction.Id}";
                 await _context.SaveChangesAsync();
 
-                // Lấy CheckoutUrl từ response (đã kiểm tra tồn tại ở trên)
-                var checkoutUrl = checkoutElement.GetString();
-                
                 return Json(new
                 {
                     success = true,
-                    checkoutUrl = checkoutUrl,
+                    checkoutUrl = paymentLinkResponse.CheckoutUrl,
                     orderCode = orderCode
                 });
             }
@@ -322,21 +325,6 @@ namespace MaiAmTinhThuong.Controllers
             }
         }
 
-        private static string ComputeSignature(Dictionary<string, string> data, string secretKey, ILogger? logger = null)
-        {
-            // Sắp xếp key theo alphabet, dùng RAW values (KHÔNG URL encode) rồi join bằng &
-            // PayOS v2 yêu cầu dùng raw values, không URL encode khi tính signature!
-            var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
-            var query = string.Join("&", sorted.Select(kv =>
-                $"{kv.Key}={kv.Value ?? string.Empty}"));
-            
-            // Debug: Log string được dùng để tính signature (không log secretKey)
-            logger?.LogWarning($"PayOS Signature String (RAW, no URL encoding): {query}");
-
-            using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
-            var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-        }
     }
 
     // DTOs
