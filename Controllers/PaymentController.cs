@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 using System.Reflection;
 using System.Linq;
 using PayOS;
@@ -153,12 +154,17 @@ namespace MaiAmTinhThuong.Controllers
                 var paymentDescription = $"Ủng hộ tài chính - {request.DonorName}";
                 var amountStr = ((int)request.Amount).ToString();
                 
-                // Tạo items JSON string cho signature
+                // Tạo items JSON string cho signature - không escape Unicode
                 var itemsArray = new[]
                 {
                     new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
                 };
-                var itemsJson = JsonSerializer.Serialize(itemsArray);
+                var itemsJsonOptions = new JsonSerializerOptions
+                {
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // Không escape Unicode
+                    WriteIndented = false
+                };
+                var itemsJson = JsonSerializer.Serialize(itemsArray, itemsJsonOptions);
                 
                 // Tạo chuỗi signature: sắp xếp alphabetical, dùng raw values (KHÔNG URL encode)
                 // Format: amount=...&cancelUrl=...&description=...&items=[...]&returnUrl=...

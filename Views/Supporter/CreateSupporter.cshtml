@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade" id="financial" role="tabpanel">
+                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -604,18 +604,26 @@
             function showSupportTab(selectedValue) {
                 console.log('showSupportTab called with:', selectedValue);
                 // Ẩn tất cả tabs
-                $('#supportTabsContent .tab-pane').removeClass('show active');
+                $('#supportTabsContent .tab-pane').removeClass('show active').hide();
 
                 // Hiển thị tab tương ứng
+                var targetTab = null;
                 if (selectedValue == '1') {
-                    $('#financial').addClass('show active');
+                    targetTab = $('#financial');
                     console.log('Showing financial tab');
                 } else if (selectedValue == '2') {
-                    $('#material').addClass('show active');
+                    targetTab = $('#material');
                     console.log('Showing material tab');
                 } else if (selectedValue == '3') {
-                    $('#housing').addClass('show active');
+                    targetTab = $('#housing');
                     console.log('Showing housing tab');
+                }
+                
+                if (targetTab && targetTab.length > 0) {
+                    targetTab.addClass('show active').show();
+                    console.log('Tab shown:', targetTab.attr('id'));
+                } else {
+                    console.error('Tab not found for value:', selectedValue);
                 }
             }
 
@@ -623,13 +631,15 @@
             $('#supportType').on('change', function () {
                 var selectedValue = $(this).val();
                 console.log('supportType changed to:', selectedValue);
-                showSupportTab(selectedValue);
+                if (selectedValue) {
+                    showSupportTab(selectedValue);
+                }
             });
             
-            // Hiển thị tab khi trang load - đảm bảo chạy sau khi DOM ready
-            setTimeout(function() {
+            // Hiển thị tab khi trang load
+            $(window).on('load', function() {
                 var initialValue = $('#supportType').val();
-                console.log('Initial supportType value:', initialValue);
+                console.log('Page loaded. Initial supportType value:', initialValue);
                 if (initialValue) {
                     showSupportTab(initialValue);
                 } else {
@@ -637,7 +647,16 @@
                     $('#supportType').val('1');
                     showSupportTab('1');
                 }
-            }, 100);
+            });
+            
+            // Backup: Trigger ngay khi DOM ready
+            var initialValue = $('#supportType').val();
+            if (initialValue) {
+                showSupportTab(initialValue);
+            } else {
+                $('#supportType').val('1');
+                showSupportTab('1');
+            }
 
             // Xử lý nút thanh toán PayOS
             $(document).on('click', '#btnPayNow', function (e) {
