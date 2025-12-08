@@ -41,6 +41,7 @@
             }
 
             <form asp-action="CreateSupporter" method="post" enctype="multipart/form-data" class="modern-form" id="supporterForm" asp-antiforgery="true">
+                @Html.AntiForgeryToken()
 
                 <!-- Thông tin cơ bản -->
                 <div class="form-section">
@@ -152,7 +153,7 @@
                                         <div class="payment-header">
                                             <h6><i class="fas fa-credit-card me-2"></i>Thanh toán trực tuyến</h6>
                                         </div>
-                                        <form id="paymentForm" class="payment-form">
+                                        <div id="paymentForm" class="payment-form">
                                             <div class="form-group-modern">
                                                 <label for="donationAmount" class="form-label-modern">
                                                     <i class="fas fa-dollar-sign me-2"></i>Số tiền ủng hộ (VNĐ) <span class="text-danger">*</span>
@@ -163,11 +164,11 @@
                                                     Số tiền tối thiểu: 10,000 VNĐ
                                                 </small>
                                             </div>
-                                            <button type="submit" class="btn-pay-now" id="btnPayNow">
+                                            <button type="button" class="btn-pay-now" id="btnPayNow">
                                                 <i class="fas fa-lock me-2"></i>
                                                 Thanh toán ngay bằng PayOS
                                             </button>
-                                        </form>
+                                        </div>
                                     </div>
 
                                     <!-- Divider -->
@@ -608,10 +609,8 @@
                 }
             }).trigger('change');
 
-            // Xử lý form thanh toán PayOS
-            $('#paymentForm').on('submit', function (e) {
-                e.preventDefault();
-                
+            // Xử lý nút thanh toán PayOS (không lồng form bên trong)
+            $('#btnPayNow').on('click', function (e) {
                 var amount = parseFloat($('#donationAmount').val());
                 var supporterName = $('#Name').val() || 'Người hỗ trợ';
                 var supporterPhone = $('#PhoneNumber').val() || '';
