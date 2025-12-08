@@ -49,25 +49,39 @@ namespace MaiAmTinhThuong.Controllers
                     baseUrl = $"{Request.Scheme}://{Request.Host}";
                 }
                 
-                // Tạo payment request - sử dụng object anonymous
-                var paymentRequest = new
-                {
-                    OrderCode = orderCode,
-                    Amount = (int)request.Amount,
-                    Description = $"Ủng hộ tài chính - {request.DonorName}",
-                    ReturnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}",
-                    CancelUrl = $"{baseUrl}/Payment/Cancel"
-                };
-
                 // Tạo payment link - sử dụng HttpClient trực tiếp (đơn giản hơn SDK)
                 var clientId = _configuration["PayOS:ClientId"];
                 var apiKey = _configuration["PayOS:ApiKey"];
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey))
+                {
+                    return Json(new { success = false, message = "Thiếu cấu hình PayOS: ClientId hoặc ApiKey" });
+                }
                 
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-client-id", clientId);
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
-                var json = JsonSerializer.Serialize(paymentRequest);
+                // Body theo chuẩn PayOS (camelCase, có items)
+                var paymentRequest = new
+                {
+                    orderCode = orderCode,
+                    amount = (int)request.Amount,
+                    description = $"Ủng hộ tài chính - {request.DonorName}",
+                    items = new[]
+                    {
+                        new { name = "Ủng hộ tài chính", quantity = 1, price = (int)request.Amount }
+                    },
+                    returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}",
+                    cancelUrl = $"{baseUrl}/Payment/Cancel",
+                    buyerName = request.DonorName,
+                    buyerPhone = request.PhoneNumber
+                };
+
+                var json = JsonSerializer.Serialize(paymentRequest, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                });
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 // PayOS production endpoint (một số môi trường chặn DNS api.payos.vn -> dùng api-merchant.payos.vn)
                 var payOsEndpoint = _configuration["PayOS:Endpoint"] ?? "https://api-merchant.payos.vn";
