@@ -128,13 +128,12 @@
                         <label class="form-label-modern" for="supportType">
                             <i class="fas fa-hand-holding-heart me-2"></i>Loại hỗ trợ <span class="text-danger">*</span>
                         </label>
-                        <select id="supportType" class="form-control-modern" required>
+                        <select id="supportType" name="supportTypes" class="form-control-modern" required>
                             <option value="">-- Chọn loại hỗ trợ --</option>
                             <option value="1">Tài chính</option>
                             <option value="2">Vật tư</option>
                             <option value="3">Chỗ ở</option>
                         </select>
-                        <span id="supportType-error" class="text-danger field-validation-error" style="display: none;">Vui lòng chọn loại hỗ trợ</span>
                         <small class="form-text text-muted">
                             <i class="fas fa-info-circle me-1"></i>
                             Vui lòng chọn ít nhất một loại hỗ trợ
@@ -665,95 +664,22 @@
             });
         });
 
-        // Convert single select value thành array trước khi submit
+        // Xử lý submit form chính: kiểm tra HTML5 validity và chặn double submit
         $('#supporterForm').on('submit', function (e) {
-            console.log('Form submit triggered');
-            
-            // Convert single select value thành array format mà controller expect
-            var supportTypeValue = $('#supportType').val();
-            console.log('Support Type Value:', supportTypeValue);
-            
-            if (supportTypeValue) {
-                // Xóa select box hiện tại khỏi form data (nếu có name)
-                $('#supportType').removeAttr('name');
-                
-                // Xóa hidden input cũ nếu có
-                $('input[name="supportTypes"]').remove();
-                
-                // Thêm hidden input với tên supportTypes (array)
-                $('<input>').attr({
-                    type: 'hidden',
-                    name: 'supportTypes',
-                    value: supportTypeValue
-                }).appendTo($(this));
-            }
+            var form = this;
 
-            // Kiểm tra validation trước khi submit
-            if (!$(this).valid()) {
-                e.preventDefault();
-                // Tìm field đầu tiên có lỗi và scroll tới đó
-                var firstError = $(this).find('.input-validation-error').first();
-                if (firstError.length) {
-                    $('html, body').animate({
-                        scrollTop: firstError.offset().top - 100
-                    }, 500);
-                    firstError.focus();
-                }
-                return false;
-            }
-
-            // Kiểm tra required fields
-            var name = $('#Name').val()?.trim();
-            var age = $('#Age').val();
-            var gender = $('#Gender').val();
-            var phone = $('#PhoneNumber').val()?.trim();
-            var maiAm = $('#MaiAmId').val();
-            var supportType = $('#supportType').val();
-
-            // Reset error messages
-            $('#supportType-error').hide();
-            $('#supportType').removeClass('input-validation-error');
-
-            if (!name || !age || !gender || !phone || !maiAm || !supportType) {
-                e.preventDefault();
-                
-                // Highlight missing fields
-                if (!supportType) {
-                    $('#supportType').addClass('input-validation-error');
-                    $('#supportType-error').show();
-                    $('html, body').animate({ scrollTop: $('#supportType').offset().top - 100 }, 500);
-                    $('#supportType').focus();
-                } else if (!maiAm) {
-                    $('html, body').animate({ scrollTop: $('#MaiAmId').offset().top - 100 }, 500);
-                    $('#MaiAmId').focus();
-                } else if (!phone) {
-                    $('html, body').animate({ scrollTop: $('#PhoneNumber').offset().top - 100 }, 500);
-                    $('#PhoneNumber').focus();
-                } else if (!gender) {
-                    $('html, body').animate({ scrollTop: $('#Gender').offset().top - 100 }, 500);
-                    $('#Gender').focus();
-                } else if (!age) {
-                    $('html, body').animate({ scrollTop: $('#Age').offset().top - 100 }, 500);
-                    $('#Age').focus();
-                } else if (!name) {
-                    $('html, body').animate({ scrollTop: $('#Name').offset().top - 100 }, 500);
-                    $('#Name').focus();
-                }
-                
-                alert('Vui lòng điền đầy đủ các trường bắt buộc (*)');
-                return false;
+            // Nếu form không hợp lệ, để browser hiển thị lỗi
+            if (!form.checkValidity()) {
+                return;
             }
 
             // Disable nút submit để tránh double submit
-            var $submitBtn = $(this).find('button[type="submit"]');
+            var $submitBtn = $(form).find('button[type="submit"]');
             if ($submitBtn.prop('disabled')) {
                 e.preventDefault();
                 return false;
             }
             $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...');
-            
-            // Form sẽ submit bình thường nếu validation pass
-            return true;
         });
 
         // Kiểm tra nếu quay lại từ thanh toán thành công
