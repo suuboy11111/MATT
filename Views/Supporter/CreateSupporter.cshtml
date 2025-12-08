@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper" id="supportGuideWrapper" style="display: none;">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade" id="financial" role="tabpanel">
+                            <div id="financial" style="display: none;">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -195,7 +195,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="material" role="tabpanel">
+                            <div id="material" style="display: none;">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-box me-2"></i>Hỗ trợ vật tư</h5>
                                     <div class="contact-info">
@@ -208,7 +208,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="housing" role="tabpanel">
+                            <div id="housing" style="display: none;">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-home me-2"></i>Hỗ trợ chỗ ở</h5>
                                     <div class="contact-info">
@@ -371,14 +371,6 @@
 
     .support-guide-wrapper {
         margin-top: 1.5rem;
-    }
-
-    .tab-pane {
-        display: none;
-    }
-
-    .tab-pane.show.active {
-        display: block;
     }
 
     .support-guide-card {
@@ -607,69 +599,38 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        // Hàm hiển thị tab theo loại hỗ trợ
-        function showSupportTab(selectedValue) {
-            var wrapper = document.getElementById('supportGuideWrapper');
-            if (!wrapper) return;
-
-            // Ẩn tất cả tabs
-            var allTabs = document.querySelectorAll('#supportTabsContent .tab-pane');
-            allTabs.forEach(function(tab) {
-                tab.classList.remove('show', 'active');
-            });
-
-            // Nếu không chọn gì, ẩn toàn bộ phần hướng dẫn
-            if (!selectedValue || selectedValue === '') {
-                wrapper.style.display = 'none';
-                return;
-            }
-
-            // Hiển thị phần hướng dẫn
-            wrapper.style.display = 'block';
-
-            // Hiển thị tab tương ứng
-            var targetTab = null;
-            if (selectedValue == '1') {
-                targetTab = document.getElementById('financial');
-            } else if (selectedValue == '2') {
-                targetTab = document.getElementById('material');
-            } else if (selectedValue == '3') {
-                targetTab = document.getElementById('housing');
-            }
-
-            if (targetTab) {
-                targetTab.classList.add('show', 'active');
-            }
-        }
-
-        // Sử dụng cả jQuery và vanilla JS để đảm bảo hoạt động
-        $(document).ready(function () {
-            // Xử lý thay đổi loại hỗ trợ
-            $('#supportType').on('change', function () {
-                var selectedValue = $(this).val();
-                showSupportTab(selectedValue);
-            });
-            
-            // Hiển thị tab khi trang load
-            var initialValue = $('#supportType').val();
-            if (initialValue) {
-                showSupportTab(initialValue);
-            }
-        });
-
-        // Fallback nếu jQuery chưa load
         document.addEventListener('DOMContentLoaded', function() {
-            var supportTypeSelect = document.getElementById('supportType');
-            if (supportTypeSelect) {
-                supportTypeSelect.addEventListener('change', function() {
-                    showSupportTab(this.value);
-                });
+            var supportType = document.getElementById('supportType');
+            if (!supportType) return;
+            
+            supportType.addEventListener('change', function() {
+                var value = this.value;
+                var wrapper = document.getElementById('supportGuideWrapper');
+                var financial = document.getElementById('financial');
+                var material = document.getElementById('material');
+                var housing = document.getElementById('housing');
                 
-                // Kiểm tra giá trị ban đầu
-                if (supportTypeSelect.value) {
-                    showSupportTab(supportTypeSelect.value);
+                // Ẩn tất cả tabs
+                if (financial) financial.style.display = 'none';
+                if (material) material.style.display = 'none';
+                if (housing) housing.style.display = 'none';
+                
+                // Nếu không chọn gì, ẩn wrapper
+                if (!value) {
+                    if (wrapper) wrapper.style.display = 'none';
+                    return;
                 }
-            }
+                
+                // Hiển thị wrapper và tab tương ứng
+                if (wrapper) wrapper.style.display = 'block';
+                if (value == '1' && financial) {
+                    financial.style.display = 'block';
+                } else if (value == '2' && material) {
+                    material.style.display = 'block';
+                } else if (value == '3' && housing) {
+                    housing.style.display = 'block';
+                }
+            });
         });
 
             // Xử lý nút thanh toán PayOS
