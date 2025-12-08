@@ -144,7 +144,7 @@
                     <!-- Hướng dẫn hỗ trợ -->
                     <div class="support-guide-wrapper">
                         <div class="tab-content" id="supportTabsContent">
-                            <div class="tab-pane fade show active" id="financial" role="tabpanel">
+                            <div class="tab-pane fade" id="financial" role="tabpanel">
                                 <div class="support-guide-card">
                                     <h5><i class="fas fa-money-bill-wave me-2"></i>Hỗ trợ tài chính</h5>
                                     
@@ -373,13 +373,19 @@
         margin-top: 1.5rem;
     }
 
-    /* Đảm bảo tab ẩn/hiện đúng cách */
+    /* Đảm bảo tab ẩn/hiện đúng cách - FORCE ẩn tất cả tabs mặc định */
     #supportTabsContent .tab-pane {
-        display: none;
+        display: none !important;
     }
 
+    /* Chỉ hiển thị tab có cả class 'show' VÀ 'active' */
     #supportTabsContent .tab-pane.show.active {
         display: block !important;
+    }
+    
+    /* Force ẩn tab financial nếu không có cả show và active */
+    #supportTabsContent .tab-pane#financial:not(.show.active) {
+        display: none !important;
     }
 
     .support-guide-card {
@@ -611,33 +617,36 @@
         $(document).ready(function () {
             // Hàm hiển thị tab theo loại hỗ trợ
             function showSupportTab(selectedValue) {
-                console.log('showSupportTab called with:', selectedValue);
+                console.log('=== showSupportTab called with:', selectedValue, '===');
                 
-                // Ẩn tất cả tabs (Bootstrap 5 cách)
-                $('#supportTabsContent .tab-pane').each(function() {
-                    $(this).removeClass('show active');
-                });
+                // BƯỚC 1: Force Ẩn TẤT CẢ tabs (bao gồm cả financial) - làm rõ ràng
+                $('#financial').removeClass('show active').css('display', 'none');
+                $('#material').removeClass('show active').css('display', 'none');
+                $('#housing').removeClass('show active').css('display', 'none');
+                console.log('All tabs hidden: financial, material, housing');
 
-                // Hiển thị tab tương ứng
+                // BƯỚC 2: Xác định tab cần hiển thị
                 var targetTab = null;
                 if (selectedValue == '1' || selectedValue == 'Tài chính') {
                     targetTab = $('#financial');
-                    console.log('Showing financial tab');
+                    console.log('Selected: Financial tab');
                 } else if (selectedValue == '2' || selectedValue == 'Vật tư') {
                     targetTab = $('#material');
-                    console.log('Showing material tab');
+                    console.log('Selected: Material tab');
                 } else if (selectedValue == '3' || selectedValue == 'Chỗ ở') {
                     targetTab = $('#housing');
-                    console.log('Showing housing tab');
+                    console.log('Selected: Housing tab');
                 }
                 
+                // BƯỚC 3: Hiển thị tab được chọn
                 if (targetTab && targetTab.length > 0) {
-                    targetTab.addClass('show active');
-                    // Force display để đảm bảo hiển thị
-                    targetTab.css('display', 'block');
-                    console.log('Tab shown:', targetTab.attr('id'));
+                    targetTab.addClass('show active').css('display', 'block');
+                    console.log('✅ Tab displayed:', targetTab.attr('id'));
+                    console.log('Financial visible?', $('#financial').is(':visible'));
+                    console.log('Material visible?', $('#material').is(':visible'));
+                    console.log('Housing visible?', $('#housing').is(':visible'));
                 } else {
-                    console.error('Tab not found for value:', selectedValue);
+                    console.error('❌ Tab not found for value:', selectedValue);
                     // Fallback: hiển thị financial tab
                     $('#financial').addClass('show active').css('display', 'block');
                 }
