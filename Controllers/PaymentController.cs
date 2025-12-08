@@ -115,11 +115,26 @@ namespace MaiAmTinhThuong.Controllers
         {
             try
             {
-                // Kiểm tra PayOS Client có sẵn không
-                if (_payOSClient == null)
+                // Validate request
+                if (request.Amount < 10000)
                 {
-                    _logger.LogError("PayOS Client is not configured");
-                    return Json(new { success = false, message = "PayOS chưa được cấu hình. Vui lòng liên hệ quản trị viên." });
+                    return Json(new { success = false, message = "Số tiền tối thiểu là 10,000 VNĐ" });
+                }
+
+                if (string.IsNullOrWhiteSpace(request.DonorName))
+                {
+                    return Json(new { success = false, message = "Vui lòng nhập tên người ủng hộ" });
+                }
+
+                // Kiểm tra PayOS config
+                var clientId = _configuration["PayOS:ClientId"];
+                var apiKey = _configuration["PayOS:ApiKey"];
+                var checksumKey = _configuration["PayOS:ChecksumKey"];
+                
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
+                {
+                    _logger.LogError("PayOS configuration is incomplete. ClientId, ApiKey, or ChecksumKey is missing");
+                    return Json(new { success = false, message = "PayOS chưa được cấu hình đầy đủ. Vui lòng liên hệ quản trị viên." });
                 }
 
                 // Tạo order code duy nhất (dùng Unix timestamp)
@@ -139,10 +154,6 @@ namespace MaiAmTinhThuong.Controllers
 
                 // PayOS SDK 2.0.1 có thể không có các class này
                 // Quay lại dùng HttpClient trực tiếp với signature calculation đúng
-                var clientId = _configuration["PayOS:ClientId"];
-                var apiKey = _configuration["PayOS:ApiKey"];
-                var checksumKey = _configuration["PayOS:ChecksumKey"];
-                
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-client-id", clientId);
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
@@ -370,35 +381,90 @@ namespace MaiAmTinhThuong.Controllers
                 // Deserialize webhook data
                 if (string.IsNullOrEmpty(body))
                 {
-                    return BadRequest();
+                    _logger.LogWarning("PayOS Webhook: Empty body received");
+                    return BadRequest(new { message = "Empty body" });
                 }
+
+                _logger.LogInformation($"PayOS Webhook received: {body}");
 
                 var webhookData = JsonSerializer.Deserialize<JsonElement>(body);
                 var checksumKey = _configuration["PayOS:ChecksumKey"];
                 
-                // Verify webhook signature (đơn giản hóa - chỉ kiểm tra cơ bản)
-                // Trong production nên verify đầy đủ signature
+                if (string.IsNullOrEmpty(checksumKey))
+                {
+                    _logger.LogError("PayOS Webhook: ChecksumKey not configured");
+                    return StatusCode(500, new { message = "ChecksumKey not configured" });
+                }
 
-                // Xử lý webhook - lấy OrderCode từ data
+                // Verify webhook signature theo PayOS documentation
+                // PayOS webhook signature được tính từ: data.orderCode + data.amount + data.description + checksumKey
                 if (webhookData.TryGetProperty("data", out var data))
                 {
-                    var orderCodeInt = data.GetProperty("orderCode").GetInt32();
-                    
-                    // Tìm transaction theo orderCode trong description
-                    var transaction = await _context.TransactionHistories
-                        .FirstOrDefaultAsync(t => t.Description.Contains($"OrderCode: {orderCodeInt}"));
-                    
-                    if (transaction != null && transaction.Status != "Success")
+                    // Verify signature nếu có
+                    if (webhookData.TryGetProperty("signature", out var signatureElement))
                     {
-                        transaction.Status = "Success";
-                        await _context.SaveChangesAsync();
+                        var receivedSignature = signatureElement.GetString();
                         
-                        _logger.LogInformation($"Đã cập nhật transaction {transaction.Id} thành công cho orderCode {orderCodeInt}");
+                        // Tính signature từ data
+                        var orderCode = data.GetProperty("orderCode").GetInt64().ToString();
+                        var amount = data.GetProperty("amount").GetInt32().ToString();
+                        var description = data.GetProperty("description").GetString() ?? "";
+                        
+                        // PayOS webhook signature format: HMAC-SHA256(orderCode + amount + description + checksumKey)
+                        var signatureString = $"{orderCode}{amount}{description}{checksumKey}";
+                        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(checksumKey));
+                        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(signatureString));
+                        var calculatedSignature = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                        
+                        if (receivedSignature != calculatedSignature)
+                        {
+                            _logger.LogWarning($"PayOS Webhook: Signature mismatch. Received: {receivedSignature}, Calculated: {calculatedSignature}");
+                            return Unauthorized(new { message = "Invalid signature" });
+                        }
+                        
+                        _logger.LogInformation("PayOS Webhook: Signature verified successfully");
+                    }
+
+                    // Xử lý webhook - lấy OrderCode từ data
+                    var orderCodeInt = data.GetProperty("orderCode").GetInt64();
+                    var status = data.GetProperty("status").GetString();
+                    
+                    _logger.LogInformation($"PayOS Webhook: Processing orderCode {orderCodeInt}, status: {status}");
+                    
+                    // Chỉ xử lý khi status là PAID
+                    if (status == "PAID")
+                    {
+                        // Tìm transaction theo orderCode trong description
+                        var transaction = await _context.TransactionHistories
+                            .FirstOrDefaultAsync(t => t.Description.Contains($"OrderCode: {orderCodeInt}"));
+                        
+                        if (transaction != null)
+                        {
+                            if (transaction.Status != "Success")
+                            {
+                                transaction.Status = "Success";
+                                await _context.SaveChangesAsync();
+                                
+                                _logger.LogInformation($"✅ Đã cập nhật transaction {transaction.Id} thành công cho orderCode {orderCodeInt}");
+                            }
+                            else
+                            {
+                                _logger.LogInformation($"ℹ️ Transaction {transaction.Id} đã được cập nhật trước đó cho orderCode {orderCodeInt}");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"⚠️ Không tìm thấy transaction cho orderCode {orderCodeInt}");
+                        }
                     }
                     else
                     {
-                        _logger.LogWarning($"Không tìm thấy transaction cho orderCode {orderCodeInt}");
+                        _logger.LogInformation($"ℹ️ Webhook received với status {status}, không cần xử lý");
                     }
+                }
+                else
+                {
+                    _logger.LogWarning("PayOS Webhook: No 'data' property found in webhook body");
                 }
 
                 return Ok(new { success = true });
@@ -406,7 +472,7 @@ namespace MaiAmTinhThuong.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xử lý webhook");
-                return StatusCode(500);
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
