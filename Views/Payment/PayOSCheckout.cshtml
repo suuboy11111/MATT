@@ -1,0 +1,101 @@
+@{
+    ViewData["Title"] = "Thanh toán PayOS";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Thanh toán qua PayOS</h4>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <h5>Thông tin thanh toán</h5>
+                        <p><strong>Số tiền:</strong> @ViewBag.Amount.ToString("N0") VNĐ</p>
+                        <p><strong>Người ủng hộ:</strong> @ViewBag.DonorName</p>
+                        @if (!string.IsNullOrEmpty(ViewBag.PhoneNumber))
+                        {
+                            <p><strong>Số điện thoại:</strong> @ViewBag.PhoneNumber</p>
+                        }
+                    </div>
+                    
+                    <div id="payos-widget-container" class="mb-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                        <p class="mt-2">Đang tạo liên kết thanh toán...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var amount = @ViewBag.Amount;
+            var donorName = '@Html.Raw(ViewBag.DonorName)';
+            var phoneNumber = '@Html.Raw(ViewBag.PhoneNumber ?? "")';
+            var maiAmId = @(ViewBag.MaiAmId ?? 0);
+            
+            // Gọi API tạo payment link
+            $.ajax({
+                url: '/Payment/CreatePaymentLink',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    amount: amount,
+                    donorName: donorName,
+                    phoneNumber: phoneNumber,
+                    maiAmId: maiAmId > 0 ? maiAmId : null
+                }),
+                success: function(response) {
+                    if (response.success && response.checkoutUrl) {
+                        $('#payos-widget-container').html(
+                            '<div class="alert alert-success">' +
+                            '<i class="fas fa-check-circle me-2"></i>' +
+                            'Đang chuyển đến PayOS...' +
+                            '</div>'
+                        );
+                        
+                        // Redirect sau 1 giây
+                        setTimeout(function() {
+                            window.location.href = response.checkoutUrl;
+                        }, 1000);
+                    } else {
+                        // Nếu lỗi, hiển thị QR code chuyển khoản
+                        showBankTransferOption(amount, donorName, phoneNumber);
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Có lỗi xảy ra khi tạo liên kết thanh toán.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    
+                    $('#payos-widget-container').html(
+                        '<div class="alert alert-warning">' +
+                        '<i class="fas fa-exclamation-triangle me-2"></i>' +
+                        errorMsg +
+                        '<hr>' +
+                        '<p class="mb-0"><strong>Hoặc thanh toán qua chuyển khoản:</strong></p>' +
+                        '<a href="/Supporter/CreateSupporter" class="btn btn-primary mt-2">Quay lại để xem QR Code</a>' +
+                        '</div>'
+                    );
+                }
+            });
+        });
+        
+        function showBankTransferOption(amount, donorName, phoneNumber) {
+            $('#payos-widget-container').html(
+                '<div class="alert alert-info">' +
+                '<h6><i class="fas fa-qrcode me-2"></i>Thanh toán qua QR Code</h6>' +
+                '<p>Vui lòng quay lại trang trước để quét QR code chuyển khoản.</p>' +
+                '<a href="/Supporter/CreateSupporter" class="btn btn-primary">Quay lại</a>' +
+                '</div>'
+            );
+        }
+    </script>
+}

@@ -609,7 +609,7 @@
                 }
             }).trigger('change');
 
-            // Xử lý nút thanh toán PayOS (không lồng form bên trong)
+            // Xử lý nút thanh toán PayOS - Giải pháp nhanh: Redirect đến trang thanh toán PayOS riêng
             $('#btnPayNow').on('click', function (e) {
                 var amount = parseFloat($('#donationAmount').val());
                 var supporterName = $('#Name').val() || 'Người hỗ trợ';
@@ -621,32 +621,15 @@
                     return;
                 }
 
-                var $btn = $('#btnPayNow');
-                var originalHtml = $btn.html();
-                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...');
-
-                $.ajax({
-                    url: '/Payment/CreatePaymentLink',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    headers: {
-                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    data: JSON.stringify({
-                        amount: amount,
-                        donorName: supporterName,
-                        phoneNumber: supporterPhone,
-                        maiAmId: maiAmId ? parseInt(maiAmId) : null
-                    }),
-                    success: function (response) {
-                        if (response.success && response.checkoutUrl) {
-                            sessionStorage.setItem('pendingSupporterForm', 'true');
-                            sessionStorage.setItem('pendingSupporterMaiAmId', maiAmId || '');
-                            window.location.href = response.checkoutUrl;
-                        } else {
-                            alert(response.message || 'Có lỗi xảy ra khi tạo liên kết thanh toán');
-                            $btn.prop('disabled', false).html(originalHtml);
-                        }
+                // Redirect đến trang thanh toán PayOS với thông tin qua URL
+                var params = new URLSearchParams({
+                    amount: amount,
+                    donorName: supporterName,
+                    phoneNumber: supporterPhone || '',
+                    maiAmId: maiAmId || ''
+                });
+                
+                window.location.href = '/Payment/PayOSCheckout?' + params.toString();
                     },
                     error: function (xhr) {
                         var errorMsg = 'Có lỗi xảy ra. Vui lòng thử lại sau.';

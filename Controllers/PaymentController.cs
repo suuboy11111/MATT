@@ -40,6 +40,62 @@ namespace MaiAmTinhThuong.Controllers
             return View();
         }
 
+        // GET: Payment/PayOSCheckout - Trang thanh toán PayOS đơn giản
+        [HttpGet]
+        public IActionResult PayOSCheckout(decimal amount, string donorName, string? phoneNumber = null, int? maiAmId = null)
+        {
+            if (amount < 10000)
+            {
+                return RedirectToAction("Donate");
+            }
+
+            ViewBag.Amount = amount;
+            ViewBag.DonorName = donorName;
+            ViewBag.PhoneNumber = phoneNumber;
+            ViewBag.MaiAmId = maiAmId;
+            ViewBag.ClientId = _configuration["PayOS:ClientId"];
+            
+            return View();
+        }
+
+        // GET: Payment/GetPaymentData - Endpoint đơn giản để PayOS Widget dùng
+        [HttpGet]
+        public IActionResult GetPaymentData(decimal amount, string donorName, string? phoneNumber = null, int? maiAmId = null)
+        {
+            try
+            {
+                var orderCode = (long)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                var baseUrl = _configuration["PayOS:BaseUrl"];
+                if (string.IsNullOrEmpty(baseUrl))
+                {
+                    var scheme = Request.IsHttps || Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase) 
+                        ? "https" 
+                        : "https";
+                    baseUrl = $"{scheme}://{Request.Host}";
+                }
+
+                // Trả về payment data để PayOS Widget dùng
+                // PayOS Widget sẽ tự xử lý signature
+                return Json(new
+                {
+                    success = true,
+                    orderCode = orderCode,
+                    amount = (int)amount,
+                    description = $"Ủng hộ tài chính - {donorName}",
+                    returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}",
+                    cancelUrl = $"{baseUrl}/Payment/Cancel",
+                    donorName = donorName,
+                    phoneNumber = phoneNumber,
+                    maiAmId = maiAmId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo payment data");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         // POST: Payment/CreatePaymentLink
         [HttpPost]
         public async Task<IActionResult> CreatePaymentLink([FromBody] CreatePaymentRequest request)
