@@ -316,21 +316,13 @@ namespace MaiAmTinhThuong.Controllers
                     PdfWriter writer = PdfWriter.GetInstance(doc, ms);
                     doc.Open();
 
-                    // Tạo border trang trí cho toàn bộ trang
-                    var borderColor = new BaseColor(200, 200, 200);
-                    var borderWidth = 2f;
+                    // Tạo border trang trí đơn giản và chuyên nghiệp
                     var pageSize = doc.PageSize;
-                    
-                    // Vẽ border đẹp
                     var canvas = writer.DirectContent;
-                    canvas.SetColorStroke(borderColor);
-                    canvas.SetLineWidth(borderWidth);
-                    canvas.Rectangle(40, 40, pageSize.Width - 80, pageSize.Height - 80);
-                    canvas.Stroke();
-
-                    // Vẽ border trong nhỏ hơn
-                    canvas.SetLineWidth(1f);
-                    canvas.SetColorStroke(new BaseColor(220, 220, 220));
+                    
+                    // Chỉ vẽ một border mỏng, đẹp
+                    canvas.SetColorStroke(new BaseColor(200, 200, 200));
+                    canvas.SetLineWidth(1.5f);
                     canvas.Rectangle(50, 50, pageSize.Width - 100, pageSize.Height - 100);
                     canvas.Stroke();
 
@@ -367,22 +359,8 @@ namespace MaiAmTinhThuong.Controllers
                     subtitle.SpacingAfter = 30f;
                     doc.Add(subtitle);
 
-                    // Vẽ đường kẻ trang trí dưới tiêu đề với gradient effect
-                    var yPos = doc.Top - 200;
-                    canvas.SetColorStroke(new BaseColor(200, 30, 30));
-                    canvas.SetLineWidth(3f);
-                    canvas.MoveTo(120, yPos);
-                    canvas.LineTo(pageSize.Width - 120, yPos);
-                    canvas.Stroke();
-                    
-                    // Vẽ đường kẻ mỏng phía dưới
-                    canvas.SetColorStroke(new BaseColor(220, 150, 150));
-                    canvas.SetLineWidth(1f);
-                    canvas.MoveTo(130, yPos - 3);
-                    canvas.LineTo(pageSize.Width - 130, yPos - 3);
-                    canvas.Stroke();
-
-                    doc.Add(new Paragraph("\n\n"));
+                    // Thêm khoảng trống sau subtitle
+                    doc.Add(new Paragraph("\n"));
 
                     // Table thông tin với thiết kế đẹp hơn
                     PdfPTable table = new PdfPTable(2);
@@ -394,28 +372,31 @@ namespace MaiAmTinhThuong.Controllers
 
                     void AddRow(string key, string value, bool isValueBold = false)
                     {
-                        // Cell label
+                        // Cell label - thiết kế đẹp hơn
                         var cellKey = new PdfPCell(new Phrase(key, fontHeader))
                         {
                             Border = Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER,
-                            BorderColor = new BaseColor(230, 230, 230),
-                            BorderWidth = 1f,
-                            BackgroundColor = new BaseColor(250, 250, 250),
-                            Padding = 12f,
-                            PaddingLeft = 15f,
-                            VerticalAlignment = Element.ALIGN_MIDDLE
+                            BorderColor = new BaseColor(220, 220, 220),
+                            BorderWidth = 0.5f,
+                            BackgroundColor = new BaseColor(248, 248, 248),
+                            Padding = 14f,
+                            PaddingLeft = 18f,
+                            VerticalAlignment = Element.ALIGN_MIDDLE,
+                            HorizontalAlignment = Element.ALIGN_LEFT
                         };
 
-                        // Cell value
+                        // Cell value - không có underline hay line thừa
                         var valueFont = isValueBold ? fontValueBold : fontValue;
                         var cellValue = new PdfPCell(new Phrase(value, valueFont))
                         {
                             Border = Rectangle.LEFT_BORDER | Rectangle.RIGHT_BORDER | Rectangle.TOP_BORDER | Rectangle.BOTTOM_BORDER,
-                            BorderColor = new BaseColor(230, 230, 230),
-                            BorderWidth = 1f,
-                            Padding = 12f,
-                            PaddingLeft = 15f,
-                            VerticalAlignment = Element.ALIGN_MIDDLE
+                            BorderColor = new BaseColor(220, 220, 220),
+                            BorderWidth = 0.5f,
+                            BackgroundColor = BaseColor.White,
+                            Padding = 14f,
+                            PaddingLeft = 18f,
+                            VerticalAlignment = Element.ALIGN_MIDDLE,
+                            HorizontalAlignment = Element.ALIGN_LEFT
                         };
 
                         table.AddCell(cellKey);
@@ -429,41 +410,34 @@ namespace MaiAmTinhThuong.Controllers
 
                     doc.Add(table);
 
-                    // Lời cảm ơn với thiết kế đẹp hơn
-                    doc.Add(new Paragraph("\n"));
+                    // Lời cảm ơn với thiết kế đẹp và chuyên nghiệp
+                    doc.Add(new Paragraph("\n\n"));
                     
-                    // Vẽ khung trang trí cho lời cảm ơn
-                    var thanksY = doc.Top - 550;
-                    canvas.SetColorFill(new BaseColor(255, 250, 250));
-                    canvas.SetColorStroke(new BaseColor(240, 200, 200));
-                    canvas.SetLineWidth(1.5f);
-                    canvas.RoundRectangle(100, thanksY - 25, pageSize.Width - 200, 60, 10);
-                    canvas.FillStroke();
+                    // Vẽ đường kẻ trang trí mỏng trước lời cảm ơn
+                    var currentY = writer.GetVerticalPosition(false);
+                    canvas.SetColorStroke(new BaseColor(220, 220, 220));
+                    canvas.SetLineWidth(1f);
+                    canvas.MoveTo(150, currentY - 10);
+                    canvas.LineTo(pageSize.Width - 150, currentY - 10);
+                    canvas.Stroke();
                     
                     Paragraph thanks = new Paragraph("Xin chân thành cảm ơn sự đóng góp quý báu của Quý vị!", fontThanks);
                     thanks.Alignment = Element.ALIGN_CENTER;
                     thanks.SpacingBefore = 25f;
-                    thanks.SpacingAfter = 15f;
+                    thanks.SpacingAfter = 20f;
                     doc.Add(thanks);
 
-                    // Thêm dấu ngoặc kép trang trí với style đẹp hơn
-                    Paragraph quote = new Paragraph("\"Tình yêu thương là ngôn ngữ mà người điếc có thể nghe và người mù có thể thấy.\"", fontQuote);
+                    // Quote với style đẹp hơn - không có dấu ngoặc kép thừa
+                    Paragraph quote = new Paragraph("Tình yêu thương là ngôn ngữ mà người điếc có thể nghe và người mù có thể thấy.", fontQuote);
                     quote.Alignment = Element.ALIGN_CENTER;
-                    quote.SpacingAfter = 35f;
+                    quote.SpacingAfter = 40f;
                     doc.Add(quote);
 
-                    // Footer với thông tin
+                    // Footer với thông tin - đơn giản và chuyên nghiệp
                     Paragraph footer = new Paragraph("Mái Ấm Tình Thương - Nơi trao gửi yêu thương", fontFooter);
                     footer.Alignment = Element.ALIGN_CENTER;
-                    footer.SpacingBefore = 40f;
+                    footer.SpacingBefore = 30f;
                     doc.Add(footer);
-
-                    // Vẽ đường kẻ trang trí trên footer
-                    canvas.SetColorStroke(new BaseColor(200, 200, 200));
-                    canvas.SetLineWidth(1f);
-                    canvas.MoveTo(150, doc.Bottom + 50);
-                    canvas.LineTo(pageSize.Width - 150, doc.Bottom + 50);
-                    canvas.Stroke();
 
                     doc.Close();
 
