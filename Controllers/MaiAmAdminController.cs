@@ -508,9 +508,39 @@ namespace MaiAmTinhThuong.Controllers.Admin
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
                     
                     MaiAmTinhThuong.Models.ApplicationUser user = null;
+                    string? foundUserId = null;
                     
-                    // Bước 1: Tìm user theo phone number (chính xác hoặc chuẩn hóa)
-                    if (!string.IsNullOrEmpty(request.PhoneNumber))
+                    // Bước 1: Ưu tiên tìm user từ thông báo "Đăng ký hồ sơ thành công" (cách này chính xác nhất)
+                    if (!string.IsNullOrEmpty(request.Name))
+                    {
+                        var matchingNotifications = await _context.Notifications
+                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
+                                && n.Message != null
+                                && n.Message.Contains(request.Name))
+                            .OrderByDescending(n => n.CreatedAt)
+                            .ToListAsync();
+                        
+                        if (matchingNotifications.Any())
+                        {
+                            // Lấy thông báo gần nhất và lấy UserId
+                            var latestNotification = matchingNotifications.First();
+                            foundUserId = latestNotification.UserId;
+                            logger.LogInformation($"Tìm thấy thông báo tạo hồ sơ cho '{request.Name}' với UserId: {foundUserId}");
+                        }
+                    }
+                    
+                    // Bước 2: Nếu tìm được UserId từ thông báo, lấy user
+                    if (!string.IsNullOrEmpty(foundUserId))
+                    {
+                        user = await userManager.FindByIdAsync(foundUserId);
+                        if (user != null)
+                        {
+                            logger.LogInformation($"Đã tìm thấy user từ thông báo: {user.Id} ({user.Email})");
+                        }
+                    }
+                    
+                    // Bước 3: Nếu vẫn chưa tìm được, thử tìm theo phone number
+                    if (user == null && !string.IsNullOrEmpty(request.PhoneNumber))
                     {
                         var normalizedRequestPhone = request.PhoneNumber?.Replace(" ", "").Replace("+", "").Replace("-", "").Trim();
                         // Chuẩn hóa: nếu bắt đầu bằng 84, đổi thành 0
@@ -539,51 +569,44 @@ namespace MaiAmTinhThuong.Controllers.Admin
                                 
                                 return normalizedUserPhone1 == normalizedRequestPhone || normalizedUserPhone2 == normalizedRequestPhone;
                             });
-                        }
-                    }
-                    
-                    // Bước 2: Nếu không tìm thấy, thử tìm theo tên (nếu trùng tên)
-                    if (user == null && !string.IsNullOrEmpty(request.Name))
-                    {
-                        user = await userManager.Users.FirstOrDefaultAsync(u => 
-                            u.FullName != null && u.FullName.Trim().Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
-                    }
-                    
-                    // Bước 3: Nếu vẫn không tìm thấy, tìm tất cả user có thông báo "chờ duyệt" cho hồ sơ này
-                    if (user == null && !string.IsNullOrEmpty(request.Name))
-                    {
-                        var allNotifications = await _context.Notifications
-                            .Where(n => n.Title == "Đăng ký hồ sơ thành công"
-                                && n.Message != null
-                                && n.Message.Contains(request.Name))
-                            .ToListAsync();
-                        
-                        if (allNotifications.Any())
-                        {
-                            var userIds = allNotifications.Select(n => n.UserId).Distinct().Where(id => !string.IsNullOrEmpty(id)).ToList();
-                            if (userIds.Any())
+                            
+                            if (user != null)
                             {
-                                // Lấy user đầu tiên có thông báo về hồ sơ này
-                                user = await userManager.Users.FirstOrDefaultAsync(u => userIds.Contains(u.Id));
+                                logger.LogInformation($"Đã tìm thấy user theo phone number: {user.Id} ({user.Email})");
                             }
                         }
                     }
                     
+                    // Bước 4: Nếu vẫn chưa tìm được, thử tìm theo tên
+                    if (user == null && !string.IsNullOrEmpty(request.Name))
+                    {
+                        user = await userManager.Users.FirstOrDefaultAsync(u => 
+                            u.FullName != null && u.FullName.Trim().Equals(request.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+                        
+                        if (user != null)
+                        {
+                            logger.LogInformation($"Đã tìm thấy user theo tên: {user.Id} ({user.Email})");
+                        }
+                    }
+                    
+                    // Gửi thông báo nếu tìm được user
                     if (user != null)
                     {
-                        logger.LogInformation($"Đã tìm thấy user {user.Id} ({user.Email}) cho hồ sơ {id}, gửi thông báo duyệt");
+                        logger.LogInformation($"Gửi thông báo duyệt cho user {user.Id} ({user.Email}) - Hồ sơ: {request.Name}");
                         await notificationService.NotifySupportRequestApprovedAsync(user.Id, request.Name ?? "Hồ sơ");
+                        logger.LogInformation($"Đã gửi thông báo duyệt thành công cho user {user.Id}");
                     }
                     else
                     {
-                        logger.LogWarning($"Không tìm thấy user cho hồ sơ {id} (Phone: {request.PhoneNumber}, Name: {request.Name}). Không thể gửi thông báo.");
+                        logger.LogWarning($"KHÔNG TÌM THẤY USER cho hồ sơ {id} (Name: {request.Name}, Phone: {request.PhoneNumber}). Không thể gửi thông báo duyệt.");
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log lỗi nhưng không làm gián đoạn quá trình duyệt
                     var logger = HttpContext.RequestServices.GetRequiredService<ILogger<MaiAmAdminController>>();
-                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho hồ sơ {id}");
+                    logger.LogError(ex, $"Lỗi khi gửi thông báo duyệt cho hồ sơ {id}: {ex.Message}");
+                    logger.LogError(ex, $"Stack trace: {ex.StackTrace}");
                 }
 
                 return Json(new { success = true, message = "Hồ sơ đã được duyệt thành công!" });
