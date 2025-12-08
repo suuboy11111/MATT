@@ -324,13 +324,14 @@ namespace MaiAmTinhThuong.Controllers
 
         private static string ComputeSignature(Dictionary<string, string> data, string secretKey, ILogger? logger = null)
         {
-            // Sắp xếp key theo alphabet, URL-encode value rồi join bằng &
+            // Sắp xếp key theo alphabet, dùng RAW values (KHÔNG URL encode) rồi join bằng &
+            // PayOS v2 yêu cầu dùng raw values, không URL encode khi tính signature!
             var sorted = data.OrderBy(k => k.Key, StringComparer.Ordinal);
             var query = string.Join("&", sorted.Select(kv =>
-                $"{kv.Key}={Uri.EscapeDataString(kv.Value ?? string.Empty)}"));
+                $"{kv.Key}={kv.Value ?? string.Empty}"));
             
             // Debug: Log string được dùng để tính signature (không log secretKey)
-            logger?.LogWarning($"PayOS Signature String: {query}");
+            logger?.LogWarning($"PayOS Signature String (RAW, no URL encoding): {query}");
 
             using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
             var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(query));
