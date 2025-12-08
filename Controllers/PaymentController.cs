@@ -53,9 +53,10 @@ namespace MaiAmTinhThuong.Controllers
                 // Tạo payment link - sử dụng HttpClient trực tiếp (đơn giản hơn SDK)
                 var clientId = _configuration["PayOS:ClientId"];
                 var apiKey = _configuration["PayOS:ApiKey"];
-                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey))
+                var checksumKey = _configuration["PayOS:ChecksumKey"];
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(checksumKey))
                 {
-                    return Json(new { success = false, message = "Thiếu cấu hình PayOS: ClientId hoặc ApiKey" });
+                    return Json(new { success = false, message = "Thiếu cấu hình PayOS: ClientId/ApiKey/ChecksumKey" });
                 }
                 
                 using var httpClient = new HttpClient();
@@ -63,6 +64,10 @@ namespace MaiAmTinhThuong.Controllers
                 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
                 
                 // Body theo chuẩn PayOS (camelCase, có items)
+                // Tạo chuỗi data để ký (theo payOS): amount, cancelUrl, description, orderCode, returnUrl (alphabetical by key)
+                var signData = $"amount={(int)request.Amount}&cancelUrl={baseUrl}/Payment/Cancel&description=Ủng hộ tài chính - {request.DonorName}&orderCode={orderCode}&returnUrl={baseUrl}/Payment/Success?orderCode={orderCode}";
+                var signature = ComputeSignature(signData, checksumKey);
+
                 var paymentRequest = new
                 {
                     orderCode = orderCode,
@@ -75,7 +80,8 @@ namespace MaiAmTinhThuong.Controllers
                     returnUrl = $"{baseUrl}/Payment/Success?orderCode={orderCode}",
                     cancelUrl = $"{baseUrl}/Payment/Cancel",
                     buyerName = request.DonorName,
-                    buyerPhone = request.PhoneNumber
+                    buyerPhone = request.PhoneNumber,
+                    signature = signature
                 };
 
                 var json = JsonSerializer.Serialize(paymentRequest, new JsonSerializerOptions
@@ -292,6 +298,13 @@ namespace MaiAmTinhThuong.Controllers
         public string DonorName { get; set; } = "";
         public string? PhoneNumber { get; set; }
         public int? MaiAmId { get; set; }
+    }
+
+    internal static string ComputeSignature(string data, string secretKey)
+    {
+        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(secretKey));
+        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(data));
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 
 }
