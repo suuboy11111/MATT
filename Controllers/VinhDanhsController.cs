@@ -193,14 +193,30 @@ namespace MaiAmTinhThuong.Controllers
                 _context.ChungNhanQuyenGops.Add(cn);
                 await _context.SaveChangesAsync();
 
-                // Font hỗ trợ tiếng Việt - thử nhiều đường dẫn
+                // Font hỗ trợ tiếng Việt - ưu tiên font có sẵn trong project, sau đó tìm trên hệ thống
                 BaseFont baseFont = null;
                 string[] fontPaths = {
+                    // Font trong project (nếu có) - ưu tiên cao nhất
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "arial.ttf"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "Arial.ttf"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "times.ttf"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "TimesNewRoman.ttf"),
+                    // Windows fonts - Times New Roman hỗ trợ tiếng Việt tốt
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "times.ttf"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "timesi.ttf"),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "timesbd.ttf"),
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"),
                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "Arial.ttf"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "ARIAL.TTF"),
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", // Linux/Railway
-                    "/System/Library/Fonts/Supplemental/Arial.ttf" // macOS
+                    // Linux/Railway fonts - DejaVu và Liberation hỗ trợ Unicode tốt
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                    "/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf",
+                    // macOS fonts
+                    "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+                    "/System/Library/Fonts/Supplemental/Arial.ttf"
                 };
 
                 foreach (var fontPath in fontPaths)
@@ -209,17 +225,40 @@ namespace MaiAmTinhThuong.Controllers
                     {
                         if (System.IO.File.Exists(fontPath))
                         {
+                            // Dùng IDENTITY_H để hỗ trợ Unicode tiếng Việt đầy đủ
+                            // EMBEDDED để đảm bảo font được embed vào PDF
                             baseFont = BaseFont.CreateFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
                             break;
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        // Log lỗi nhưng tiếp tục thử font khác
+                        System.Diagnostics.Debug.WriteLine($"Không thể load font {fontPath}: {ex.Message}");
+                    }
                 }
 
-                // Nếu không tìm thấy font, dùng font mặc định (có thể không hỗ trợ tiếng Việt)
+                // Nếu không tìm thấy font, thử tạo font từ resource hoặc dùng fallback
                 if (baseFont == null)
                 {
-                    baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+                    // Thử tìm DejaVu Sans trên Linux (thường có sẵn)
+                    try
+                    {
+                        baseFont = BaseFont.CreateFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    }
+                    catch
+                    {
+                        // Fallback: Dùng font mặc định nhưng vẫn cố gắng dùng IDENTITY_H
+                        // Lưu ý: Font này có thể không hiển thị tiếng Việt đúng
+                        try
+                        {
+                            baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                        }
+                        catch
+                        {
+                            baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+                        }
+                    }
                 }
 
                 // Khai báo font
