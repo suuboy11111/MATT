@@ -73,7 +73,24 @@ namespace MaiAmTinhThuong.Controllers
                 var payOsEndpoint = _configuration["PayOS:Endpoint"] ?? "https://api-merchant.payos.vn";
                 var response = await httpClient.PostAsync($"{payOsEndpoint}/v2/payment-requests", content);
                 var responseBody = await response.Content.ReadAsStringAsync();
-                var paymentLink = JsonSerializer.Deserialize<JsonElement>(responseBody);
+                using var doc = JsonDocument.Parse(responseBody);
+                var root = doc.RootElement;
+
+                // Kiểm tra response hợp lệ
+                if (!response.IsSuccessStatusCode ||
+                    !root.TryGetProperty("data", out var dataElement) ||
+                    dataElement.ValueKind != JsonValueKind.Object ||
+                    !dataElement.TryGetProperty("checkoutUrl", out var checkoutElement))
+                {
+                    var errorMessage = root.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String
+                        ? errEl.GetString()
+                        : root.TryGetProperty("message", out var msgEl) && msgEl.ValueKind == JsonValueKind.String
+                            ? msgEl.GetString()
+                            : $"PayOS API error (status {(int)response.StatusCode}). Body: {responseBody}";
+
+                    // Rollback transaction insert nếu cần? (để đơn giản giữ lại record Pending)
+                    return Json(new { success = false, message = "Có lỗi xảy ra khi tạo liên kết thanh toán: " + errorMessage });
+                }
 
                 // Lưu thông tin giao dịch vào database
                 var description = $"Ủng hộ tài chính - {request.DonorName}";
@@ -108,8 +125,8 @@ namespace MaiAmTinhThuong.Controllers
                 transaction.Description = updatedDescription;
                 await _context.SaveChangesAsync();
 
-                // Lấy CheckoutUrl từ response
-                var checkoutUrl = paymentLink.GetProperty("data").GetProperty("checkoutUrl").GetString();
+                // Lấy CheckoutUrl từ response (đã kiểm tra tồn tại ở trên)
+                var checkoutUrl = checkoutElement.GetString();
                 
                 return Json(new
                 {
