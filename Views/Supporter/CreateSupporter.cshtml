@@ -373,6 +373,14 @@
         margin-top: 1.5rem;
     }
 
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.show.active {
+        display: block;
+    }
+
     .support-guide-card {
         background: white;
         padding: 1.5rem;
@@ -599,31 +607,43 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        $(document).ready(function () {
-            // Hàm hiển thị tab theo loại hỗ trợ - đơn giản nhất
-            function showSupportTab(selectedValue) {
-                // Ẩn tất cả tabs
-                $('#supportTabsContent .tab-pane').removeClass('show active');
+        // Hàm hiển thị tab theo loại hỗ trợ
+        function showSupportTab(selectedValue) {
+            var wrapper = document.getElementById('supportGuideWrapper');
+            if (!wrapper) return;
 
-                // Nếu không chọn gì, ẩn toàn bộ phần hướng dẫn
-                if (!selectedValue || selectedValue === '') {
-                    $('#supportGuideWrapper').hide();
-                    return;
-                }
+            // Ẩn tất cả tabs
+            var allTabs = document.querySelectorAll('#supportTabsContent .tab-pane');
+            allTabs.forEach(function(tab) {
+                tab.classList.remove('show', 'active');
+            });
 
-                // Hiển thị phần hướng dẫn
-                $('#supportGuideWrapper').show();
-
-                // Hiển thị tab tương ứng
-                if (selectedValue == '1') {
-                    $('#financial').addClass('show active');
-                } else if (selectedValue == '2') {
-                    $('#material').addClass('show active');
-                } else if (selectedValue == '3') {
-                    $('#housing').addClass('show active');
-                }
+            // Nếu không chọn gì, ẩn toàn bộ phần hướng dẫn
+            if (!selectedValue || selectedValue === '') {
+                wrapper.style.display = 'none';
+                return;
             }
 
+            // Hiển thị phần hướng dẫn
+            wrapper.style.display = 'block';
+
+            // Hiển thị tab tương ứng
+            var targetTab = null;
+            if (selectedValue == '1') {
+                targetTab = document.getElementById('financial');
+            } else if (selectedValue == '2') {
+                targetTab = document.getElementById('material');
+            } else if (selectedValue == '3') {
+                targetTab = document.getElementById('housing');
+            }
+
+            if (targetTab) {
+                targetTab.classList.add('show', 'active');
+            }
+        }
+
+        // Sử dụng cả jQuery và vanilla JS để đảm bảo hoạt động
+        $(document).ready(function () {
             // Xử lý thay đổi loại hỗ trợ
             $('#supportType').on('change', function () {
                 var selectedValue = $(this).val();
@@ -635,6 +655,22 @@
             if (initialValue) {
                 showSupportTab(initialValue);
             }
+        });
+
+        // Fallback nếu jQuery chưa load
+        document.addEventListener('DOMContentLoaded', function() {
+            var supportTypeSelect = document.getElementById('supportType');
+            if (supportTypeSelect) {
+                supportTypeSelect.addEventListener('change', function() {
+                    showSupportTab(this.value);
+                });
+                
+                // Kiểm tra giá trị ban đầu
+                if (supportTypeSelect.value) {
+                    showSupportTab(supportTypeSelect.value);
+                }
+            }
+        });
 
             // Xử lý nút thanh toán PayOS
             $(document).on('click', '#btnPayNow', function (e) {
