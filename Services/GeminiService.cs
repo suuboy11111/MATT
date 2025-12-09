@@ -1,5 +1,5 @@
-﻿using System.Net.Http;
-using System.Net.Http.Json;
+﻿using Google.GenAI;
+using Google.GenAI.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -7,81 +7,74 @@ namespace MaiAmTinhThuong.Services
 {
     public class GeminiService
     {
-        private readonly HttpClient _http;
-        private readonly string _apiKey;
+        private readonly Client? _client;
         private readonly string _model;
         private readonly ILogger<GeminiService>? _logger;
 
-        public GeminiService(HttpClient http, IConfiguration config, ILogger<GeminiService>? logger = null)
+        public GeminiService(IConfiguration config, ILogger<GeminiService>? logger = null)
         {
-            _http = http;
-            _apiKey = config["GeminiApi:ApiKey"] ?? "";
-            // Model names đúng cho v1beta API: gemini-1.5-flash-latest hoặc gemini-1.5-pro-latest
-            _model = config["GeminiApi:Model"] ?? "gemini-1.5-flash-latest"; // Mặc định dùng Flash (nhanh, miễn phí tốt)
             _logger = logger;
             
-            if (string.IsNullOrWhiteSpace(_apiKey))
+            var apiKey = config["GeminiApi:ApiKey"] ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "";
+            _model = config["GeminiApi:Model"] ?? "gemini-2.5-flash"; // Mặc định dùng gemini-2.5-flash (theo tài liệu mới nhất)
+            
+            if (string.IsNullOrWhiteSpace(apiKey))
             {
-                _logger?.LogWarning("Gemini API key is not configured. Set GeminiApi:ApiKey in appsettings.json or environment variables.");
+                _logger?.LogWarning("Gemini API key is not configured. Set GeminiApi:ApiKey in appsettings.json or GEMINI_API_KEY environment variable.");
+                _client = null;
             }
             else
             {
-                _logger?.LogInformation("GeminiService initialized with model: {Model}", _model);
+                try
+                {
+                    // Google.GenAI SDK tự động lấy API key từ environment variable GEMINI_API_KEY
+                    // Set environment variable cho process hiện tại
+                    Environment.SetEnvironmentVariable("GEMINI_API_KEY", apiKey);
+                    
+                    // Khởi tạo Client - SDK sẽ tự động lấy API key từ GEMINI_API_KEY
+                    _client = new Client();
+                    _logger?.LogInformation("GeminiService initialized with model: {Model}", _model);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to initialize Gemini client: {Error}", ex.Message);
+                    _client = null;
+                }
             }
         }
 
         public async Task<string> ChatAsync(string prompt)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey))
+            if (_client == null)
             {
-                _logger?.LogWarning("Gemini API key not configured");
+                _logger?.LogWarning("Gemini client is not available - API key not configured");
                 return ""; // Trả về empty để fallback về rule-based
+            }
+
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                return "";
             }
 
             try
             {
-                // Google Gemini API endpoint
-                var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+                _logger?.LogInformation("Calling Gemini API with model: {Model}, prompt length: {Length}", _model, prompt.Length);
+                
+                // Sử dụng Google.GenAI SDK theo tài liệu chính thức
+                // Format: contents có thể là string hoặc Content object
+                var response = await _client.Models.GenerateContentAsync(
+                    model: _model,
+                    contents: prompt
+                );
 
-                // Request format theo Google Gemini API
-                var request = new
+                if (response?.Candidates != null && response.Candidates.Length > 0)
                 {
-                    contents = new[]
-                    {
-                        new
-                        {
-                            parts = new[]
-                            {
-                                new { text = prompt }
-                            }
-                        }
-                    },
-                    generationConfig = new
-                    {
-                        temperature = 0.7,
-                        topK = 40,
-                        topP = 0.95,
-                        maxOutputTokens = 500
-                    }
-                };
-
-                var response = await _http.PostAsJsonAsync(url, request);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger?.LogError("Gemini API error: {StatusCode} - {Error}", response.StatusCode, errorContent);
-                    return ""; // Trả về empty để fallback
-                }
-
-                var result = await response.Content.ReadFromJsonAsync<GeminiApiResponse>();
-
-                if (result?.Candidates != null && result.Candidates.Length > 0)
-                {
-                    var text = result.Candidates[0].Content?.Parts?[0]?.Text ?? "";
+                    var text = response.Candidates[0].Content?.Parts?[0]?.Text ?? "";
+                    _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
                     return text.Trim();
                 }
 
+                _logger?.LogWarning("Gemini API returned empty response");
                 return "";
             }
             catch (Exception ex)
@@ -90,26 +83,5 @@ namespace MaiAmTinhThuong.Services
                 return ""; // Trả về empty để fallback về rule-based
             }
         }
-    }
-
-    // Response model theo Google Gemini API format
-    public class GeminiApiResponse
-    {
-        public GeminiCandidate[]? Candidates { get; set; }
-    }
-
-    public class GeminiCandidate
-    {
-        public GeminiContent? Content { get; set; }
-    }
-
-    public class GeminiContent
-    {
-        public GeminiPart[]? Parts { get; set; }
-    }
-
-    public class GeminiPart
-    {
-        public string? Text { get; set; }
     }
 }

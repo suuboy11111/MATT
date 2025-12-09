@@ -2,7 +2,10 @@
 
 ## 📋 Tổng quan
 
+Dự án đã được cập nhật để sử dụng **Google.GenAI SDK** chính thức và model **gemini-2.5-flash** mới nhất.
+
 Google Gemini API có **tier miễn phí** với giới hạn:
+- **Gemini 2.5 Flash**: Model mới nhất, nhanh và miễn phí (khuyến nghị)
 - **Gemini 1.5 Flash**: 15 requests/phút, 1 triệu tokens/ngày (MIỄN PHÍ)
 - **Gemini 1.5 Pro**: 2 requests/phút, 50 requests/ngày (MIỄN PHÍ)
 
@@ -29,23 +32,27 @@ Mở file `appsettings.Development.json` và thêm:
 {
   "GeminiApi": {
     "ApiKey": "YOUR_API_KEY_HERE",
-    "Model": "gemini-1.5-flash-latest"
+    "Model": "gemini-pro"
   }
 }
 ```
 
-**Hoặc** dùng `gemini-1.5-pro-latest` nếu bạn muốn dùng Pro:
+**Hoặc** dùng `gemini-1.5-pro` nếu bạn muốn dùng Pro mới hơn:
 
 ```json
 {
   "GeminiApi": {
     "ApiKey": "YOUR_API_KEY_HERE",
-    "Model": "gemini-1.5-pro-latest"
+    "Model": "gemini-1.5-pro"
   }
 }
 ```
 
-⚠️ **Lưu ý**: Phải dùng `-latest` suffix cho model name (ví dụ: `gemini-1.5-flash-latest` thay vì `gemini-1.5-flash`)
+**Các model name hợp lệ (theo tài liệu mới nhất):**
+- `gemini-2.5-flash` - Model mới nhất, nhanh, khuyến nghị ⭐
+- `gemini-pro` - Model ổn định
+- `gemini-1.5-pro` - Model thông minh hơn
+- `gemini-1.5-flash` - Model nhanh, nhẹ
 
 ### Cách 2: Cấu hình Production (Railway)
 
@@ -55,7 +62,7 @@ Mở file `appsettings.Development.json` và thêm:
 
 ```
 GeminiApi_ApiKey=YOUR_API_KEY_HERE
-GeminiApi_Model=gemini-1.5-flash-latest
+GeminiApi_Model=gemini-pro
 ```
 
 **Lưu ý**: 
@@ -65,17 +72,27 @@ GeminiApi_Model=gemini-1.5-flash-latest
 
 ## 🎯 Bước 3: Chọn Model
 
-### Gemini 1.5 Flash (Khuyến nghị)
-- ✅ **Nhanh hơn** (phản hồi trong 1-2 giây)
-- ✅ **Miễn phí tốt** (15 req/phút, 1M tokens/ngày)
-- ✅ **Đủ dùng** cho chatbox thông thường
-- Cấu hình: `"Model": "gemini-1.5-flash-latest"`
+### Gemini 2.5 Flash (Khuyến nghị - Mới nhất) ⭐
+- ✅ **Model mới nhất** (theo tài liệu chính thức)
+- ✅ **Nhanh và thông minh**
+- ✅ **Miễn phí tốt**
+- Cấu hình: `"Model": "gemini-2.5-flash"`
+
+### Gemini Pro
+- ✅ **Ổn định** (model được hỗ trợ tốt)
+- ✅ **Miễn phí tốt** (60 req/phút)
+- Cấu hình: `"Model": "gemini-pro"`
 
 ### Gemini 1.5 Pro
 - ✅ **Thông minh hơn** (xử lý câu hỏi phức tạp tốt hơn)
 - ⚠️ **Chậm hơn** (3-5 giây)
 - ⚠️ **Giới hạn thấp hơn** (2 req/phút, 50 req/ngày)
-- Cấu hình: `"Model": "gemini-1.5-pro-latest"`
+- Cấu hình: `"Model": "gemini-1.5-pro"`
+
+### Gemini 1.5 Flash
+- ✅ **Nhanh hơn** (phản hồi trong 1-2 giây)
+- ✅ **Miễn phí tốt** (15 req/phút, 1M tokens/ngày)
+- Cấu hình: `"Model": "gemini-1.5-flash"`
 
 **Khuyến nghị**: Dùng **Flash** cho chatbox vì nhanh và đủ dùng.
 

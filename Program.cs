@@ -13,12 +13,8 @@ using PayOS;
 using MatchType = MaiAmTinhThuong.Models.MatchType;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddHttpClient<GeminiService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30); // 30s timeout cho Gemini API
-});
 
-// Đăng ký GeminiService
+// Đăng ký GeminiService (không cần HttpClient nữa vì dùng SDK)
 builder.Services.AddScoped<GeminiService>();
 
 
