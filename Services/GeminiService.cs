@@ -19,6 +19,15 @@ namespace MaiAmTinhThuong.Services
             // Model names đúng cho v1beta API: gemini-1.5-flash-latest hoặc gemini-1.5-pro-latest
             _model = config["GeminiApi:Model"] ?? "gemini-1.5-flash-latest"; // Mặc định dùng Flash (nhanh, miễn phí tốt)
             _logger = logger;
+            
+            if (string.IsNullOrWhiteSpace(_apiKey))
+            {
+                _logger?.LogWarning("Gemini API key is not configured. Set GeminiApi:ApiKey in appsettings.json or environment variables.");
+            }
+            else
+            {
+                _logger?.LogInformation("GeminiService initialized with model: {Model}", _model);
+            }
         }
 
         public async Task<string> ChatAsync(string prompt)

@@ -24,9 +24,18 @@ public class RuleBotController : ControllerBase
         try
         {
             _geminiService = serviceProvider.GetService<GeminiService>();
+            if (_geminiService != null)
+            {
+                _logger.LogInformation("GeminiService successfully injected");
+            }
+            else
+            {
+                _logger.LogWarning("GeminiService is null - check service registration and configuration");
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error getting GeminiService from service provider");
             _geminiService = null;
         }
     }
@@ -114,6 +123,7 @@ public class RuleBotController : ControllerBase
         // Fallback: Thử dùng Gemini AI nếu có
         if (_geminiService != null)
         {
+            _logger.LogInformation("Gemini service available, attempting AI response");
             try
             {
                 var contextPrompt = $@"Bạn là trợ lý ảo của Mái Ấm Tình Thương - một tổ chức từ thiện giúp đỡ trẻ em và gia đình khó khăn.
@@ -128,17 +138,28 @@ Hãy trả lời câu hỏi của người dùng một cách thân thiện, ng�
 
 Câu hỏi: {req.Message}";
                 
+                _logger.LogInformation("Calling Gemini API with prompt length: {Length}", contextPrompt.Length);
                 var aiReply = await _geminiService.ChatAsync(contextPrompt);
+                _logger.LogInformation("Gemini API response received: {Length} chars", aiReply?.Length ?? 0);
                 
                 if (!string.IsNullOrWhiteSpace(aiReply) && !aiReply.StartsWith("Lỗi"))
                 {
+                    _logger.LogInformation("Using Gemini AI response");
                     return Ok(new { reply = aiReply });
+                }
+                else
+                {
+                    _logger.LogWarning("Gemini returned empty or error response: {Reply}", aiReply ?? "null");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Gemini AI fallback failed, using default message");
+                _logger.LogError(ex, "Gemini AI fallback failed, using default message");
             }
+        }
+        else
+        {
+            _logger.LogWarning("Gemini service is null - not configured or not injected");
         }
 
         // Fallback cuối cùng
