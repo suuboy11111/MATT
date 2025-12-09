@@ -231,14 +231,14 @@
                         {
                             <!-- Notification Bell -->
                             <li class="nav-item dropdown" style="position: relative; list-style: none;">
-                                <a class="nav-link position-relative d-flex align-items-center" href="javascript:void(0);" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="event.preventDefault(); event.stopPropagation();" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: flex !important; position: relative; visibility: visible !important; opacity: 1 !important; cursor: pointer;">
+                                <a class="nav-link position-relative d-flex align-items-center" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: flex !important; position: relative; visibility: visible !important; opacity: 1 !important;">
                                     <i class="fas fa-bell" style="position: relative; z-index: 1; display: inline-block !important; visibility: visible !important; opacity: 1 !important; font-size: 1.25rem !important; color: #333 !important; margin-right: 0.5rem;"></i>
                                     <span class="notification-text" style="font-size: 0.875rem; color: #333;">Thông báo</span>
                                     <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; z-index: 2; font-size: 0.7rem; padding: 0.25em 0.5em; min-width: 20px; text-align: center;">
                                         0
                                     </span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end notification-dropdown" id="notificationList" aria-labelledby="notificationDropdown" style="z-index: 1050;">
+                                <ul class="dropdown-menu dropdown-menu-end notification-dropdown" id="notificationList" aria-labelledby="notificationDropdown">
                                     <li class="dropdown-header notification-header">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="d-flex align-items-center">
@@ -998,13 +998,6 @@
                 // Auto-refresh khi dropdown được mở
                 const notificationDropdown = document.getElementById("notificationDropdown");
                 if (notificationDropdown) {
-                    // Prevent default link behavior và redirect
-                    notificationDropdown.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return false;
-                    }, true);
-                    
                     // Xóa tất cả dấu chấm đen xung quanh notification bell - CHỈ ẩn ::after và ::before của link
                     const style = document.createElement('style');
                     style.textContent = `
@@ -1025,54 +1018,10 @@
                     `;
                     document.head.appendChild(style);
                     
-                    // Initialize dropdown với options
-                    try {
-                        const dropdownElement = new bootstrap.Dropdown(notificationDropdown, {
-                            boundary: document.body,
-                            popperConfig: {
-                                modifiers: [
-                                    {
-                                        name: 'preventOverflow',
-                                        options: {
-                                            boundary: document.body
-                                        }
-                                    },
-                                    {
-                                        name: 'offset',
-                                        options: {
-                                            offset: [0, 8]
-                                        }
-                                    }
-                                ]
-                            }
-                        });
-                        
-                        // Load notifications when dropdown is shown
-                        notificationDropdown.addEventListener('shown.bs.dropdown', function () {
-                            loadNotifications();
-                        });
-                        
-                        // Close dropdown when clicking outside
-                        document.addEventListener('click', function(e) {
-                            if (!notificationDropdown.contains(e.target) && 
-                                !document.getElementById('notificationList')?.contains(e.target)) {
-                                const dropdown = bootstrap.Dropdown.getInstance(notificationDropdown);
-                                if (dropdown && dropdown._isShown()) {
-                                    dropdown.hide();
-                                }
-                            }
-                        });
-                    } catch (error) {
-                        console.error('Error initializing notification dropdown:', error);
-                    }
-                    
-                    // Prevent dropdown from closing when clicking inside
-                    const notificationList = document.getElementById('notificationList');
-                    if (notificationList) {
-                        notificationList.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                        });
-                    }
+                    const dropdownElement = new bootstrap.Dropdown(notificationDropdown);
+                    notificationDropdown.addEventListener('shown.bs.dropdown', function () {
+                        loadNotifications();
+                    });
                 }
 
                 // Mark all as read

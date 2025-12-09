@@ -55,3 +55,4 @@ Write-Host "`n✅ Hoàn tất!" -ForegroundColor Green
 Write-Host "Kiểm tra font đã tải:" -ForegroundColor Cyan
 Get-ChildItem $fontDir -Filter "*.ttf" | Select-Object Name, Length
 
+

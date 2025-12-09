@@ -17,3 +17,4 @@ powershell -ExecutionPolicy Bypass -File "%~dp0download-fonts.ps1"
 
 pause
 
+

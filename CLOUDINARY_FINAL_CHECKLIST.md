@@ -60,3 +60,4 @@ Sau khi tất cả đã hoạt động:
 - ✅ Tự động optimize format và quality
 
 
+
