@@ -77,7 +77,7 @@ namespace MaiAmTinhThuong.Services
                         temperature = 0.7,
                         topK = 40,
                         topP = 0.95,
-                        maxOutputTokens = 500
+                        maxOutputTokens = 2048 // Tăng lên để tránh bị cắt
                     }
                 };
 
@@ -108,16 +108,34 @@ namespace MaiAmTinhThuong.Services
                 if (result?.Candidates != null && result.Candidates.Length > 0)
                 {
                     var candidate = result.Candidates[0];
+                    
+                    // Kiểm tra finishReason
+                    var finishReason = GetPropertyValue(responseContent, "candidates[0].finishReason");
+                    if (finishReason == "MAX_TOKENS")
+                    {
+                        _logger?.LogWarning("Gemini API response was truncated due to MAX_TOKENS limit");
+                    }
+                    
                     if (candidate?.Content?.Parts != null && candidate.Content.Parts.Length > 0)
                     {
                         var text = candidate.Content.Parts[0]?.Text ?? "";
-                        _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
-                        return text.Trim();
+                        if (!string.IsNullOrWhiteSpace(text))
+                        {
+                            _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
+                            return text.Trim();
+                        }
                     }
-                    else
+                    
+                    // Nếu không có text trong parts, thử parse trực tiếp từ JSON
+                    var textFromJson = ExtractTextFromJson(responseContent);
+                    if (!string.IsNullOrWhiteSpace(textFromJson))
                     {
-                        _logger?.LogWarning("Gemini API response has candidates but no text parts");
+                        _logger?.LogInformation("Gemini API response extracted from JSON: {Length} chars", textFromJson.Length);
+                        return textFromJson.Trim();
                     }
+                    
+                    _logger?.LogWarning("Gemini API response has candidates but no text. FinishReason: {Reason}, Response: {Response}", 
+                        finishReason ?? "unknown", responseContent);
                 }
                 else
                 {
@@ -131,6 +149,64 @@ namespace MaiAmTinhThuong.Services
                 _logger?.LogError(ex, "Error calling Gemini API: {Error}", ex.Message);
                 return ""; // Trả về empty để fallback về rule-based
             }
+        }
+
+        private string? GetPropertyValue(string json, string path)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var parts = path.Split('.');
+                JsonElement element = doc.RootElement;
+                
+                foreach (var part in parts)
+                {
+                    if (part.Contains('[') && part.Contains(']'))
+                    {
+                        var name = part.Substring(0, part.IndexOf('['));
+                        var index = int.Parse(part.Substring(part.IndexOf('[') + 1, part.IndexOf(']') - part.IndexOf('[') - 1));
+                        element = element.GetProperty(name)[index];
+                    }
+                    else
+                    {
+                        element = element.GetProperty(part);
+                    }
+                }
+                
+                return element.GetString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string ExtractTextFromJson(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+                {
+                    var candidate = candidates[0];
+                    if (candidate.TryGetProperty("content", out var content))
+                    {
+                        if (content.TryGetProperty("parts", out var parts) && parts.GetArrayLength() > 0)
+                        {
+                            var part = parts[0];
+                            if (part.TryGetProperty("text", out var text))
+                            {
+                                return text.GetString() ?? "";
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning("Error extracting text from JSON: {Error}", ex.Message);
+            }
+            return "";
         }
     }
 
