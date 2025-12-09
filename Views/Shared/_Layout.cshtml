@@ -6,7 +6,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
     <title>@ViewData["Title"] - Mái Ấm Tình Thương</title>
     <meta name="description" content="Mái Ấm Tình Thương - Nơi kết nối yêu thương, chia sẻ và hỗ trợ những hoàn cảnh khó khăn" />
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg?v=3" />
@@ -680,14 +680,32 @@
 
         @@media (max-width: 768px) {
             .chat-widget {
-                width: calc(100% - 20px);
-                bottom: 10px;
-                right: 10px;
-                left: 10px;
+                width: calc(100% - 2rem) !important;
+                max-width: 100% !important;
+                bottom: 1rem !important;
+                left: 50% !important;
+                right: auto !important;
+                transform: translateX(-50%) !important;
+                margin: 0 auto !important;
             }
 
             .chat-messages {
                 max-height: 50vh;
+            }
+            
+            .chat-header {
+                padding: 14px !important;
+            }
+            
+            .chat-body {
+                max-height: 70vh !important;
+            }
+        }
+        
+        @@media (max-width: 576px) {
+            .chat-widget {
+                width: calc(100% - 1rem) !important;
+                bottom: 0.75rem !important;
             }
         }
     </style>

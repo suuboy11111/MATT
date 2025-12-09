@@ -857,6 +857,9 @@ a.btn-outline-primary::before {
         overflow-x: hidden;
         width: 100%;
         position: relative;
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        text-size-adjust: 100%;
     }
 
     body {
@@ -864,14 +867,23 @@ a.btn-outline-primary::before {
         width: 100%;
         position: relative;
         -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
+        touch-action: pan-y pinch-zoom;
+        /* Prevent zoom gestures */
+        -ms-touch-action: pan-y;
     }
 
-    /* Fix container overflow */
+    /* Fix container overflow and center alignment */
     .container,
     .container-fluid {
         max-width: 100%;
         overflow-x: hidden;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     /* Optimize touch targets - minimum 44x44px on mobile only */
@@ -880,6 +892,8 @@ a.btn-outline-primary::before {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
     }
 
     /* Fix navbar on mobile */
@@ -890,6 +904,35 @@ a.btn-outline-primary::before {
         width: 100%;
         max-width: 100vw;
         overflow-x: hidden;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    /* Ensure all content is centered */
+    * {
+        max-width: 100%;
+    }
+    
+    /* Fix images and media */
+    img, video, iframe, embed, object {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Prevent text selection causing zoom on iOS */
+    input, textarea, select {
+        font-size: 16px !important;
+        -webkit-appearance: none;
+        border-radius: 0;
+    }
+    
+    /* Disable double-tap zoom */
+    * {
+        touch-action: manipulation;
+    }
+    
+    a, button {
+        touch-action: manipulation;
     }
 }
 
@@ -909,6 +952,15 @@ a.btn-outline-primary::before {
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
+    /* Reset and center everything */
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+        position: relative;
+    }
+    
     h1 { font-size: 2rem; }
     h2 { font-size: 1.75rem; }
     h3 { font-size: 1.5rem; }
@@ -919,8 +971,22 @@ a.btn-outline-primary::before {
         font-size: 2rem;
     }
     
+    /* Fix navbar - ensure centered */
     .navbar {
         padding: 0.5rem 1rem !important;
+        margin: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .navbar .container-fluid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     .navbar-brand {
@@ -929,6 +995,7 @@ a.btn-outline-primary::before {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        margin: 0 !important;
     }
     
     .navbar-brand span:first-child {
@@ -938,6 +1005,8 @@ a.btn-outline-primary::before {
     .navbar-nav {
         width: 100%;
         margin-top: 0.5rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
     
     .navbar-nav .nav-link {
@@ -954,6 +1023,7 @@ a.btn-outline-primary::before {
     
     .navbar-nav .nav-item {
         width: 100%;
+        margin: 0 !important;
     }
     
     .navbar-nav .dropdown-menu {
@@ -974,6 +1044,7 @@ a.btn-outline-primary::before {
         max-height: calc(100vh - 80px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        width: 100% !important;
     }
     
     .navbar-collapse .d-flex {
@@ -1014,6 +1085,7 @@ a.btn-outline-primary::before {
     /* Prevent horizontal scroll */
     * {
         max-width: 100%;
+        box-sizing: border-box;
     }
     
     img, video, iframe {
@@ -1021,35 +1093,90 @@ a.btn-outline-primary::before {
         height: auto;
     }
     
-    /* Fix container padding */
+    /* Fix container padding and centering */
     .container,
     .container-fluid {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Center all sections */
+    section {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        width: 100% !important;
+    }
+    
+    section .container,
+    section .container-fluid {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    /* Fix cards and content alignment */
+    .card, .card-body {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Fix row and columns */
+    .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    
+    [class*="col-"] {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
     }
     
     section {
         padding: var(--spacing-xl) 0;
+        width: 100% !important;
+        margin: 0 !important;
     }
     
     .hero-section {
         min-height: 70vh !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+    
+    .hero-section .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
     
     .hero-title {
         font-size: 2rem !important;
         line-height: 1.3 !important;
         padding: 0 1rem;
+        text-align: center;
     }
     
     .hero-subtitle {
         font-size: 1.1rem !important;
         padding: 0 1rem;
+        text-align: center;
     }
     
     .btn-hero {
         padding: 0.75rem 2rem !important;
         font-size: 0.95rem !important;
+        display: block;
+        margin: 0 auto;
     }
     
     .hero-slide {
@@ -1062,6 +1189,7 @@ a.btn-outline-primary::before {
     
     .service-card {
         margin-bottom: 1.5rem;
+        width: 100%;
     }
     
     .card-body {
@@ -1070,31 +1198,39 @@ a.btn-outline-primary::before {
     
     .footer {
         padding: var(--spacing-xl) 0 var(--spacing-md);
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    .footer .container {
+        width: 100% !important;
+        max-width: 100% !important;
     }
     
     .footer .row {
         text-align: center;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
     
     .footer .col-md-4 {
         margin-bottom: 2rem;
     }
     
-    /* Chat widget mobile */
-    #geminiChat {
-        width: calc(100% - 2rem) !important;
+    /* Main content area */
+    main {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden;
+    }
+    
+    /* Ensure all content is properly centered */
+    body > * {
+        width: 100% !important;
         max-width: 100% !important;
-        bottom: 10px !important;
-        right: 10px !important;
-        left: 10px !important;
-    }
-    
-    #chatBody {
-        max-height: 60vh !important;
-    }
-    
-    #chatMessages {
-        height: calc(60vh - 100px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 }
 

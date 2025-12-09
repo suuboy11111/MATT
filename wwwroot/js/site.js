@@ -99,15 +99,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Prevent zoom on double tap (iOS)
+    // Prevent zoom on double tap and pinch (iOS/Android)
     let lastTouchEnd = 0;
+    let lastTouchDistance = 0;
+    
+    document.addEventListener('touchstart', function(event) {
+        if (event.touches.length > 1) {
+            // Pinch zoom detected
+            const touch1 = event.touches[0];
+            const touch2 = event.touches[1];
+            lastTouchDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+            );
+        }
+    }, { passive: false });
+    
+    document.addEventListener('touchmove', function(event) {
+        if (event.touches.length > 1) {
+            // Prevent pinch zoom
+            event.preventDefault();
+        }
+    }, { passive: false });
+    
     document.addEventListener('touchend', function(event) {
         const now = Date.now();
+        // Prevent double-tap zoom
         if (now - lastTouchEnd <= 300) {
             event.preventDefault();
         }
         lastTouchEnd = now;
-    }, false);
+        lastTouchDistance = 0;
+    }, { passive: false });
+    
+    // Disable zoom on input focus (iOS)
+    const inputs = document.querySelectorAll('input, textarea, select');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            if (window.innerWidth < 992) {
+                this.style.fontSize = '16px';
+            }
+        });
+    });
     
     // Fix viewport height on mobile browsers
     function setViewportHeight() {
