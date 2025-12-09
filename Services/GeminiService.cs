@@ -95,16 +95,35 @@ namespace MaiAmTinhThuong.Services
                     return ""; // Trả về empty để fallback
                 }
 
-                var result = await response.Content.ReadFromJsonAsync<GeminiApiResponse>();
+                // Đọc response content để debug
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger?.LogInformation("Gemini API raw response: {Response}", responseContent);
+
+                // Parse JSON response
+                var result = JsonSerializer.Deserialize<GeminiApiResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
                 if (result?.Candidates != null && result.Candidates.Length > 0)
                 {
-                    var text = result.Candidates[0].Content?.Parts?[0]?.Text ?? "";
-                    _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
-                    return text.Trim();
+                    var candidate = result.Candidates[0];
+                    if (candidate?.Content?.Parts != null && candidate.Content.Parts.Length > 0)
+                    {
+                        var text = candidate.Content.Parts[0]?.Text ?? "";
+                        _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
+                        return text.Trim();
+                    }
+                    else
+                    {
+                        _logger?.LogWarning("Gemini API response has candidates but no text parts");
+                    }
+                }
+                else
+                {
+                    _logger?.LogWarning("Gemini API response has no candidates. Full response: {Response}", responseContent);
                 }
 
-                _logger?.LogWarning("Gemini API returned empty response");
                 return "";
             }
             catch (Exception ex)
