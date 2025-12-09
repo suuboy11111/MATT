@@ -693,15 +693,21 @@
     </style>
 
     <script>
-        // Chat history management - Lưu riêng cho từng user hoặc tắt hoàn toàn
+        // Chat history management - Lưu riêng cho từng user đã đăng nhập
         @{
-            var userId = User.Identity.IsAuthenticated ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value : "anonymous";
+            var userId = User.Identity.IsAuthenticated ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value : null;
+            var isAuthenticated = User.Identity.IsAuthenticated;
         }
-        const CHAT_STORAGE_KEY = '@(User.Identity.IsAuthenticated ? $"maiam_chat_history_{userId}" : "maiam_chat_history")';
-        const ENABLE_CHAT_HISTORY = false; // Tắt lưu lịch sử chat
+        const IS_USER_AUTHENTICATED = @(isAuthenticated ? "true" : "false");
+        const USER_ID = '@(userId ?? "")';
+        const CHAT_STORAGE_KEY = IS_USER_AUTHENTICATED && USER_ID ? `maiam_chat_history_${USER_ID}` : null;
+        const ENABLE_CHAT_HISTORY = IS_USER_AUTHENTICATED; // Chỉ lưu cho user đã đăng nhập
         
         function loadChatHistory() {
-            if (!ENABLE_CHAT_HISTORY) return; // Không load nếu đã tắt
+            if (!ENABLE_CHAT_HISTORY || !CHAT_STORAGE_KEY) {
+                console.log('Chat history disabled or user not authenticated');
+                return;
+            }
             
             try {
                 const history = localStorage.getItem(CHAT_STORAGE_KEY);
@@ -717,6 +723,7 @@
                             addMessageToUI(msg.text, msg.isUser, msg.time);
                         });
                         scrollToBottom();
+                        console.log(`Loaded ${messages.length} messages from history for user: ${USER_ID}`);
                     }
                 }
             } catch (e) {
@@ -725,7 +732,9 @@
         }
 
         function saveChatHistory(text, isUser) {
-            if (!ENABLE_CHAT_HISTORY) return; // Không lưu nếu đã tắt
+            if (!ENABLE_CHAT_HISTORY || !CHAT_STORAGE_KEY) {
+                return; // Chỉ lưu cho user đã đăng nhập
+            }
             
             try {
                 let history = [];
@@ -746,12 +755,18 @@
                 }
                 
                 localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history));
+                console.log(`Saved message to history for user: ${USER_ID}`);
             } catch (e) {
                 console.error('Error saving chat history:', e);
             }
         }
 
         function clearChatHistory() {
+            if (!CHAT_STORAGE_KEY) {
+                alert('Bạn cần đăng nhập để sử dụng tính năng này.');
+                return;
+            }
+            
             if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat?')) {
                 localStorage.removeItem(CHAT_STORAGE_KEY);
                 const messagesContainer = document.getElementById('chatMessages');
@@ -766,6 +781,7 @@
                     const quickReplies = document.getElementById('quickReplies');
                     if (quickReplies) quickReplies.style.display = 'flex';
                 }
+                console.log(`Cleared chat history for user: ${USER_ID}`);
             }
         }
 
@@ -982,6 +998,9 @@
                 const clearBtn = document.getElementById('clearChatBtn');
                 if (clearBtn) {
                     clearBtn.style.display = ENABLE_CHAT_HISTORY ? 'block' : 'none';
+                    if (ENABLE_CHAT_HISTORY) {
+                        clearBtn.title = `Xóa lịch sử chat (User: ${USER_ID})`;
+                    }
                 }
                 
                 // Load history nếu được bật
