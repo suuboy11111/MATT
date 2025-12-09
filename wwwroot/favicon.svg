@@ -1,11 +1,11 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="faviconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#ff4757;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#ee5a6f;stop-opacity:1" />
     </linearGradient>
   </defs>
   <path d="M16 28C16 28 6 20 6 13C6 9 9 6 13 6C15 6 16 7 16 9C16 7 17 6 19 6C23 6 26 9 26 13C26 20 16 28 16 28Z" 
-        fill="url(#faviconGradient)"/>
+        fill="url(#heartGrad)"/>
 </svg>
