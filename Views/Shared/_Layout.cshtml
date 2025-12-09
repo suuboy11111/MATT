@@ -1007,7 +1007,7 @@
                     }, true);
                     
                     // Prevent touch events on mobile - handle separately
-                    let touchStartTime = 0;
+                    var touchStartTime = 0;
                     notificationDropdown.addEventListener('touchstart', function(e) {
                         touchStartTime = Date.now();
                         e.stopPropagation();
@@ -1019,34 +1019,18 @@
                         e.stopImmediatePropagation();
                         
                         // Only trigger if it's a quick tap (not a scroll)
-                        const touchDuration = Date.now() - touchStartTime;
-                        if (touchDuration < 300) {
+                        var touchDuration = Date.now() - touchStartTime;
+                        var maxDuration = 300;
+                        var isQuickTap = !(touchDuration >= maxDuration);
+                        if (isQuickTap) {
                             // Use Bootstrap dropdown toggle instead of direct click
-                            const dropdown = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
+                            var dropdown = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
                             dropdown.toggle();
                         }
                         return false;
                     }, { passive: false });
                     
-                    // Xóa tất cả dấu chấm đen xung quanh notification bell - CHỈ ẩn ::after và ::before của link
-                    const style = document.createElement('style');
-                    style.textContent = `
-                        #notificationDropdown::after,
-                        #notificationDropdown::before,
-                        .nav-item.dropdown:has(#notificationDropdown)::after,
-                        .nav-item.dropdown:has(#notificationDropdown)::before {
-                            display: none !important;
-                            content: "" !important;
-                            border: none !important;
-                            width: 0 !important;
-                            height: 0 !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            opacity: 0 !important;
-                            visibility: hidden !important;
-                        }
-                    `;
-                    document.head.appendChild(style);
+                    // Xóa tất cả dấu chấm đen xung quanh notification bell - CSS đã được đưa vào file CSS riêng
                     
                     // Initialize dropdown với proper configuration
                     try {
