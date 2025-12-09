@@ -998,36 +998,32 @@
                 // Auto-refresh khi dropdown được mở
                 const notificationDropdown = document.getElementById("notificationDropdown");
                 if (notificationDropdown) {
-                    // Prevent default link behavior và redirect - MUST be first
+                    // Prevent default link behavior (href="#") nhưng vẫn cho phép Bootstrap xử lý
                     notificationDropdown.addEventListener('click', function(e) {
+                        // Chỉ prevent default để tránh scroll to top, nhưng không stop propagation
+                        // để Bootstrap dropdown có thể xử lý toggle
                         e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        return false;
-                    }, true);
+                        // Không stop propagation để Bootstrap có thể xử lý
+                    });
                     
                     // Prevent touch events on mobile - handle separately
                     var touchStartTime = 0;
                     notificationDropdown.addEventListener('touchstart', function(e) {
                         touchStartTime = Date.now();
-                        e.stopPropagation();
                     }, { passive: true });
                     
                     notificationDropdown.addEventListener('touchend', function(e) {
                         e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
                         
                         // Only trigger if it's a quick tap (not a scroll)
                         var touchDuration = Date.now() - touchStartTime;
                         var maxDuration = 300;
                         var isQuickTap = !(touchDuration >= maxDuration);
                         if (isQuickTap) {
-                            // Use Bootstrap dropdown toggle instead of direct click
+                            // Use Bootstrap dropdown toggle
                             var dropdown = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
                             dropdown.toggle();
                         }
-                        return false;
                     }, { passive: false });
                     
                     // Xóa tất cả dấu chấm đen xung quanh notification bell - CSS đã được đưa vào file CSS riêng
@@ -1059,50 +1055,29 @@
                             loadNotifications();
                         });
                         
-                        // Prevent dropdown from hiding immediately
-                        notificationDropdown.addEventListener('hide.bs.dropdown', function (e) {
-                            // Allow hiding only if clicking outside
-                            const clickTarget = e.relatedTarget || document.activeElement;
-                            if (clickTarget && (notificationDropdown.contains(clickTarget) || 
-                                document.getElementById('notificationList')?.contains(clickTarget))) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                        });
-                        
-                        // Prevent dropdown from closing when clicking inside
+                        // Prevent dropdown from closing when clicking inside notification list
                         const notificationList = document.getElementById('notificationList');
                         if (notificationList) {
                             notificationList.addEventListener('click', function(e) {
-                                e.stopPropagation();
-                                // Only allow clicks on buttons and links
-                                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                                    return; // Allow button clicks
-                                }
+                                // Chỉ stop propagation cho các clicks bên trong notification list
+                                // để dropdown không đóng khi click vào notification items
                                 if (e.target.closest('.notification-item') && !e.target.closest('button')) {
                                     e.stopPropagation();
                                 }
-                            }, true);
-                            
-                            notificationList.addEventListener('touchend', function(e) {
-                                e.stopPropagation();
-                            }, { passive: true });
+                                // Cho phép button clicks hoạt động bình thường
+                            });
                         }
                         
-                        // Close dropdown when clicking outside (but not on the bell itself)
-                        // Use a small delay to prevent immediate closing
-                        let clickOutsideHandler = null;
+                        // Close dropdown when clicking outside
                         document.addEventListener('click', function(e) {
-                            clearTimeout(clickOutsideHandler);
-                            clickOutsideHandler = setTimeout(function() {
+                            const dropdown = bootstrap.Dropdown.getInstance(notificationDropdown);
+                            if (dropdown && dropdown._isShown()) {
+                                // Nếu click bên ngoài cả bell và dropdown menu
                                 if (!notificationDropdown.contains(e.target) && 
                                     !document.getElementById('notificationList')?.contains(e.target)) {
-                                    const dropdown = bootstrap.Dropdown.getInstance(notificationDropdown);
-                                    if (dropdown && dropdown._isShown()) {
-                                        dropdown.hide();
-                                    }
+                                    dropdown.hide();
                                 }
-                            }, 100);
+                            }
                         });
                     } catch (error) {
                         console.error('Error initializing notification dropdown:', error);
