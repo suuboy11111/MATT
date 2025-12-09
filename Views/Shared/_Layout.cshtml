@@ -402,7 +402,7 @@
 
             <!-- Input Area -->
             <div class="chat-input-area">
-                <button id="clearChatBtn" class="chat-btn-icon" title="Xóa lịch sử" onclick="clearChatHistory()">
+                <button id="clearChatBtn" class="chat-btn-icon" title="Xóa lịch sử" onclick="clearChatHistory()" style="display: none;">
                     <i class="fas fa-trash-alt"></i>
                 </button>
                 <div class="input-group">
@@ -428,6 +428,11 @@
             border-radius: var(--radius-xl);
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            /* Tối ưu để tránh layout shift */
+            contain: layout style paint;
+            will-change: transform;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
         .chat-widget:hover {
@@ -522,9 +527,15 @@
             flex: 1;
             padding: 16px;
             overflow-y: auto;
+            overflow-x: hidden;
             background: var(--gray-50);
             min-height: 300px;
             max-height: 400px;
+            /* Tối ưu scroll performance */
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            /* Tránh layout shift */
+            contain: layout style;
         }
 
         .chat-welcome {
@@ -546,6 +557,9 @@
             display: flex;
             margin-bottom: 16px;
             animation: slideIn 0.3s ease;
+            /* Tối ưu rendering */
+            contain: layout style;
+            will-change: transform, opacity;
         }
 
         @@keyframes slideIn {
@@ -679,10 +693,16 @@
     </style>
 
     <script>
-        // Chat history management
-        const CHAT_STORAGE_KEY = 'maiam_chat_history';
+        // Chat history management - Lưu riêng cho từng user hoặc tắt hoàn toàn
+        @{
+            var userId = User.Identity.IsAuthenticated ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value : "anonymous";
+        }
+        const CHAT_STORAGE_KEY = '@(User.Identity.IsAuthenticated ? $"maiam_chat_history_{userId}" : "maiam_chat_history")';
+        const ENABLE_CHAT_HISTORY = false; // Tắt lưu lịch sử chat
         
         function loadChatHistory() {
+            if (!ENABLE_CHAT_HISTORY) return; // Không load nếu đã tắt
+            
             try {
                 const history = localStorage.getItem(CHAT_STORAGE_KEY);
                 if (history) {
@@ -705,6 +725,8 @@
         }
 
         function saveChatHistory(text, isUser) {
+            if (!ENABLE_CHAT_HISTORY) return; // Không lưu nếu đã tắt
+            
             try {
                 let history = [];
                 const stored = localStorage.getItem(CHAT_STORAGE_KEY);
@@ -740,6 +762,9 @@
                             <div class="chat-welcome-text">Xin chào! Mình có thể giúp gì cho bạn?</div>
                         </div>
                     `;
+                    // Show quick replies again
+                    const quickReplies = document.getElementById('quickReplies');
+                    if (quickReplies) quickReplies.style.display = 'flex';
                 }
             }
         }
@@ -923,8 +948,58 @@
                 });
             }
 
-            // Load chat history on page load
-            loadChatHistory();
+            // Khởi tạo chat widget - đảm bảo luôn hiển thị đúng
+            function initializeChat() {
+                const chatWidget = document.getElementById('geminiChat');
+                const chatBody = document.getElementById('chatBody');
+                
+                if (!chatWidget || !chatBody) {
+                    console.error('Chat widget elements not found');
+                    return;
+                }
+                
+                // Đảm bảo chat widget được render đúng
+                chatWidget.style.visibility = 'visible';
+                chatBody.style.display = 'none'; // Mặc định đóng
+                
+                // Reset messages container về trạng thái ban đầu
+                const messagesContainer = document.getElementById('chatMessages');
+                if (messagesContainer) {
+                    // Kiểm tra xem có welcome message chưa
+                    const welcome = messagesContainer.querySelector('.chat-welcome');
+                    if (!welcome && !ENABLE_CHAT_HISTORY) {
+                        // Nếu không có welcome và không load history, thêm welcome message
+                        messagesContainer.innerHTML = `
+                            <div class="chat-welcome">
+                                <div class="chat-welcome-icon">💬</div>
+                                <div class="chat-welcome-text">Xin chào! Mình có thể giúp gì cho bạn?</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Ẩn/hiện nút clear chat dựa trên ENABLE_CHAT_HISTORY
+                const clearBtn = document.getElementById('clearChatBtn');
+                if (clearBtn) {
+                    clearBtn.style.display = ENABLE_CHAT_HISTORY ? 'block' : 'none';
+                }
+                
+                // Load history nếu được bật
+                if (ENABLE_CHAT_HISTORY) {
+                    loadChatHistory();
+                }
+            }
+            
+            // Khởi tạo ngay khi DOM ready
+            initializeChat();
+            
+            // Đảm bảo chat widget luôn hiển thị đúng sau khi page load hoàn toàn
+            window.addEventListener('load', function() {
+                const chatWidget = document.getElementById('geminiChat');
+                if (chatWidget) {
+                    chatWidget.style.visibility = 'visible';
+                }
+            });
 
             // Load notifications
             @if (User.Identity.IsAuthenticated)
