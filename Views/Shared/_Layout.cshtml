@@ -746,7 +746,15 @@
 
         function addMessageToUI(text, isUser, time = null) {
             const messagesContainer = document.getElementById('chatMessages');
-            if (!messagesContainer) return;
+            if (!messagesContainer) {
+                console.error('chatMessages container not found');
+                return;
+            }
+
+            if (!text || text.trim() === '') {
+                console.warn('Empty message text');
+                return;
+            }
 
             // Remove welcome message if exists
             const welcome = messagesContainer.querySelector('.chat-welcome');
@@ -756,17 +764,21 @@
                 time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
             }
 
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    ${escapeHtml(text).replace(/\n/g, '<br>')}
-                    <div class="message-time">${time}</div>
-                </div>
-            `;
+            try {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        ${escapeHtml(text).replace(/\n/g, '<br>')}
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
 
-            messagesContainer.appendChild(messageDiv);
-            scrollToBottom();
+                messagesContainer.appendChild(messageDiv);
+                scrollToBottom();
+            } catch (error) {
+                console.error('Error adding message to UI:', error);
+            }
         }
 
         function scrollToBottom() {
@@ -792,7 +804,10 @@
             const sendBtn = document.getElementById("sendBtn");
             const messagesContainer = document.getElementById("chatMessages");
             
-            if (!input || !messagesContainer) return;
+            if (!input || !messagesContainer) {
+                console.error('Chat elements not found');
+                return;
+            }
 
             const messageText = text || input.value.trim();
             if (!messageText) return;
@@ -804,9 +819,13 @@
             }
             if (sendBtn) sendBtn.disabled = true;
 
-            // Add user message
-            addMessageToUI(messageText, true);
-            saveChatHistory(messageText, true);
+            // Add user message FIRST (before API call)
+            try {
+                addMessageToUI(messageText, true);
+                saveChatHistory(messageText, true);
+            } catch (error) {
+                console.error('Error adding user message:', error);
+            }
 
             // Hide quick replies after first message
             const quickReplies = document.getElementById('quickReplies');

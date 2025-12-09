@@ -29,21 +29,23 @@ Mở file `appsettings.Development.json` và thêm:
 {
   "GeminiApi": {
     "ApiKey": "YOUR_API_KEY_HERE",
-    "Model": "gemini-1.5-flash"
+    "Model": "gemini-1.5-flash-latest"
   }
 }
 ```
 
-**Hoặc** dùng `gemini-1.5-pro` nếu bạn muốn dùng Pro:
+**Hoặc** dùng `gemini-1.5-pro-latest` nếu bạn muốn dùng Pro:
 
 ```json
 {
   "GeminiApi": {
     "ApiKey": "YOUR_API_KEY_HERE",
-    "Model": "gemini-1.5-pro"
+    "Model": "gemini-1.5-pro-latest"
   }
 }
 ```
+
+⚠️ **Lưu ý**: Phải dùng `-latest` suffix cho model name (ví dụ: `gemini-1.5-flash-latest` thay vì `gemini-1.5-flash`)
 
 ### Cách 2: Cấu hình Production (Railway)
 
@@ -53,7 +55,7 @@ Mở file `appsettings.Development.json` và thêm:
 
 ```
 GeminiApi_ApiKey=YOUR_API_KEY_HERE
-GeminiApi_Model=gemini-1.5-flash
+GeminiApi_Model=gemini-1.5-flash-latest
 ```
 
 **Lưu ý**: 
@@ -67,13 +69,13 @@ GeminiApi_Model=gemini-1.5-flash
 - ✅ **Nhanh hơn** (phản hồi trong 1-2 giây)
 - ✅ **Miễn phí tốt** (15 req/phút, 1M tokens/ngày)
 - ✅ **Đủ dùng** cho chatbox thông thường
-- Cấu hình: `"Model": "gemini-1.5-flash"`
+- Cấu hình: `"Model": "gemini-1.5-flash-latest"`
 
 ### Gemini 1.5 Pro
 - ✅ **Thông minh hơn** (xử lý câu hỏi phức tạp tốt hơn)
 - ⚠️ **Chậm hơn** (3-5 giây)
 - ⚠️ **Giới hạn thấp hơn** (2 req/phút, 50 req/ngày)
-- Cấu hình: `"Model": "gemini-1.5-pro"`
+- Cấu hình: `"Model": "gemini-1.5-pro-latest"`
 
 **Khuyến nghị**: Dùng **Flash** cho chatbox vì nhanh và đủ dùng.
 
