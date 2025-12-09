@@ -1096,34 +1096,155 @@ a.btn-outline-primary::before {
         border-bottom: none;
     }
     
-    /* Fix notification bell on mobile */
+    /* Fix notification bell on mobile - Professional styling */
     .navbar-collapse .d-flex #notificationDropdown {
         width: 100%;
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        padding: 0.75rem 1rem !important;
+        padding: 0.875rem 1rem !important;
+        border-radius: var(--radius-md);
+        transition: background-color 0.2s ease;
+        margin-bottom: 0.25rem;
+        position: relative;
+    }
+    
+    .navbar-collapse .d-flex #notificationDropdown:hover {
+        background-color: var(--gray-50);
     }
     
     .navbar-collapse .d-flex #notificationDropdown i {
-        margin-right: 0.5rem;
+        margin-right: 0.75rem;
+        font-size: 1.3rem !important;
+        color: var(--gray-700) !important;
+        position: relative;
     }
     
-    /* Fix user dropdown on mobile */
+    .navbar-collapse .d-flex .notification-text {
+        flex: 1;
+        display: inline !important;
+        font-weight: 500;
+        color: var(--gray-800) !important;
+        font-size: 0.95rem;
+    }
+    
+    .navbar-collapse .d-flex #notificationBadge {
+        position: absolute !important;
+        top: 0.5rem !important;
+        right: 1rem !important;
+        transform: none !important;
+        margin-left: auto;
+        font-size: 0.7rem !important;
+        padding: 0.25em 0.5em !important;
+        min-width: 20px !important;
+        text-align: center !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Fix user dropdown on mobile - Professional styling */
     .navbar-collapse .d-flex #userDropdown {
         width: 100%;
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        padding: 0.75rem 1rem !important;
+        padding: 1rem !important;
+        border-radius: var(--radius-lg);
+        transition: all 0.2s ease;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border: 1px solid var(--gray-200);
+        margin-top: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     
-    .navbar-collapse .d-flex #userDropdown img {
-        margin-right: 0.5rem;
+    .navbar-collapse .d-flex #userDropdown:hover {
+        background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
     }
     
-    .navbar-collapse .d-flex #userDropdown span {
-        display: inline !important;
+    .navbar-collapse .d-flex .user-avatar {
+        width: 52px !important;
+        height: 52px !important;
+        margin-right: 0.875rem !important;
+        border: 3px solid var(--white) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        flex-shrink: 0;
+    }
+    
+    .navbar-collapse .d-flex .user-info-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+    
+    .navbar-collapse .d-flex .user-name {
+        display: block !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: var(--gray-900) !important;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .navbar-collapse .d-flex .user-email {
+        display: block !important;
+        font-size: 0.85rem !important;
+        color: var(--gray-600) !important;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Hide dropdown arrow on mobile */
+    .navbar-collapse .d-flex #userDropdown::after {
+        display: none !important;
+    }
+    
+    /* Add chevron icon for user dropdown */
+    .navbar-collapse .d-flex #userDropdown::before {
+        content: '\f054';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        font-size: 0.75rem;
+        color: var(--gray-400);
+        margin-left: auto;
+        transition: transform 0.2s ease;
+    }
+    
+    .navbar-collapse .d-flex #userDropdown[aria-expanded="true"]::before {
+        transform: rotate(90deg);
+    }
+    
+    /* Add separator before user area */
+    .navbar-collapse .d-flex {
+        position: relative;
+    }
+    
+    .navbar-collapse .d-flex::before {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 1px;
+        background: var(--gray-200);
+        margin: 0.75rem 0 0.5rem 0;
+    }
+    
+    /* Style user area container */
+    .navbar-collapse .d-flex {
+        background: transparent;
+        border-radius: 0;
+        padding: 0;
+        margin-top: 0.75rem;
+    }
+    
+    /* Better spacing for notification and user items */
+    .navbar-collapse .d-flex > .nav-item:first-child {
+        margin-top: 0.5rem;
     }
     
     /* Fix dropdown menus on mobile */

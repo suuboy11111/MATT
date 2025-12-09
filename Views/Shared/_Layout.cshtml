@@ -231,9 +231,10 @@
                         {
                             <!-- Notification Bell -->
                             <li class="nav-item dropdown" style="position: relative; list-style: none;">
-                                <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: inline-block !important; position: relative; visibility: visible !important; opacity: 1 !important;">
-                                    <i class="fas fa-bell" style="position: relative; z-index: 1; display: inline-block !important; visibility: visible !important; opacity: 1 !important; font-size: 1.25rem !important; color: #333 !important;"></i>
-                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; z-index: 2;">
+                                <a class="nav-link position-relative d-flex align-items-center" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: flex !important; position: relative; visibility: visible !important; opacity: 1 !important;">
+                                    <i class="fas fa-bell" style="position: relative; z-index: 1; display: inline-block !important; visibility: visible !important; opacity: 1 !important; font-size: 1.25rem !important; color: #333 !important; margin-right: 0.5rem;"></i>
+                                    <span class="notification-text" style="font-size: 0.875rem; color: #333;">Thông báo</span>
+                                    <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; z-index: 2; font-size: 0.7rem; padding: 0.25em 0.5em; min-width: 20px; text-align: center;">
                                         0
                                     </span>
                                 </a>
@@ -265,10 +266,15 @@
                                 @{
                                     var currentUser = await UserManager.GetUserAsync(User);
                                     var userAvatar = currentUser?.ProfilePicture ?? "/images/default1-avatar.png";
+                                    var userName = User.Identity.Name ?? "User";
+                                    var userEmail = currentUser?.Email ?? "";
                                 }
                                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important;">
-                                    <img src="@userAvatar" alt="Avatar" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;" onerror="this.src='/images/default1-avatar.png'" />
-                                    <span class="d-none d-md-inline" style="font-size: 0.875rem;">@User.Identity.Name</span>
+                                    <img src="@userAvatar" alt="Avatar" class="rounded-circle me-2 user-avatar" style="width: 28px; height: 28px; object-fit: cover; border: 2px solid #e9ecef;" onerror="this.src='/images/default1-avatar.png'" />
+                                    <div class="d-flex flex-column user-info-text">
+                                        <span class="user-name" style="font-size: 0.875rem; font-weight: 600; color: #333; line-height: 1.2;">@userName</span>
+                                        <span class="user-email d-none d-md-inline" style="font-size: 0.75rem; color: #6c757d; line-height: 1.2;">@userEmail</span>
+                                    </div>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     @* Hiển thị mục "Quản lý" nếu là Admin *@
