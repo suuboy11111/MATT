@@ -14,7 +14,13 @@ using MatchType = MaiAmTinhThuong.Models.MatchType;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Đăng ký GeminiService (không cần HttpClient nữa vì dùng SDK)
+// Đăng ký HttpClient cho GeminiService
+builder.Services.AddHttpClient<GeminiService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30); // 30s timeout cho Gemini API
+});
+
+// Đăng ký GeminiService
 builder.Services.AddScoped<GeminiService>();
 
 
