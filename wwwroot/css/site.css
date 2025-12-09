@@ -186,13 +186,9 @@ a:hover {
     color: var(--primary) !important;
 }
 
-.navbar-brand img {
+.navbar-brand span:first-child {
+    font-size: 1.4rem; /* Giảm kích thước icon heart */
     animation: heartbeat 2s ease-in-out infinite;
-    transition: transform var(--transition-base);
-}
-
-.navbar-brand:hover img {
-    transform: scale(1.1);
 }
 
 @keyframes heartbeat {
