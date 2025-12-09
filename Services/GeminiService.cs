@@ -2,6 +2,7 @@
 using Google.GenAI.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System; // Explicitly import System namespace to avoid ambiguity
 
 namespace MaiAmTinhThuong.Services
 {
@@ -15,7 +16,8 @@ namespace MaiAmTinhThuong.Services
         {
             _logger = logger;
             
-            var apiKey = config["GeminiApi:ApiKey"] ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "";
+            // Use fully qualified name to avoid ambiguity with Google.GenAI.Types.Environment
+            var apiKey = config["GeminiApi:ApiKey"] ?? System.Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "";
             _model = config["GeminiApi:Model"] ?? "gemini-2.5-flash"; // Mặc định dùng gemini-2.5-flash (theo tài liệu mới nhất)
             
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -29,7 +31,7 @@ namespace MaiAmTinhThuong.Services
                 {
                     // Google.GenAI SDK tự động lấy API key từ environment variable GEMINI_API_KEY
                     // Set environment variable cho process hiện tại
-                    Environment.SetEnvironmentVariable("GEMINI_API_KEY", apiKey);
+                    System.Environment.SetEnvironmentVariable("GEMINI_API_KEY", apiKey);
                     
                     // Khởi tạo Client - SDK sẽ tự động lấy API key từ GEMINI_API_KEY
                     _client = new Client();
@@ -67,7 +69,7 @@ namespace MaiAmTinhThuong.Services
                     contents: prompt
                 );
 
-                if (response?.Candidates != null && response.Candidates.Length > 0)
+                if (response?.Candidates != null && response.Candidates.Count > 0)
                 {
                     var text = response.Candidates[0].Content?.Parts?[0]?.Text ?? "";
                     _logger?.LogInformation("Gemini API response received: {Length} chars", text.Length);
