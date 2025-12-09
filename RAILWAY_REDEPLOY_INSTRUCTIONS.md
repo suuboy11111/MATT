@@ -124,3 +124,4 @@ info: Image uploaded successfully to Cloudinary: https://res.cloudinary.com/dwox
 - URL trong database sẽ là Cloudinary URL (bắt đầu với `https://res.cloudinary.com/...`)
 - Ảnh sẽ không bị mất khi redeploy
 
+

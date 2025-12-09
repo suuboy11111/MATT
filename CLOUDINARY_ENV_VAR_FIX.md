@@ -109,3 +109,4 @@ Nếu vẫn thấy `EMPTY or NULL`, kiểm tra lại:
 - URL trong database sẽ là Cloudinary URL
 - Ảnh sẽ không bị mất khi redeploy
 
+

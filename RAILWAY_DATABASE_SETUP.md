@@ -62,3 +62,4 @@ Sau khi thêm, trong tab **"Variables"** của Web service, bạn sẽ thấy:
 
 
 
+

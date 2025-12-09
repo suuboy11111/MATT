@@ -44,3 +44,4 @@ Sau khi tải, thư mục `wwwroot/fonts/` nên có:
 1. Restart ứng dụng
 2. Test lại chức năng tạo chứng nhận
 3. Font tiếng Việt sẽ hiển thị đúng (không còn mất dấu)
+
