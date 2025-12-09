@@ -231,7 +231,7 @@
                         {
                             <!-- Notification Bell -->
                             <li class="nav-item dropdown" style="position: relative; list-style: none;">
-                                <a class="nav-link position-relative d-flex align-items-center" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: flex !important; position: relative; visibility: visible !important; opacity: 1 !important;">
+                                <a class="nav-link position-relative d-flex align-items-center" href="javascript:void(0);" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="return false;" style="padding: 0.35rem 0.5rem !important; text-decoration: none !important; display: flex !important; position: relative; visibility: visible !important; opacity: 1 !important; cursor: pointer;">
                                     <i class="fas fa-bell" style="position: relative; z-index: 1; display: inline-block !important; visibility: visible !important; opacity: 1 !important; font-size: 1.25rem !important; color: #333 !important; margin-right: 0.5rem;"></i>
                                     <span class="notification-text" style="font-size: 0.875rem; color: #333;">Thông báo</span>
                                     <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; z-index: 2; font-size: 0.7rem; padding: 0.25em 0.5em; min-width: 20px; text-align: center;">
@@ -998,6 +998,36 @@
                 // Auto-refresh khi dropdown được mở
                 const notificationDropdown = document.getElementById("notificationDropdown");
                 if (notificationDropdown) {
+                    // Prevent default link behavior và redirect - MUST be first
+                    notificationDropdown.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    }, true);
+                    
+                    // Prevent touch events on mobile - handle separately
+                    let touchStartTime = 0;
+                    notificationDropdown.addEventListener('touchstart', function(e) {
+                        touchStartTime = Date.now();
+                        e.stopPropagation();
+                    }, { passive: true });
+                    
+                    notificationDropdown.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        
+                        // Only trigger if it's a quick tap (not a scroll)
+                        const touchDuration = Date.now() - touchStartTime;
+                        if (touchDuration < 300) {
+                            // Use Bootstrap dropdown toggle instead of direct click
+                            const dropdown = bootstrap.Dropdown.getInstance(this) || new bootstrap.Dropdown(this);
+                            dropdown.toggle();
+                        }
+                        return false;
+                    }, { passive: false });
+                    
                     // Xóa tất cả dấu chấm đen xung quanh notification bell - CHỈ ẩn ::after và ::before của link
                     const style = document.createElement('style');
                     style.textContent = `
@@ -1018,10 +1048,81 @@
                     `;
                     document.head.appendChild(style);
                     
-                    const dropdownElement = new bootstrap.Dropdown(notificationDropdown);
-                    notificationDropdown.addEventListener('shown.bs.dropdown', function () {
-                        loadNotifications();
-                    });
+                    // Initialize dropdown với proper configuration
+                    try {
+                        const dropdownElement = new bootstrap.Dropdown(notificationDropdown, {
+                            boundary: document.body,
+                            popperConfig: {
+                                modifiers: [
+                                    {
+                                        name: 'preventOverflow',
+                                        options: {
+                                            boundary: document.body
+                                        }
+                                    },
+                                    {
+                                        name: 'offset',
+                                        options: {
+                                            offset: [0, 8]
+                                        }
+                                    }
+                                ]
+                            }
+                        });
+                        
+                        // Load notifications when dropdown is shown
+                        notificationDropdown.addEventListener('shown.bs.dropdown', function () {
+                            loadNotifications();
+                        });
+                        
+                        // Prevent dropdown from hiding immediately
+                        notificationDropdown.addEventListener('hide.bs.dropdown', function (e) {
+                            // Allow hiding only if clicking outside
+                            const clickTarget = e.relatedTarget || document.activeElement;
+                            if (clickTarget && (notificationDropdown.contains(clickTarget) || 
+                                document.getElementById('notificationList')?.contains(clickTarget))) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
+                        });
+                        
+                        // Prevent dropdown from closing when clicking inside
+                        const notificationList = document.getElementById('notificationList');
+                        if (notificationList) {
+                            notificationList.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                // Only allow clicks on buttons and links
+                                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                                    return; // Allow button clicks
+                                }
+                                if (e.target.closest('.notification-item') && !e.target.closest('button')) {
+                                    e.stopPropagation();
+                                }
+                            }, true);
+                            
+                            notificationList.addEventListener('touchend', function(e) {
+                                e.stopPropagation();
+                            }, { passive: true });
+                        }
+                        
+                        // Close dropdown when clicking outside (but not on the bell itself)
+                        // Use a small delay to prevent immediate closing
+                        let clickOutsideHandler = null;
+                        document.addEventListener('click', function(e) {
+                            clearTimeout(clickOutsideHandler);
+                            clickOutsideHandler = setTimeout(function() {
+                                if (!notificationDropdown.contains(e.target) && 
+                                    !document.getElementById('notificationList')?.contains(e.target)) {
+                                    const dropdown = bootstrap.Dropdown.getInstance(notificationDropdown);
+                                    if (dropdown && dropdown._isShown()) {
+                                        dropdown.hide();
+                                    }
+                                }
+                            }, 100);
+                        });
+                    } catch (error) {
+                        console.error('Error initializing notification dropdown:', error);
+                    }
                 }
 
                 // Mark all as read
@@ -1069,7 +1170,7 @@
                                 'Info': { class: 'notification-info', icon: 'fa-info-circle', color: '#17a2b8' }
                             };
                             const config = typeConfig[n.type] || typeConfig['Info'];
-                            const linkAttr = n.link ? `onclick="if(event.target.tagName !== 'BUTTON' && event.target.tagName !== 'I') { window.location.href='${n.link}'; markAsRead(${n.id}); }"` : '';
+                            const linkAttr = n.link ? `onclick="event.preventDefault(); event.stopPropagation(); if(event.target.tagName !== 'BUTTON' && event.target.tagName !== 'I' && !event.target.closest('button')) { setTimeout(function() { window.location.href='${n.link}'; }, 100); markAsRead(${n.id}); }"` : '';
                             const timeAgo = getTimeAgo(new Date(n.createdAt));
                             return `
                             <li class="notification-item ${!n.isRead ? 'notification-unread' : ''}" style="animation-delay: ${index * 0.05}s;" data-notification-id="${n.id}" ${linkAttr}>
