@@ -1054,6 +1054,7 @@ a.btn-outline-primary::before {
         margin-top: 0.5rem;
         padding-top: 0.5rem;
         border-top: 1px solid var(--gray-200);
+        align-items: stretch !important;
     }
     
     .navbar-collapse .btn {
@@ -1065,6 +1066,8 @@ a.btn-outline-primary::before {
     
     .navbar-collapse .nav-item.dropdown {
         width: 100%;
+        margin: 0 !important;
+        list-style: none !important;
     }
     
     .navbar-collapse .dropdown-toggle {
@@ -1075,11 +1078,63 @@ a.btn-outline-primary::before {
     /* Fix user dropdown on mobile */
     .navbar-collapse .d-flex .nav-item {
         width: 100%;
+        margin: 0 !important;
+        list-style: none !important;
+        display: block !important;
     }
     
     .navbar-collapse .d-flex .nav-link {
         width: 100%;
         justify-content: flex-start;
+        padding: 0.75rem 1rem !important;
+        display: flex !important;
+        align-items: center !important;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .navbar-collapse .d-flex .nav-link:last-child {
+        border-bottom: none;
+    }
+    
+    /* Fix notification bell on mobile */
+    .navbar-collapse .d-flex #notificationDropdown {
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    .navbar-collapse .d-flex #notificationDropdown i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Fix user dropdown on mobile */
+    .navbar-collapse .d-flex #userDropdown {
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    .navbar-collapse .d-flex #userDropdown img {
+        margin-right: 0.5rem;
+    }
+    
+    .navbar-collapse .d-flex #userDropdown span {
+        display: inline !important;
+    }
+    
+    /* Fix dropdown menus on mobile */
+    .navbar-collapse .dropdown-menu {
+        position: static !important;
+        float: none !important;
+        width: 100% !important;
+        margin-top: 0.5rem !important;
+        border: 1px solid var(--gray-200) !important;
+        box-shadow: var(--shadow-md) !important;
+        background: var(--white) !important;
     }
     
     /* Prevent horizontal scroll */
@@ -1353,9 +1408,12 @@ a.btn-outline-primary::before {
     /* Chat widget small mobile */
     #geminiChat {
         width: calc(100% - 1rem) !important;
-        bottom: 5px !important;
-        right: 5px !important;
-        left: 5px !important;
+        max-width: calc(100% - 1rem) !important;
+        bottom: 0.75rem !important;
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        transform: none !important;
+        position: fixed !important;
     }
     
     #chatHeader {
