@@ -850,6 +850,63 @@ a.btn-outline-primary::before {
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* ===== Mobile Optimization ===== */
+/* Prevent layout shift and horizontal scroll - only on mobile */
+@media (max-width: 991.98px) {
+    html {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+    }
+
+    body {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Fix container overflow */
+    .container,
+    .container-fluid {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Optimize touch targets - minimum 44x44px on mobile only */
+    a, button, .btn, .nav-link {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Fix navbar on mobile */
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+}
+
+/* Navbar toggler - always optimized for touch */
+.navbar-toggler {
+    border: 1px solid var(--gray-300);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    background: var(--white);
+    min-width: 48px;
+    min-height: 48px;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
     h1 { font-size: 2rem; }
@@ -862,35 +919,113 @@ a.btn-outline-primary::before {
         font-size: 2rem;
     }
     
+    .navbar {
+        padding: 0.5rem 1rem !important;
+    }
+    
     .navbar-brand {
         font-size: 1.1rem;
+        max-width: calc(100% - 60px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .navbar-brand span:first-child {
         font-size: 1.2rem;
     }
     
+    .navbar-nav {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    
     .navbar-nav .nav-link {
-        padding: 0.5rem 1rem !important;
-        font-size: 0.9rem;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.95rem;
+        width: 100%;
+        text-align: left;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .navbar-nav .nav-link:last-child {
+        border-bottom: none;
+    }
+    
+    .navbar-nav .nav-item {
+        width: 100%;
+    }
+    
+    .navbar-nav .dropdown-menu {
+        position: static !important;
+        float: none;
+        width: 100%;
+        margin-top: 0;
+        border: none;
+        box-shadow: none;
+        background: var(--gray-50);
+        padding-left: 1.5rem;
     }
     
     .navbar-collapse {
-        margin-top: 1rem;
-        padding-top: 1rem;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
         border-top: 1px solid var(--gray-200);
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .navbar-collapse .d-flex {
         flex-direction: column;
         gap: 0.75rem !important;
         width: 100%;
-        margin-top: 1rem;
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--gray-200);
     }
     
     .navbar-collapse .btn {
         width: 100%;
         justify-content: center;
+        min-height: 44px;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    .navbar-collapse .nav-item.dropdown {
+        width: 100%;
+    }
+    
+    .navbar-collapse .dropdown-toggle {
+        width: 100%;
+        text-align: left;
+    }
+    
+    /* Fix user dropdown on mobile */
+    .navbar-collapse .d-flex .nav-item {
+        width: 100%;
+    }
+    
+    .navbar-collapse .d-flex .nav-link {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    /* Prevent horizontal scroll */
+    * {
+        max-width: 100%;
+    }
+    
+    img, video, iframe {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Fix container padding */
+    .container,
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
     
     section {
@@ -1014,6 +1149,55 @@ a.btn-outline-primary::before {
     
     section {
         padding: var(--spacing-lg) 0;
+        overflow-x: hidden;
+    }
+    
+    /* Fix hero section on mobile */
+    .hero-section {
+        overflow-x: hidden;
+        position: relative;
+    }
+    
+    .hero-section .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Fix cards and images */
+    .card {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .card-img-top {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Fix forms on mobile */
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Prevent zoom on iOS */
+        min-height: 44px;
+    }
+    
+    /* Fix buttons */
+    .btn {
+        min-height: 44px;
+        padding: 0.625rem 1.25rem !important;
+        font-size: 0.95rem;
+        touch-action: manipulation;
+    }
+    
+    .btn-lg {
+        min-height: 48px;
+        padding: 0.75rem 1.5rem !important;
+    }
+    
+    /* Fix iframe (maps) */
+    iframe {
+        max-width: 100%;
+        width: 100%;
     }
     
     .card-body {

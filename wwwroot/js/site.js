@@ -38,4 +38,84 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Mobile menu optimization
+    const navbarCollapse = document.getElementById('navbarNavAltMarkup');
+    const navbarToggler = document.querySelector('.navbar-toggler');
+    
+    if (navbarCollapse && navbarToggler) {
+        // Close mobile menu when clicking on a nav link
+        const navLinks = navbarCollapse.querySelectorAll('.nav-link:not(.dropdown-toggle)');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Check if we're on mobile (screen width < 992px, Bootstrap lg breakpoint)
+                if (window.innerWidth < 992) {
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse && bsCollapse._isShown()) {
+                        bsCollapse.hide();
+                    }
+                }
+            });
+        });
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (window.innerWidth < 992) {
+                const isClickInsideNav = navbarCollapse.contains(e.target) || navbarToggler.contains(e.target);
+                if (!isClickInsideNav) {
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse && bsCollapse._isShown()) {
+                        bsCollapse.hide();
+                    }
+                }
+            }
+        });
+        
+        // Prevent body scroll when menu is open on mobile
+        navbarCollapse.addEventListener('show.bs.collapse', function() {
+            if (window.innerWidth < 992) {
+                document.body.style.overflow = 'hidden';
+            }
+        });
+        
+        navbarCollapse.addEventListener('hide.bs.collapse', function() {
+            document.body.style.overflow = '';
+        });
+        
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (window.innerWidth >= 992) {
+                    // On desktop, ensure menu is visible and body scroll is enabled
+                    document.body.style.overflow = '';
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse) {
+                        bsCollapse.show();
+                    }
+                }
+            }, 250);
+        });
+    }
+    
+    // Prevent zoom on double tap (iOS)
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+    
+    // Fix viewport height on mobile browsers
+    function setViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', setViewportHeight);
 });
