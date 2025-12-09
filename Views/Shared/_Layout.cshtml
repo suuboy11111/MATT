@@ -354,23 +354,60 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
-    <!-- Rule-based Chatbot -->
-    <div id="geminiChat" style="position: fixed; bottom: 20px; right: 20px; width: 360px; max-width: calc(100% - 40px); z-index: 9999; font-family: var(--font-primary);">
-
+    <!-- Improved Chatbot -->
+    <div id="geminiChat" class="chat-widget">
         <!-- Header -->
-        <div id="chatHeader" style="background: var(--primary-gradient); color: white; padding: 16px; cursor: pointer; border-radius: var(--radius-xl) var(--radius-xl) 0 0; font-weight: 600; text-align: center; box-shadow: var(--shadow-lg);">
-            <i class="fas fa-comments me-2"></i>Chat với Mái Ấm
+        <div id="chatHeader" class="chat-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="chat-avatar me-2">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div>
+                        <div class="chat-title">Chat với Mái Ấm</div>
+                        <div class="chat-status" id="chatStatus">Đang online</div>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button id="chatMinimize" class="chat-btn-icon" title="Thu nhỏ">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Body -->
-        <div id="chatBody" style="display: none; background: var(--white); border: none; border-radius: 0 0 var(--radius-xl) var(--radius-xl); max-height: 400px; overflow-y: auto; box-shadow: var(--shadow-xl); max-width: 100%;">
+        <div id="chatBody" class="chat-body" style="display: none;">
+            <!-- Quick Replies -->
+            <div id="quickReplies" class="quick-replies">
+                <button class="quick-reply-btn" onclick="sendQuickReply('Xin chào')">👋 Xin chào</button>
+                <button class="quick-reply-btn" onclick="sendQuickReply('Cách đóng góp')">💝 Cách đóng góp</button>
+                <button class="quick-reply-btn" onclick="sendQuickReply('Liên hệ')">📞 Liên hệ</button>
+            </div>
 
-            <div id="chatMessages" style="padding: 16px; height: 320px; overflow-y: auto; background: var(--gray-50);"></div>
+            <!-- Messages Container -->
+            <div id="chatMessages" class="chat-messages">
+                <div class="chat-welcome">
+                    <div class="chat-welcome-icon">💬</div>
+                    <div class="chat-welcome-text">Xin chào! Mình có thể giúp gì cho bạn?</div>
+                </div>
+            </div>
 
-            <div style="padding: 12px; background: var(--white); border-top: 2px solid var(--gray-200);">
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <button id="clearChatBtn" class="chat-btn-icon" title="Xóa lịch sử" onclick="clearChatHistory()">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
                 <div class="input-group">
-                    <input id="chatInput" type="text" class="form-control" placeholder="Nhập câu hỏi..." style="border-radius: var(--radius-full) 0 0 var(--radius-full);" />
-                    <button class="btn btn-primary" onclick="sendMessage()" style="border-radius: 0 var(--radius-full) var(--radius-full) 0;">
+                    <input id="chatInput" type="text" class="form-control chat-input" placeholder="Nhập câu hỏi..." />
+                    <button id="sendBtn" class="btn btn-primary chat-send-btn" onclick="sendMessage()">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
@@ -378,54 +415,497 @@
         </div>
     </div>
 
+    <style>
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 380px;
+            max-width: calc(100% - 40px);
+            z-index: 9999;
+            font-family: var(--font-primary);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chat-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 16px;
+            cursor: pointer;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .chat-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .chat-status {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-btn-icon {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-btn-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-body {
+            background: var(--white);
+            display: flex;
+            flex-direction: column;
+            max-height: 500px;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .quick-replies {
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .quick-reply-btn {
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-reply-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: var(--gray-50);
+            min-height: 300px;
+            max-height: 400px;
+        }
+
+        .chat-welcome {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray-600);
+        }
+
+        .chat-welcome-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .chat-welcome-text {
+            font-size: 14px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: var(--gray-800);
+            border: 1px solid var(--gray-200);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .message.bot .message-time {
+            text-align: left;
+        }
+
+        .typing-indicator {
+            padding: 12px 16px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--gray-400);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @@keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .chat-input-area {
+            padding: 12px;
+            background: var(--white);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-input {
+            border-radius: var(--radius-full);
+            border: 1px solid var(--gray-300);
+            padding: 10px 16px;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+        }
+
+        .chat-send-btn {
+            border-radius: var(--radius-full);
+            padding: 10px 20px;
+            border: none;
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @@media (max-width: 768px) {
+            .chat-widget {
+                width: calc(100% - 20px);
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+            }
+
+            .chat-messages {
+                max-height: 50vh;
+            }
+        }
+    </style>
 
     <script>
-        async function sendMessage() {
+        // Chat history management
+        const CHAT_STORAGE_KEY = 'maiam_chat_history';
+        
+        function loadChatHistory() {
+            try {
+                const history = localStorage.getItem(CHAT_STORAGE_KEY);
+                if (history) {
+                    const messages = JSON.parse(history);
+                    const messagesContainer = document.getElementById('chatMessages');
+                    if (messagesContainer && messages.length > 0) {
+                        // Remove welcome message
+                        const welcome = messagesContainer.querySelector('.chat-welcome');
+                        if (welcome) welcome.remove();
+                        
+                        messages.forEach(msg => {
+                            addMessageToUI(msg.text, msg.isUser, msg.time);
+                        });
+                        scrollToBottom();
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading chat history:', e);
+            }
+        }
+
+        function saveChatHistory(text, isUser) {
+            try {
+                let history = [];
+                const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+                if (stored) {
+                    history = JSON.parse(stored);
+                }
+                
+                history.push({
+                    text: text,
+                    isUser: isUser,
+                    time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                });
+                
+                // Keep only last 50 messages
+                if (history.length > 50) {
+                    history = history.slice(-50);
+                }
+                
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.error('Error saving chat history:', e);
+            }
+        }
+
+        function clearChatHistory() {
+            if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat?')) {
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+                const messagesContainer = document.getElementById('chatMessages');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = `
+                        <div class="chat-welcome">
+                            <div class="chat-welcome-icon">💬</div>
+                            <div class="chat-welcome-text">Xin chào! Mình có thể giúp gì cho bạn?</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function addMessageToUI(text, isUser, time = null) {
+            const messagesContainer = document.getElementById('chatMessages');
+            if (!messagesContainer) return;
+
+            // Remove welcome message if exists
+            const welcome = messagesContainer.querySelector('.chat-welcome');
+            if (welcome) welcome.remove();
+
+            if (!time) {
+                time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${escapeHtml(text).replace(/\n/g, '<br>')}
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chatMessages');
+            if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.style.display = 'none';
+        }
+
+        async function sendMessage(text = null) {
             const input = document.getElementById("chatInput");
-            const messages = document.getElementById("chatMessages");
-            if (!input || !messages) return;
+            const sendBtn = document.getElementById("sendBtn");
+            const messagesContainer = document.getElementById("chatMessages");
+            
+            if (!input || !messagesContainer) return;
 
-            const text = input.value.trim();
-            if (!text) return;
+            const messageText = text || input.value.trim();
+            if (!messageText) return;
 
-            // hiển thị tin nhắn user
-            messages.innerHTML += `<div class="text-end"><small><b>Bạn:</b> ${escapeHtml(text)}</small></div>`;
+            // Disable input and button
+            if (input) {
+                input.value = "";
+                input.disabled = true;
+            }
+            if (sendBtn) sendBtn.disabled = true;
 
-            // gọi API rulebot
-            const resp = await fetch("/api/rulebot/ask", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text })
-            });
+            // Add user message
+            addMessageToUI(messageText, true);
+            saveChatHistory(messageText, true);
 
-            let json = await resp.json();
-            const reply = json?.reply ?? "Xin lỗi, có lỗi xảy ra.";
+            // Hide quick replies after first message
+            const quickReplies = document.getElementById('quickReplies');
+            if (quickReplies) quickReplies.style.display = 'none';
 
-            messages.innerHTML += `<div class="text-start text-success"><small><b>Bot:</b> ${escapeHtml(reply)}</small></div>`;
-            input.value = "";
-            messages.scrollTop = messages.scrollHeight;
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Call API
+                const resp = await fetch("/api/rulebot/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: messageText })
+                });
+
+                if (!resp.ok) {
+                    throw new Error(`HTTP error! status: ${resp.status}`);
+                }
+
+                const json = await resp.json();
+                const reply = json?.reply ?? "Xin lỗi, có lỗi xảy ra.";
+
+                // Simulate typing delay for better UX
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                hideTypingIndicator();
+                addMessageToUI(reply, false);
+                saveChatHistory(reply, false);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideTypingIndicator();
+                addMessageToUI("Xin lỗi, có lỗi xảy ra khi kết nối. Vui lòng thử lại sau.", false);
+            } finally {
+                // Re-enable input and button
+                if (input) input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                if (input) input.focus();
+            }
+        }
+
+        function sendQuickReply(text) {
+            sendMessage(text);
         }
 
         function escapeHtml(s) {
-            return s.replace(/[&<>"']/g, function (m) {
-                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m];
-            });
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
         }
 
         document.addEventListener("DOMContentLoaded", function () {
+            // Toggle chat
             const header = document.getElementById("chatHeader");
-            if (header) header.addEventListener("click", () => {
-                const body = document.getElementById("chatBody");
-                if (!body) return;
-                body.style.display = (body.style.display === "block") ? "none" : "block";
-            });
+            const minimizeBtn = document.getElementById("chatMinimize");
+            const chatBody = document.getElementById("chatBody");
+            
+            function toggleChat() {
+                if (chatBody) {
+                    const isOpen = chatBody.style.display === "block" || chatBody.style.display === "";
+                    chatBody.style.display = isOpen ? "none" : "block";
+                    if (!isOpen) {
+                        // Load history when opening
+                        loadChatHistory();
+                        const input = document.getElementById("chatInput");
+                        if (input) input.focus();
+                    }
+                }
+            }
 
+            if (header) {
+                header.addEventListener("click", (e) => {
+                    // Don't toggle if clicking on minimize button
+                    if (!e.target.closest('.chat-header-actions')) {
+                        toggleChat();
+                    }
+                });
+            }
+
+            if (minimizeBtn) {
+                minimizeBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    toggleChat();
+                });
+            }
+
+            // Enter key to send
             const input = document.getElementById("chatInput");
             if (input) {
                 input.addEventListener("keypress", function (e) {
-                    if (e.key === "Enter") sendMessage();
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
                 });
             }
+
+            // Load chat history on page load
+            loadChatHistory();
 
             // Load notifications
             @if (User.Identity.IsAuthenticated)

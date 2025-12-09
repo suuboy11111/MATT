@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using MaiAmTinhThuong.Data;
 using MaiAmTinhThuong.Models;
+using MaiAmTinhThuong.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MatchType = MaiAmTinhThuong.Models.MatchType;
@@ -13,11 +14,21 @@ public class RuleBotController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<RuleBotController> _logger;
+    private readonly GeminiService? _geminiService;
 
-    public RuleBotController(ApplicationDbContext db, ILogger<RuleBotController> logger)
+    public RuleBotController(ApplicationDbContext db, ILogger<RuleBotController> logger, IServiceProvider serviceProvider)
     {
         _db = db;
         _logger = logger;
+        // Lấy GeminiService nếu có (optional)
+        try
+        {
+            _geminiService = serviceProvider.GetService<GeminiService>();
+        }
+        catch
+        {
+            _geminiService = null;
+        }
     }
 
     public class UserMessage
@@ -100,10 +111,40 @@ public class RuleBotController : ControllerBase
             }
         }
 
-        // fallback
+        // Fallback: Thử dùng Gemini AI nếu có
+        if (_geminiService != null)
+        {
+            try
+            {
+                var contextPrompt = $@"Bạn là trợ lý ảo của Mái Ấm Tình Thương - một tổ chức từ thiện giúp đỡ trẻ em và gia đình khó khăn.
+
+Thông tin về Mái Ấm:
+- Email: MaiAmYeuThuong@gmail.com
+- Số điện thoại: (+84) 902115231
+- Giờ làm việc: 8:00 - 17:00 (Thứ 2 - Thứ 7)
+- Website: Hỗ trợ đóng góp tài chính, vật tư, chỗ ở
+
+Hãy trả lời câu hỏi của người dùng một cách thân thiện, ngắn gọn (tối đa 150 từ), và hướng dẫn họ liên hệ nếu cần hỗ trợ cụ thể.
+
+Câu hỏi: {req.Message}";
+                
+                var aiReply = await _geminiService.ChatAsync(contextPrompt);
+                
+                if (!string.IsNullOrWhiteSpace(aiReply) && !aiReply.StartsWith("Lỗi"))
+                {
+                    return Ok(new { reply = aiReply });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Gemini AI fallback failed, using default message");
+            }
+        }
+
+        // Fallback cuối cùng
         return Ok(new
         {
-            reply = "Xin lỗi, mình chưa hiểu. Bạn thử hỏi khác hoặc liên hệ: MaiAmYeuThuong@gmail.com"
+            reply = "Xin lỗi, mình chưa hiểu câu hỏi của bạn. Bạn có thể:\n• Hỏi về cách đóng góp\n• Hỏi về giờ làm việc\n• Liên hệ trực tiếp: (+84) 902115231 hoặc MaiAmYeuThuong@gmail.com"
         });
     }
 }

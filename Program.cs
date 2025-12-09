@@ -15,8 +15,11 @@ using MatchType = MaiAmTinhThuong.Models.MatchType;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient<GeminiService>(client =>
 {
-    client.Timeout = TimeSpan.FromSeconds(10); // 10s timeout
+    client.Timeout = TimeSpan.FromSeconds(30); // 30s timeout cho Gemini API
 });
+
+// Đăng ký GeminiService
+builder.Services.AddScoped<GeminiService>();
 
 
 // Add services to the container.
