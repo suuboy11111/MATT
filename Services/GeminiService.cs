@@ -16,13 +16,19 @@ namespace MaiAmTinhThuong.Services
         {
             _logger = logger;
             
-            // Use fully qualified name to avoid ambiguity with Google.GenAI.Types.Environment
-            var apiKey = config["GeminiApi:ApiKey"] ?? System.Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? "";
-            _model = config["GeminiApi:Model"] ?? "gemini-2.5-flash"; // Mặc định dùng gemini-2.5-flash (theo tài liệu mới nhất)
+            // Ưu tiên đọc từ environment variable (Railway), sau đó mới đọc từ config
+            var apiKey = System.Environment.GetEnvironmentVariable("GEMINI_API_KEY") 
+                        ?? config["GeminiApi:ApiKey"] 
+                        ?? "";
+            
+            // Model name: ưu tiên từ config, sau đó environment variable, cuối cùng là default
+            _model = config["GeminiApi:Model"] 
+                    ?? System.Environment.GetEnvironmentVariable("GeminiApi_Model")
+                    ?? "gemini-2.5-flash"; // Mặc định dùng gemini-2.5-flash (theo tài liệu mới nhất)
             
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                _logger?.LogWarning("Gemini API key is not configured. Set GeminiApi:ApiKey in appsettings.json or GEMINI_API_KEY environment variable.");
+                _logger?.LogWarning("Gemini API key is not configured. Set GEMINI_API_KEY environment variable or GeminiApi:ApiKey in appsettings.json");
                 _client = null;
             }
             else
@@ -30,12 +36,12 @@ namespace MaiAmTinhThuong.Services
                 try
                 {
                     // Google.GenAI SDK tự động lấy API key từ environment variable GEMINI_API_KEY
-                    // Set environment variable cho process hiện tại
+                    // Đảm bảo environment variable được set (cho trường hợp đọc từ config)
                     System.Environment.SetEnvironmentVariable("GEMINI_API_KEY", apiKey);
                     
                     // Khởi tạo Client - SDK sẽ tự động lấy API key từ GEMINI_API_KEY
                     _client = new Client();
-                    _logger?.LogInformation("GeminiService initialized with model: {Model}", _model);
+                    _logger?.LogInformation("GeminiService initialized with model: {Model}, API key length: {KeyLength}", _model, apiKey.Length);
                 }
                 catch (Exception ex)
                 {
