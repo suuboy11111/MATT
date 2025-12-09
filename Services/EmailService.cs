@@ -178,6 +178,59 @@ namespace MaiAmTinhThuong.Services
 
             return await SendEmailAsync(toEmail, subject, body);
         }
+
+        public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string resetLink)
+        {
+            var subject = "Đặt lại mật khẩu - Mái Ấm Tình Thương";
+            var body = $@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                        .header {{ background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                        .button {{ display: inline-block; padding: 12px 30px; background: #FF6B9D; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+                        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+                        .warning {{ background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <h1>❤️ Mái Ấm Tình Thương</h1>
+                        </div>
+                        <div class='content'>
+                            <h2>Đặt lại mật khẩu</h2>
+                            <p>Xin chào,</p>
+                            <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>{toEmail}</strong> tại <strong>Mái Ấm Tình Thương</strong>.</p>
+                            <p>Vui lòng click vào nút bên dưới để đặt lại mật khẩu của bạn:</p>
+                            <p style='text-align: center;'>
+                                <a href='{resetLink}' class='button'>Đặt lại mật khẩu</a>
+                            </p>
+                            <p>Hoặc copy và dán link sau vào trình duyệt:</p>
+                            <p style='word-break: break-all; color: #666;'>{resetLink}</p>
+                            <div class='warning'>
+                                <p><strong>⚠️ Lưu ý quan trọng:</strong></p>
+                                <ul>
+                                    <li>Link này sẽ hết hạn sau 1 giờ.</li>
+                                    <li>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</li>
+                                    <li>Mật khẩu của bạn sẽ không thay đổi cho đến khi bạn click vào link và tạo mật khẩu mới.</li>
+                                </ul>
+                            </div>
+                            <p>Nếu bạn gặp vấn đề, vui lòng liên hệ với chúng tôi.</p>
+                        </div>
+                        <div class='footer'>
+                            <p>© 2025 Mái Ấm Tình Thương. Tất cả quyền được bảo lưu.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+
+            return await SendEmailAsync(toEmail, subject, body);
+        }
     }
 }
 

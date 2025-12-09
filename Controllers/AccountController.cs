@@ -547,5 +547,153 @@ namespace MaiAmTinhThuong.Controllers
                 return Json(new { success = false, message = "Có lỗi xảy ra khi gửi email. Vui lòng thử lại sau." });
             }
         }
+
+        // GET: /Account/ForgotPassword
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        // POST: /Account/ForgotPassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
+            {
+                // Không tiết lộ thông tin về việc email có tồn tại hay không (bảo mật)
+                TempData["Message"] = "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.";
+                return RedirectToAction("ForgotPasswordConfirmation");
+            }
+
+            try
+            {
+                // Tạo token reset password
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                // Encode token để có thể truyền qua URL an toàn
+                // Sử dụng Uri.EscapeDataString để encode đúng cách cho URL
+                var encodedToken = Uri.EscapeDataString(token);
+
+                // Tạo link reset password
+                var resetLink = Url.Action("ResetPassword", "Account", new { email = model.Email, token = encodedToken }, Request.Scheme);
+
+                // Gửi email
+                var emailSent = await _emailService.SendPasswordResetEmailAsync(model.Email, resetLink!);
+                _logger.LogInformation($"Password reset email sent to {model.Email}: {emailSent}");
+
+                if (emailSent)
+                {
+                    TempData["Message"] = "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được link đặt lại mật khẩu.";
+                }
+                else
+                {
+                    TempData["Warning"] = "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending password reset email");
+                TempData["Error"] = "Có lỗi xảy ra khi gửi email. Vui lòng thử lại sau.";
+            }
+
+            return RedirectToAction("ForgotPasswordConfirmation");
+        }
+
+        // GET: /Account/ForgotPasswordConfirmation
+        [HttpGet]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        // GET: /Account/ResetPassword
+        [HttpGet]
+        public IActionResult ResetPassword(string? email, string? token)
+        {
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+            {
+                TempData["Error"] = "Link đặt lại mật khẩu không hợp lệ.";
+                return RedirectToAction("Login");
+            }
+
+            var model = new ResetPasswordViewModel
+            {
+                Email = email,
+                Token = token
+            };
+
+            return View(model);
+        }
+
+        // POST: /Account/ResetPassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                TempData["Error"] = "Không tìm thấy tài khoản.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Token đã được ASP.NET Core tự động decode từ query string
+                // Nhưng nếu token được encode bằng Uri.EscapeDataString, có thể cần decode thêm
+                // Thử decode, nếu không được thì dùng token gốc
+                var token = model.Token;
+                try
+                {
+                    // Thử decode (nếu token được encode bằng Uri.EscapeDataString)
+                    token = Uri.UnescapeDataString(token);
+                }
+                catch
+                {
+                    // Nếu không decode được, dùng token gốc (đã được ASP.NET Core decode)
+                    token = model.Token;
+                }
+
+                // Reset password
+                var result = await _userManager.ResetPasswordAsync(user, token, model.Password);
+
+                if (result.Succeeded)
+                {
+                    // Đảm bảo UpdatedAt là UTC
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _userManager.UpdateAsync(user);
+
+                    TempData["Message"] = "Mật khẩu đã được đặt lại thành công! Bạn có thể đăng nhập ngay bây giờ.";
+                    _logger.LogInformation($"Password reset successful for {model.Email}");
+                    return RedirectToAction("Login");
+                }
+
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+
+                _logger.LogWarning($"Password reset failed for {model.Email}: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password");
+                ModelState.AddModelError("", "Có lỗi xảy ra khi đặt lại mật khẩu. Link có thể đã hết hạn. Vui lòng thử lại.");
+            }
+
+            return View(model);
+        }
     }
 }
